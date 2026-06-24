@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consistent Hashing — Key Concept</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 120px; }
+  header.masthead { padding: 72px 0 48px; border-bottom: 1.5px solid var(--g300); margin-bottom: 8px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--g500); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content:""; width:24px; height:1.5px; background:var(--clay); }
+  .eyebrow a { color: var(--g500); text-decoration: none; } .eyebrow a:hover { color: var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 5vw, 56px); line-height: 1.06; letter-spacing: -0.018em; margin-bottom: 8px; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro { font-size: 15.5px; color: var(--g700); margin-top: 18px; max-width: 600px; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 28px; }
+  nav.toc a { font-size: 12px; padding: 6px 14px; border: 1.5px solid var(--g300); border-radius: 999px; text-decoration: none; color: var(--g700); background: var(--paper); transition: border-color 120ms, color 120ms; display: inline-flex; align-items: center; gap: 6px; }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+  section { margin-top: 64px; scroll-margin-top: 24px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .sec-head .idx { font-family: var(--mono); font-size: 12px; color: var(--clay); font-weight: 600; width: 30px; flex-shrink: 0; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 500; font-size: 25px; letter-spacing: -0.012em; }
+  .sec-intro { font-size: 14px; color: var(--g700); max-width: 680px; margin: 0 0 22px 44px; }
+  .content-block { margin-left: 44px; }
+  @media (max-width: 600px) { .content-block, .sec-intro { margin-left: 0; } }
+  pre { background: #1A1A18; color: #E8E6DF; border-radius: 8px; padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; overflow-x: auto; margin: 12px 0; }
+  pre .kw { color: #CF9F6E; } pre .cn { color: #88C0A0; } pre .cm { color: #5F5F5A; } pre .st { color: #A8C97A; } pre .nm { color: #7AABD4; } pre .fn { color: #D97757; }
+  .tip { display: flex; gap: 12px; background: var(--g100); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .tip .tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tip .tip-text { font-size: 13.5px; color: var(--g700); }
+  .tip .tip-text strong { color: var(--slate); }
+  .tabs { display: flex; gap: 4px; margin-bottom: -1px; }
+  .tab-btn { font-family: var(--mono); font-size: 11.5px; padding: 7px 14px; border: 1.5px solid var(--g300); border-bottom: none; border-radius: 7px 7px 0 0; background: var(--g100); color: var(--g500); cursor: pointer; transition: background 120ms, color 120ms; }
+  .tab-btn.active { background: var(--paper); color: var(--slate); }
+  .tab-pane { display: none; border: 1.5px solid var(--g300); border-radius: 0 8px 8px 8px; }
+  .tab-pane.active { display: block; }
+  .tab-pane pre { margin: 0; border-radius: 0 6px 6px 6px; }
+  .highlight-box { background: #FEF3EE; border-left: 3px solid var(--clay); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0; font-size: 13.5px; color: var(--g700); }
+  .highlight-box strong { color: var(--clay-d); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+  ul.bullet { padding-left: 18px; } ul.bullet li { font-size: 13.5px; color: var(--g700); margin-bottom: 5px; } ul.bullet li strong { color: var(--slate); }
+  .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .pattern-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 10px; padding: 14px 16px; }
+  .pattern-card .p-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--olive); margin-bottom: 6px; }
+  .pattern-card .p-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .pattern-card .p-desc { font-size: 12.5px; color: var(--g700); }
+  .thread-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .thread-table th { background: var(--g100); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); padding: 8px 12px; text-align: left; }
+  .thread-table td { padding: 9px 12px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .thread-table td:first-child { font-weight: 600; color: var(--slate); }
+  .pro { color: var(--olive); font-weight: 600; } .con { color: var(--clay-d); font-weight: 600; }
+  .tag-pill { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 5px; background: var(--g100); color: var(--g700); margin: 2px; }
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 30px; font-size: 12.5px; color: var(--g500); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 14px; }
+  .diagram-center { display: flex; justify-content: center; margin: 16px 0; }
+  .step-list { list-style: none; counter-reset: steps; }
+  .step-list li { counter-increment: steps; display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--g200); font-size: 13.5px; color: var(--g700); }
+  .step-list li:last-child { border-bottom: none; }
+  .step-list li::before { content: counter(steps); display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; border-radius: 50%; background: var(--clay); color: white; font-family: var(--mono); font-size: 11px; font-weight: 700; margin-top: 1px; }
+  .step-list li strong { color: var(--slate); }
+  .usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .usage-item { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 8px; padding: 12px 14px; }
+  .usage-item .u-name { font-weight: 600; font-size: 13.5px; color: var(--slate); margin-bottom: 3px; }
+  .usage-item .u-desc { font-size: 12.5px; color: var(--g700); }
+  .explain-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  .explain-card h3 { font-family: var(--serif); font-size: 20px; font-weight: 500; margin-bottom: 8px; letter-spacing: -0.01em; }
+  .explain-card p { font-size: 14px; color: var(--g700); margin-bottom: 10px; }
+  .formula-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  @media (max-width: 700px) { .formula-row { grid-template-columns: 1fr; } }
+  .formula-card { background: var(--g100); border: 1px solid var(--g200); border-radius: 10px; padding: 13px 15px; }
+  .formula-card .label { font-family: var(--mono); font-size: 10px; color: var(--clay); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  .formula-card code { display: block; font-family: var(--mono); font-size: 12.5px; color: var(--slate); margin-bottom: 6px; }
+  .formula-card p { font-size: 12.5px; margin: 0; }
+  .ring-sim { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 14px; padding: 20px; margin-bottom: 22px; }
+  .sim-top { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: end; margin-bottom: 14px; }
+  @media (max-width: 720px) { .sim-top { grid-template-columns: 1fr; } }
+  .sim-field label { display: flex; justify-content: space-between; gap: 12px; font-family: var(--mono); font-size: 10px; color: var(--g500); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 7px; }
+  .sim-field strong { color: var(--clay); }
+  .sim-field input { width: 100%; accent-color: var(--clay); }
+  .sim-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+  .sim-actions button { border: 1.5px solid var(--g300); border-radius: 8px; background: var(--g100); color: var(--g700); padding: 8px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .sim-actions button:hover { border-color: var(--clay); color: var(--clay); background: var(--paper); }
+  .sim-layout { display: grid; grid-template-columns: minmax(280px, 1fr) 260px; gap: 18px; align-items: center; }
+  @media (max-width: 760px) { .sim-layout { grid-template-columns: 1fr; } }
+  .sim-stage { background: var(--ivory); border: 1.5px solid var(--g200); border-radius: 12px; padding: 12px; min-height: 320px; display: grid; place-items: center; }
+  .sim-stage svg { width: 100%; max-width: 380px; height: auto; overflow: visible; }
+  .sim-note { background: var(--g100); border: 1.5px solid var(--g200); border-radius: 12px; padding: 16px; }
+  .sim-note h3 { font-family: var(--serif); font-size: 20px; font-weight: 500; margin-bottom: 8px; }
+  .sim-note p { font-size: 13.5px; color: var(--g700); margin-bottom: 10px; }
+  .sim-stat { display: block; font-family: var(--mono); font-size: 11px; color: var(--slate); background: var(--paper); border: 1px solid var(--g200); border-radius: 7px; padding: 8px 10px; margin-top: 8px; }
+  .sim-caption { font-size: 12.5px; color: var(--g500); margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow"><a href="index.html">← Home</a> · Distributed Systems · Key Concept</div>
+  <h1>Consistent <em>Hashing</em></h1>
+  <p class="intro">A technique that minimises key remapping when servers are added or removed — from remapping nearly everything to remapping only ~1/N of keys.</p>
+  <nav class="toc">
+    <a href="#what">What Is It</a>
+    <a href="#problem">The Problem</a>
+    <a href="#how">How It Works</a>
+    <a href="#variants">Variants</a>
+    <a href="#tradeoffs">Trade-offs</a>
+    <a href="#code">Code</a>
+    <a href="#usage">Real-World</a>
+    <a href="#tips">Interview Tips</a>
+  </nav>
+</header>
+
+<!-- 01 WHAT IS IT -->
+<section id="what">
+  <div class="sec-head"><span class="idx">01</span><h2>What Is It</h2></div>
+  <p class="sec-intro">Consistent hashing is a way to decide which server owns a key without making every key depend on the current number of servers.</p>
+  <div class="content-block">
+    <div class="explain-card">
+      <h3>The core idea</h3>
+      <p>Consistent hashing decides which server owns a key without depending directly on the current number of servers.</p>
+      <p>It puts both keys and servers into one fixed hash space, usually drawn as a ring. A key belongs to the first server you find when moving clockwise from the key's position.</p>
+      <p>Because the ring stays fixed, adding or removing a server only changes ownership for nearby keys instead of reshuffling everything.</p>
+    </div>
+
+    <div class="explain-card">
+      <h3>Why do we need it?</h3>
+      <p>Imagine a cache cluster with millions of hot keys. If you add one more cache server and 70-80% of keys suddenly point to different servers, most cache reads become misses. Those misses fall through to the database at the same time. This is not just inefficient; it can overload the database and make the system slower exactly when you were trying to add capacity.</p>
+      <p>Consistent hashing makes cluster changes gradual. Adding one server only moves the keys that now fall into that new server's range. Removing one server only moves the keys that belonged to the removed server. Everything else keeps going to the same place.</p>
+    </div>
+
+    <div class="formula-row">
+      <div class="formula-card">
+        <div class="label">Modulo hashing</div>
+        <code>server = hash(key) % N</code>
+        <p><strong>N is part of the formula.</strong> If 3 servers become 4, every key is recalculated with a different divisor. Most keys move even though only one server was added.</p>
+      </div>
+      <div class="formula-card">
+        <div class="label">Consistent hashing</div>
+        <code>owner = nextServerClockwise(hash(key))</code>
+        <p><strong>The hash space is fixed.</strong> Adding a server inserts a new point on the ring. Existing server positions do not get renumbered, so most keys keep the same owner.</p>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <strong>Important wording:</strong> In modulo hashing, <code>N</code> is the number of servers and changing it changes the result for most keys. In consistent hashing, the ring size is fixed; you add or remove server positions inside that fixed space. That is why the whole mapping does not reshuffle.
+    </div>
+  </div>
+</section>
+
+<!-- 02 THE PROBLEM -->
+<section id="problem">
+  <div class="sec-head"><span class="idx">02</span><h2>The Problem It Solves</h2></div>
+  <p class="sec-intro">Naive modulo hashing is catastrophically unstable when the number of servers changes.</p>
+  <div class="content-block">
+    <p style="font-size:13.5px;color:var(--g700);margin-bottom:14px;">Imagine 3 cache servers. You route requests with <code>server = hash(key) % 3</code>. Works perfectly until you add a 4th server:</p>
+    <table class="thread-table" style="margin-bottom:16px;">
+      <thead><tr><th>Key</th><th>hash(key)</th><th>% 3 (old)</th><th>% 4 (new)</th><th>Moved?</th></tr></thead>
+      <tbody>
+        <tr><td>user:1</td><td>101</td><td>Server 2</td><td>Server 1</td><td style="color:var(--clay);font-weight:600;">YES</td></tr>
+        <tr><td>user:2</td><td>204</td><td>Server 0</td><td>Server 0</td><td style="color:var(--olive);font-weight:600;">no</td></tr>
+        <tr><td>user:3</td><td>307</td><td>Server 1</td><td>Server 3</td><td style="color:var(--clay);font-weight:600;">YES</td></tr>
+        <tr><td>user:4</td><td>412</td><td>Server 1</td><td>Server 0</td><td style="color:var(--clay);font-weight:600;">YES</td></tr>
+        <tr><td>user:5</td><td>515</td><td>Server 2</td><td>Server 3</td><td style="color:var(--clay);font-weight:600;">YES</td></tr>
+      </tbody>
+    </table>
+    <div class="highlight-box">
+      <strong>Result:</strong> ~75% of keys move on average when N changes by 1. Every miss hits the database. In a real system with millions of keys, this is a cache stampede that can take down your DB.
+    </div>
+  </div>
+</section>
+
+<!-- 03 HOW IT WORKS -->
+<section id="how">
+  <div class="sec-head"><span class="idx">03</span><h2>How It Works</h2></div>
+  <p class="sec-intro">A hash ring maps both servers and keys into the same space. Each key is owned by the first server clockwise from its hash position.</p>
+  <div class="content-block">
+    <div class="ring-sim">
+      <div class="sim-top">
+        <div class="sim-field">
+          <label for="sim-nodes">nodes <strong id="sim-node-count">4</strong></label>
+          <input id="sim-nodes" type="range" min="2" max="8" value="4" oninput="setSimNodes(this.value)">
+        </div>
+        <div class="sim-field">
+          <label for="sim-keys">keys <strong id="sim-key-count">32</strong></label>
+          <input id="sim-keys" type="range" min="8" max="80" step="4" value="32" oninput="setSimKeys(this.value)">
+        </div>
+      </div>
+      <div class="sim-actions">
+        <button type="button" onclick="removeSimNode()">remove a node</button>
+        <button type="button" onclick="addSimNode()">add a node</button>
+        <button type="button" onclick="resetSim()">reset</button>
+      </div>
+      <div class="sim-layout">
+        <div class="sim-stage">
+          <svg id="hash-sim" viewBox="0 0 360 360" role="img" aria-label="Consistent hashing simulator"></svg>
+        </div>
+        <div class="sim-note">
+          <h3>Hash onto a circle, not a line</h3>
+          <p>Colored arcs show ownership. A key belongs to the first node clockwise from its position.</p>
+          <p>When a node is added or removed, only the keys in the affected arc move. Dots outside that arc keep their color.</p>
+          <span class="sim-stat" id="sim-summary">4 nodes · 32 keys · — moved on last change</span>
+          <p class="sim-caption">Adjust the pool and watch which keys actually move.</p>
+        </div>
+      </div>
+    </div>
+
+    <ol class="step-list">
+      <li><strong>Create the ring</strong> — hash space 0 → 2³²−1 is mapped into a circle. Think of it as a clock with 4 billion positions.</li>
+      <li><strong>Place servers</strong> — hash each server's identifier (IP:port or name) → place it at that position on the ring.</li>
+      <li><strong>Route a key</strong> — hash the key → find its ring position → walk clockwise until you hit a server → that server owns the key.</li>
+      <li><strong>Add a server</strong> — insert its hash position on the ring. Only keys between the new server and its counter-clockwise predecessor move to the new server. All others stay.</li>
+      <li><strong>Remove a server</strong> — delete it from the ring. Its keys walk clockwise to the next server. Only those keys are affected.</li>
+    </ol>
+
+    <div style="margin-top:20px;">
+      <p style="font-weight:600;font-size:14px;margin-bottom:10px;color:var(--slate);">Virtual Nodes — solving uneven distribution</p>
+      <div class="highlight-box">
+        <strong>Problem:</strong> With only 3 physical servers on the ring, they land at 3 random positions. One server may end up owning 60% of the ring arc — hotspot.
+        <br><br>
+        <strong>Solution:</strong> Represent each server with K virtual nodes: <code>server-A-0</code>, <code>server-A-1</code>, ..., <code>server-A-149</code>, each hashed to a different ring position. With 150 virtual nodes per server, distribution is statistically uniform (law of large numbers).
+      </div>
+      <div class="two-col" style="margin-top:12px;">
+        <div class="pattern-card">
+          <div class="p-name">Without virtual nodes</div>
+          <div class="p-title">Uneven arcs</div>
+          <div class="p-desc">Server A: 60% of keys. Server B: 30%. Server C: 10%. One server is a hotspot.</div>
+        </div>
+        <div class="pattern-card">
+          <div class="p-name">With 150 virtual nodes</div>
+          <div class="p-title">~33% each</div>
+          <div class="p-desc">Each physical server handles ~1/N of total keys. Adding a server of double capacity? Give it 2× virtual nodes.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 VARIANTS -->
+<section id="variants">
+  <div class="sec-head"><span class="idx">04</span><h2>Types &amp; Variants</h2></div>
+  <p class="sec-intro">Different systems adapt the core ring idea for their needs.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="p-name">Classic</div>
+        <div class="p-title">Virtual-node ring</div>
+        <div class="p-desc">TreeMap of virtual positions → physical server. Used by Memcached clients, Cassandra. K = 100–200 virtual nodes.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Redis Cluster</div>
+        <div class="p-title">Hash slots</div>
+        <div class="p-desc">16,384 fixed slots (CRC16 mod 16384). Each node owns a contiguous range. Inspired by consistent hashing but simpler to reason about slot ownership.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Rendezvous</div>
+        <div class="p-title">Highest-random-weight</div>
+        <div class="p-desc">For each key, score every server as hash(key, server). Pick the highest score. Simpler than a ring, same O(1/N) remapping property. Used in some CDNs.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Jump Hash</div>
+        <div class="p-title">Google's variant</div>
+        <div class="p-desc">O(log N) lookup, zero memory overhead (no ring stored). Bucket count must be known. Useful when N changes are rare and cluster size is fixed.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 TRADE-OFFS -->
+<section id="tradeoffs">
+  <div class="sec-head"><span class="idx">05</span><h2>Trade-offs</h2></div>
+  <div class="content-block">
+    <table class="thread-table">
+      <thead><tr><th>Aspect</th><th>Pro / Con</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Key remapping</td><td class="pro">PRO</td><td>Only ~K/N keys move on topology change (vs. nearly all with modulo)</td></tr>
+        <tr><td>Distribution</td><td class="pro">PRO</td><td>Virtual nodes give statistically uniform distribution across servers</td></tr>
+        <tr><td>Weighted nodes</td><td class="pro">PRO</td><td>Bigger server = more virtual nodes = proportional load without code changes</td></tr>
+        <tr><td>Memory</td><td class="con">CON</td><td>TreeMap stores N × K entries. With 100 servers × 150 vnodes = 15,000 entries (small but nonzero)</td></tr>
+        <tr><td>Debugging</td><td class="con">CON</td><td>Non-obvious which physical server owns a key; need tooling to inspect ring state</td></tr>
+        <tr><td>Hot keys</td><td class="con">CON</td><td>One viral key still hammers one server — consistent hashing doesn't solve hot key, only data distribution</td></tr>
+        <tr><td>Client complexity</td><td class="con">CON</td><td>Client must maintain ring state and update on membership changes (often via a gossip protocol)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 06 CODE -->
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">Java implementation using TreeMap as the ring. O(log N) lookup via ceilingEntry().</p>
+  <div class="content-block">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(this,'ring-impl')">Ring Implementation</button>
+      <button class="tab-btn" onclick="switchTab(this,'ring-usage')">Usage</button>
+      <button class="tab-btn" onclick="switchTab(this,'ring-compare')">Modulo vs Consistent</button>
+    </div>
+    <div class="tab-pane active" id="ring-impl">
+<pre><span class="kw">class</span> <span class="cn">ConsistentHashRing</span> {
+    <span class="kw">private final</span> TreeMap&lt;Long, String&gt; ring = <span class="kw">new</span> TreeMap&lt;&gt;();
+    <span class="kw">private final int</span> virtualNodes;
+
+    <span class="kw">public</span> <span class="fn">ConsistentHashRing</span>(<span class="kw">int</span> virtualNodes) {
+        <span class="kw">this</span>.virtualNodes = virtualNodes;
+    }
+
+    <span class="kw">public void</span> <span class="fn">addServer</span>(String server) {
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">0</span>; i &lt; virtualNodes; i++) {
+            <span class="kw">long</span> hash = <span class="fn">hash</span>(server + <span class="st">"-vn-"</span> + i);
+            ring.<span class="fn">put</span>(hash, server);
+        }
+    }
+
+    <span class="kw">public void</span> <span class="fn">removeServer</span>(String server) {
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">0</span>; i &lt; virtualNodes; i++) {
+            ring.<span class="fn">remove</span>(<span class="fn">hash</span>(server + <span class="st">"-vn-"</span> + i));
+        }
+    }
+
+    <span class="kw">public</span> String <span class="fn">getServer</span>(String key) {
+        <span class="kw">if</span> (ring.<span class="fn">isEmpty</span>()) <span class="kw">throw new</span> <span class="cn">IllegalStateException</span>(<span class="st">"No servers"</span>);
+        <span class="kw">long</span> hash = <span class="fn">hash</span>(key);
+        <span class="cm">// First entry &gt;= hash. If none (key is past last server), wrap to first.</span>
+        Map.Entry&lt;Long, String&gt; entry = ring.<span class="fn">ceilingEntry</span>(hash);
+        <span class="kw">return</span> (entry != <span class="kw">null</span> ? entry : ring.<span class="fn">firstEntry</span>()).<span class="fn">getValue</span>();
+    }
+
+    <span class="kw">private long</span> <span class="fn">hash</span>(String key) {
+        <span class="cm">// In production: MurmurHash3 or MD5 truncated to 64 bits</span>
+        <span class="kw">return</span> Math.<span class="fn">abs</span>(key.<span class="fn">hashCode</span>()) &amp; <span class="nm">0xFFFFFFFFL</span>;
+    }
+}</pre>
+    </div>
+    <div class="tab-pane" id="ring-usage">
+<pre><span class="cn">ConsistentHashRing</span> ring = <span class="kw">new</span> <span class="cn">ConsistentHashRing</span>(<span class="nm">150</span>);
+ring.<span class="fn">addServer</span>(<span class="st">"cache-A"</span>);
+ring.<span class="fn">addServer</span>(<span class="st">"cache-B"</span>);
+ring.<span class="fn">addServer</span>(<span class="st">"cache-C"</span>);
+
+<span class="cm">// Route a key — always stable as long as topology doesn't change</span>
+String server = ring.<span class="fn">getServer</span>(<span class="st">"user:12345"</span>); <span class="cm">// → e.g., "cache-B"</span>
+
+<span class="cm">// Add a server — only ~1/3 of keys remap</span>
+ring.<span class="fn">addServer</span>(<span class="st">"cache-D"</span>);
+<span class="cm">// "user:12345" might now route to "cache-D" if it's between B's predecessor and B</span>
+
+<span class="cm">// Remove a server — its keys move to the next clockwise server</span>
+ring.<span class="fn">removeServer</span>(<span class="st">"cache-B"</span>);
+<span class="cm">// Those keys now route to "cache-C" or "cache-D"</span></pre>
+    </div>
+    <div class="tab-pane" id="ring-compare">
+<pre><span class="cm">// MODULO HASHING — breaks on topology change</span>
+<span class="kw">int</span> N = <span class="nm">3</span>;
+String server = servers[Math.<span class="fn">abs</span>(key.<span class="fn">hashCode</span>()) % N]; <span class="cm">// simple but fragile</span>
+<span class="cm">// Add 1 server: N=4. Now hash % 4 ≠ hash % 3 for ~75% of keys → mass invalidation.</span>
+
+<span class="cm">// CONSISTENT HASHING — stable on topology change</span>
+String server = ring.<span class="fn">getServer</span>(key); <span class="cm">// O(log N*K) lookup</span>
+<span class="cm">// Add 1 server: only ~1/N keys remap. Everything else stays on same server.</span>
+
+<span class="cm">// Comparison:</span>
+<span class="cm">// Keys remapped on add: modulo=~75%,  consistent=~1/N (e.g., ~33% with 3 servers)</span>
+<span class="cm">// Keys remapped on remove: modulo=~67%, consistent=~1/N</span>
+<span class="cm">// Memory: modulo=O(N), consistent=O(N*K)</span>
+<span class="cm">// Lookup: modulo=O(1), consistent=O(log N*K)</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- 07 REAL-WORLD USAGE -->
+<section id="usage">
+  <div class="sec-head"><span class="idx">07</span><h2>Real-World Usage</h2></div>
+  <div class="content-block">
+    <div class="usage-grid">
+      <div class="usage-item"><div class="u-name">Apache Cassandra</div><div class="u-desc">Partitions rows across nodes using a token ring. Each node owns a token range. vnodes (virtual nodes) enabled by default since v1.2.</div></div>
+      <div class="usage-item"><div class="u-name">Amazon DynamoDB</div><div class="u-desc">Inspired by Amazon's Dynamo paper (2007) — the paper that popularised consistent hashing for databases.</div></div>
+      <div class="usage-item"><div class="u-name">Redis Cluster</div><div class="u-desc">16,384 hash slots assigned to nodes. A variant of consistent hashing with fixed discrete slots instead of a continuous ring.</div></div>
+      <div class="usage-item"><div class="u-name">Memcached clients</div><div class="u-desc">Client-side consistent hashing (ketama algorithm). Client holds the ring locally; no server-side coordination needed.</div></div>
+      <div class="usage-item"><div class="u-name">CDN / Load balancers</div><div class="u-desc">Sticky session routing — same client IP consistently routes to same edge server without session state replication.</div></div>
+      <div class="usage-item"><div class="u-name">Peer-to-peer (DHT)</div><div class="u-desc">Chord, Kademlia, BitTorrent DHT all use consistent hashing to distribute file lookups across peers.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 INTERVIEW TIPS -->
+<section id="tips">
+  <div class="sec-head"><span class="idx">08</span><h2>Interview Tips</h2></div>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>"What happens when a server is added or removed?"</strong> This is asked every time. Answer: only keys between the new/removed node and its counter-clockwise predecessor are affected — approximately 1/N of total keys.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>Always mention virtual nodes unprompted.</strong> Without them, servers land unevenly on the ring and one may handle 60–80% of traffic. Virtual nodes (K=150) give statistically uniform distribution.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>"How do clients know which server owns a key?"</strong> Two common answers: (a) client-side ring — client maintains a copy of the ring and computes routing locally (Memcached/ketama); (b) coordinator node — one node knows the ring and forwards requests (Cassandra coordinator).</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>Distinguish Redis Cluster from the classic ring.</strong> Redis uses 16,384 discrete hash slots, not a continuous ring. Each node owns a slot range. It's consistent-hashing-inspired but simpler: <code>slot = CRC16(key) % 16384</code>.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Hot key problem is separate.</strong> Consistent hashing solves data distribution across servers but not hot keys — one viral key still hits one server. Solutions: read replicas for that key, or split the key into shards (<code>user:12345:0..9</code>).</div></div>
+    <div class="tip"><div class="tip-icon">6</div><div class="tip-text"><strong>TreeMap is your implementation hint.</strong> The ring is a sorted map of hash → server. <code>ceilingEntry(hash)</code> finds the next server clockwise in O(log N). Wrap around using <code>firstEntry()</code> if result is null.</div></div>
+  </div>
+</section>
+
+<footer>
+  <span class="k">Consistent Hashing — Distributed Systems Concept</span>
+  <span><a href="index.html" style="color:var(--clay);text-decoration:none;">← Back to Home</a></span>
+</footer>
+
+</div>
+<script>
+function switchTab(btn, id) {
+  const container = btn.closest('div[style]') || btn.parentElement.parentElement;
+  btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  const t = document.getElementById(id); if (t) t.classList.add('active');
+}
+
+const simColors = ['#D97757', '#788C5D', '#4A6FA5', '#7B5EA7', '#BB8F24', '#2F6F9F', '#B85C3E', '#5F7C70'];
+const simNodeSlots = [0.06, 0.31, 0.58, 0.82, 0.18, 0.45, 0.70, 0.93];
+let sim = { nodes: 4, keys: 32, lastMoved: null, previousOwners: null };
+
+function stableHash(n, salt) {
+  const x = Math.sin((n + 1) * 999 + salt * 131) * 10000;
+  return x - Math.floor(x);
+}
+
+function nodePositions(count) {
+  return simNodeSlots
+    .slice(0, count)
+    .map((pos, id) => ({ id, pos }))
+    .sort((a, b) => a.pos - b.pos);
+}
+
+function keyPositions(count) {
+  const positions = [];
+  for (let i = 0; i < count; i++) positions.push({ id: i, pos: stableHash(i, 19) });
+  return positions.sort((a, b) => a.pos - b.pos);
+}
+
+function ownerFor(pos, nodes) {
+  return nodes.find(node => pos <= node.pos) || nodes[0];
+}
+
+function ownerMap(nodes, keys) {
+  const map = {};
+  keys.forEach(key => { map[key.id] = ownerFor(key.pos, nodes).id; });
+  return map;
+}
+
+function countMoved(prev, next) {
+  if (!prev) return null;
+  return Object.keys(next).filter(key => prev[key] !== next[key]).length;
+}
+
+function polar(pos, radius) {
+  const angle = pos * Math.PI * 2 - Math.PI / 2;
+  return { x: 180 + Math.cos(angle) * radius, y: 180 + Math.sin(angle) * radius };
+}
+
+function arcPath(start, end, radius) {
+  let e = end;
+  if (e <= start) e += 1;
+  const p1 = polar(start, radius);
+  const p2 = polar(e % 1, radius);
+  const large = e - start > 0.5 ? 1 : 0;
+  return `M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${radius} ${radius} 0 ${large} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+}
+
+function renderSim() {
+  const svg = document.getElementById('hash-sim');
+  if (!svg) return;
+  const nodes = nodePositions(sim.nodes);
+  const keys = keyPositions(sim.keys);
+  const owners = ownerMap(nodes, keys);
+  const moved = countMoved(sim.previousOwners, owners);
+  sim.lastMoved = moved;
+  svg.innerHTML = '';
+
+  const base = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  base.setAttribute('cx', '180');
+  base.setAttribute('cy', '180');
+  base.setAttribute('r', '118');
+  base.setAttribute('fill', 'none');
+  base.setAttribute('stroke', '#D1CFC5');
+  base.setAttribute('stroke-width', '2');
+  svg.appendChild(base);
+
+  nodes.forEach((node, index) => {
+    const prev = nodes[(index - 1 + nodes.length) % nodes.length];
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', arcPath(prev.pos, node.pos, 118));
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', simColors[node.id % simColors.length]);
+    path.setAttribute('stroke-width', '12');
+    path.setAttribute('stroke-opacity', '.22');
+    path.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(path);
+  });
+
+  keys.forEach(key => {
+    const p = polar(key.pos, 92);
+    const owner = owners[key.id];
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', p.x.toFixed(2));
+    dot.setAttribute('cy', p.y.toFixed(2));
+    dot.setAttribute('r', '3.6');
+    dot.setAttribute('fill', simColors[owner % simColors.length]);
+    dot.setAttribute('opacity', sim.previousOwners && sim.previousOwners[key.id] !== owner ? '1' : '.72');
+    dot.setAttribute('stroke', sim.previousOwners && sim.previousOwners[key.id] !== owner ? '#141413' : 'none');
+    dot.setAttribute('stroke-width', '1.2');
+    svg.appendChild(dot);
+  });
+
+  nodes.forEach(node => {
+    const p = polar(node.pos, 118);
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', p.x.toFixed(2));
+    circle.setAttribute('cy', p.y.toFixed(2));
+    circle.setAttribute('r', '12');
+    circle.setAttribute('fill', simColors[node.id % simColors.length]);
+    circle.setAttribute('stroke', '#fff');
+    circle.setAttribute('stroke-width', '2');
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', p.x.toFixed(2));
+    label.setAttribute('y', (p.y + 4).toFixed(2));
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-family', 'ui-monospace,monospace');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('font-weight', '700');
+    label.setAttribute('fill', '#fff');
+    label.textContent = String.fromCharCode(65 + node.id);
+    group.append(circle, label);
+    svg.appendChild(group);
+  });
+
+  const center = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  center.setAttribute('x', '180');
+  center.setAttribute('y', '176');
+  center.setAttribute('text-anchor', 'middle');
+  center.setAttribute('font-family', 'ui-serif,Georgia,serif');
+  center.setAttribute('font-size', '15');
+  center.setAttribute('fill', '#3D3D3A');
+  center.textContent = 'hash ring';
+  svg.appendChild(center);
+
+  const sub = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  sub.setAttribute('x', '180');
+  sub.setAttribute('y', '194');
+  sub.setAttribute('text-anchor', 'middle');
+  sub.setAttribute('font-family', 'ui-monospace,monospace');
+  sub.setAttribute('font-size', '10');
+  sub.setAttribute('fill', '#87867F');
+  sub.textContent = 'clockwise owner';
+  svg.appendChild(sub);
+
+  document.getElementById('sim-node-count').textContent = sim.nodes;
+  document.getElementById('sim-key-count').textContent = sim.keys;
+  document.getElementById('sim-nodes').value = sim.nodes;
+  document.getElementById('sim-keys').value = sim.keys;
+  document.getElementById('sim-summary').textContent = `${sim.nodes} nodes · ${sim.keys} keys · ${moved === null ? '—' : moved} moved on last change`;
+  sim.previousOwners = owners;
+}
+
+function setSimNodes(value) {
+  sim.nodes = Number(value);
+  renderSim();
+}
+
+function setSimKeys(value) {
+  sim.keys = Number(value);
+  sim.previousOwners = null;
+  renderSim();
+}
+
+function addSimNode() {
+  if (sim.nodes < 8) {
+    sim.nodes += 1;
+    renderSim();
+  }
+}
+
+function removeSimNode() {
+  if (sim.nodes > 2) {
+    sim.nodes -= 1;
+    renderSim();
+  }
+}
+
+function resetSim() {
+  sim = { nodes: 4, keys: 32, lastMoved: null, previousOwners: null };
+  renderSim();
+}
+
+renderSim();
+</script>
+</body>
+</html>

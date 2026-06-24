@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Distributed Consensus — SDE Interview Prep</title>
+<style>
+:root {
+  --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+  --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+  --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+  --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+.page-header { background: var(--slate); }
+.page-header .inner { max-width: 1200px; margin: 0 auto; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+.back-link { color: var(--g300); text-decoration: none; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+.back-link:hover { color: var(--paper); }
+.header-badge { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--clay); background: rgba(217,119,87,.15); padding: 4px 10px; border-radius: 4px; }
+
+.hero { background: var(--slate); padding: 48px 32px 56px; }
+.hero .inner { max-width: 1200px; margin: 0 auto; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--clay); margin-bottom: 16px; }
+.hero h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(36px, 5vw, 56px); line-height: 1.06; letter-spacing: -.022em; color: var(--paper); margin-bottom: 16px; }
+.hero h1 em { font-style: italic; color: var(--clay); }
+.hero-sub { font-size: 16px; color: var(--g500); max-width: 600px; line-height: 1.65; }
+
+.layout { max-width: 1200px; margin: 0 auto; padding: 48px 32px 100px; display: grid; grid-template-columns: 220px 1fr; gap: 48px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } .toc { display: none; } }
+
+.toc { position: sticky; top: 32px; }
+.toc-title { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--g500); margin-bottom: 12px; }
+.toc a { display: block; font-size: 13px; color: var(--g500); text-decoration: none; padding: 5px 0 5px 12px; border-left: 2px solid var(--g200); transition: color 120ms, border-color 120ms; line-height: 1.4; }
+.toc a:hover { color: var(--slate); border-left-color: var(--clay); }
+
+section { margin-bottom: 64px; scroll-margin-top: 32px; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 28px; letter-spacing: -.015em; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1.5px solid var(--g200); }
+h3 { font-size: 15px; font-weight: 600; margin: 28px 0 10px; }
+p { font-size: 15px; color: var(--g700); margin-bottom: 14px; line-height: 1.7; }
+
+.diagram-box { background: var(--slate); border-radius: 16px; padding: 32px; margin: 24px 0; }
+.diagram-box svg { width: 100%; height: auto; display: block; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin: 20px 0; }
+.card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 18px 20px; }
+.card-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--clay); margin-bottom: 8px; }
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.card-body { font-size: 13.5px; color: var(--g700); line-height: 1.6; }
+
+.table-wrap { overflow-x: auto; margin: 20px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { background: var(--g100); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--g200); }
+td { padding: 10px 14px; border-bottom: 1px solid var(--g200); color: var(--g700); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--g100); }
+.good { color: var(--olive); font-weight: 600; }
+.bad { color: #c0392b; font-weight: 600; }
+.mid { color: var(--clay); font-weight: 600; }
+
+.tabs { margin: 20px 0; }
+.tab-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab-btn { font-family: var(--mono); font-size: 11px; padding: 7px 14px; border: 1.5px solid var(--g200); border-bottom: none; border-radius: 8px 8px 0 0; background: var(--g100); color: var(--g500); cursor: pointer; }
+.tab-btn.active { background: var(--slate); color: var(--paper); border-color: var(--slate); }
+.tab-pane { display: none; border: 1.5px solid var(--g300); border-radius: 0 8px 8px 8px; overflow: hidden; }
+.tab-pane.active { display: block; }
+pre { background: var(--slate); color: #e8e6df; font-family: var(--mono); font-size: 13px; line-height: 1.65; padding: 24px 28px; overflow-x: auto; margin: 0; }
+.kw { color: #7eb8f7; } .cn { color: #a8c880; } .cm { color: #6a7a6a; font-style: italic; }
+.st { color: #D97757; } .nm { color: #c39bd3; } .fn { color: #5bc4c4; }
+
+.tip { display: flex; gap: 14px; background: var(--paper); border: 1.5px solid var(--g200); border-left: 3px solid var(--clay); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+.tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.tip-text { font-size: 13.5px; color: var(--g700); line-height: 1.6; }
+.tip-text strong { color: var(--slate); }
+
+.highlight-box { background: rgba(217,119,87,.07); border: 1.5px solid rgba(217,119,87,.25); border-radius: 10px; padding: 16px 20px; margin: 16px 0; font-size: 14px; color: var(--g700); line-height: 1.65; }
+.highlight-box strong { color: var(--clay); }
+
+.steps { counter-reset: step; margin: 20px 0; }
+.step { display: flex; gap: 16px; margin-bottom: 16px; }
+.step-num { counter-increment: step; content: counter(step); width: 28px; height: 28px; background: var(--clay); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.step-body { font-size: 14px; color: var(--g700); line-height: 1.6; padding-top: 4px; }
+.step-body strong { color: var(--slate); }
+
+footer { max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; border-top: 1.5px solid var(--g300); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--g500); }
+footer a { color: var(--clay); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="inner">
+    <a class="back-link" href="index.html">← Home</a>
+    <span class="header-badge">Senior SDE</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="inner">
+    <div class="eyebrow">Distributed Systems</div>
+    <h1>Distributed<br><em>Consensus</em></h1>
+    <p class="hero-sub">Raft, Paxos, ZAB — how distributed systems agree on a single value even when nodes crash or messages are delayed. The algorithm that powers etcd, Kafka KRaft, and CockroachDB.</p>
+  </div>
+</div>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <a href="#what">1. What Is It</a>
+  <a href="#problem">2. The Problem</a>
+  <a href="#how">3. Raft Leader Election</a>
+  <a href="#types">4. Raft, Paxos, ZAB</a>
+  <a href="#tradeoffs">5. Trade-offs</a>
+  <a href="#code">6. Code Examples</a>
+  <a href="#real-world">7. Real-World Usage</a>
+  <a href="#tips">8. Interview Tips</a>
+</nav>
+
+<main>
+
+<section id="what">
+  <h2>1. What Is It</h2>
+  <p>Distributed consensus is the problem of getting a cluster of nodes to agree on a single value (or sequence of values) — even when some nodes crash, messages are delayed, or the network partitions. It's the foundation of any strongly-consistent distributed system: replicated state machines, distributed databases, and configuration stores.</p>
+  <div class="highlight-box">
+    <strong>The fundamental challenge:</strong> In a distributed system, there is no global clock and messages can arrive out of order or not at all. Without a consensus protocol, two nodes could simultaneously believe they are the leader and accept conflicting writes — split-brain.
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Raft</div>
+      <div class="card-title">Understandable consensus</div>
+      <div class="card-body">Designed explicitly for understandability. Separate concerns: leader election, log replication, safety. The protocol used in etcd, Consul, CockroachDB, Kafka KRaft.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Paxos</div>
+      <div class="card-title">The original protocol</div>
+      <div class="card-body">Lamport's original consensus algorithm. Notoriously hard to implement correctly. Multi-Paxos (optimized form) is the basis for Google Chubby, Spanner.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">ZAB</div>
+      <div class="card-title">ZooKeeper Atomic Broadcast</div>
+      <div class="card-body">ZooKeeper's variant. Epoch-based, similar to Raft. Used by Kafka (ZooKeeper mode) for metadata management before KRaft.</div>
+    </div>
+  </div>
+</section>
+
+<section id="problem">
+  <h2>2. The Problem It Solves</h2>
+  <p>Consider a 3-node replicated database. A client writes a value. Node 1 and Node 2 receive it; Node 3 is unreachable. Is this write committed? Without consensus, you can't know — if Node 1 crashes now, did Node 2 commit? Did they agree?</p>
+
+  <p>Consensus solves this by requiring a <strong>majority quorum</strong> (⌊N/2⌋ + 1 nodes) to agree on each operation before it's considered committed. With 3 nodes, any 2 must agree. This tolerates 1 failure. With 5 nodes, any 3 must agree — tolerates 2 failures.</p>
+
+  <div class="highlight-box">
+    <strong>FLP Impossibility:</strong> In an asynchronous system with even one faulty process, it's impossible to guarantee consensus. Raft and Paxos work around this by using randomized timeouts and making liveness probabilistic — they guarantee safety always, but liveness only under "sufficiently synchronous" conditions.
+  </div>
+
+  <p>The distributed consensus problem also prevents split-brain: a scenario where a network partition creates two groups of nodes that each believe they are the authoritative cluster and accept conflicting writes. Requiring majority quorum ensures only one partition (the one with more than half the nodes) can make progress.</p>
+</section>
+
+<section id="how">
+  <h2>3. How Raft Works</h2>
+
+  <div class="diagram-box">
+    <svg viewBox="0 0 700 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Phase labels -->
+      <text x="110" y="20" text-anchor="middle" font-family="monospace" font-size="11" fill="var(--g500)">PHASE 1: Timeout</text>
+      <text x="370" y="20" text-anchor="middle" font-family="monospace" font-size="11" fill="var(--g500)">PHASE 2: Election</text>
+      <text x="600" y="20" text-anchor="middle" font-family="monospace" font-size="11" fill="var(--g500)">PHASE 3: Leader</text>
+
+      <!-- Phase 1: Follower times out -->
+      <rect x="30" y="35" width="80" height="36" rx="8" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+      <text x="70" y="55" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">Node A</text>
+      <text x="70" y="68" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">Follower</text>
+
+      <rect x="30" y="105" width="80" height="36" rx="8" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+      <text x="70" y="125" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">Node B</text>
+      <text x="70" y="138" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">Follower</text>
+
+      <rect x="30" y="175" width="80" height="36" rx="8" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+      <text x="70" y="195" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">Node C</text>
+      <text x="70" y="208" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">Follower</text>
+
+      <text x="110" y="235" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757">timeout! no heartbeat</text>
+      <text x="110" y="248" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">from leader (150-300ms)</text>
+
+      <!-- Arrow to Phase 2 -->
+      <line x1="175" y1="125" x2="215" y2="125" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+      <polygon points="215,125 207,121 207,129" fill="rgba(255,255,255,.15)"/>
+
+      <!-- Phase 2: Candidate sends RequestVote -->
+      <rect x="220" y="35" width="90" height="36" rx="8" fill="rgba(217,119,87,.25)" stroke="#D97757" stroke-width="2"/>
+      <text x="265" y="55" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757">Node A</text>
+      <text x="265" y="68" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757">Candidate</text>
+
+      <rect x="220" y="105" width="90" height="36" rx="8" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+      <text x="265" y="125" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">Node B</text>
+      <text x="265" y="138" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">Follower</text>
+
+      <rect x="220" y="175" width="90" height="36" rx="8" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+      <text x="265" y="195" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">Node C</text>
+      <text x="265" y="208" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">Follower</text>
+
+      <!-- RequestVote arrows -->
+      <line x1="310" y1="60" x2="320" y2="60" stroke="#D97757" stroke-width="1" stroke-dasharray="4,2"/>
+      <line x1="310" y1="60" x2="310" y2="123" stroke="#D97757" stroke-width="1" stroke-dasharray="4,2"/>
+      <line x1="310" y1="123" x2="316" y2="123" stroke="#D97757" stroke-width="1"/>
+      <text x="330" y="95" font-family="monospace" font-size="8" fill="#D97757">RequestVote</text>
+      <text x="330" y="107" font-family="monospace" font-size="8" fill="#D97757">(term=5)</text>
+
+      <!-- Vote granted back -->
+      <line x1="310" y1="193" x2="310" y2="123" stroke="rgba(120,140,93,.6)" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="315" y="175" font-family="monospace" font-size="8" fill="#a8c880">voteGranted</text>
+
+      <!-- Term counter -->
+      <text x="265" y="248" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">increments term, votes for self</text>
+
+      <!-- Arrow to Phase 3 -->
+      <line x1="375" y1="125" x2="415" y2="125" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+      <polygon points="415,125 407,121 407,129" fill="rgba(255,255,255,.15)"/>
+
+      <!-- Phase 3: Leader elected -->
+      <rect x="420" y="35" width="100" height="40" rx="8" fill="rgba(120,140,93,.3)" stroke="#a8c880" stroke-width="2"/>
+      <text x="470" y="52" text-anchor="middle" font-family="monospace" font-size="10" fill="#a8c880">Node A</text>
+      <text x="470" y="65" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">LEADER 👑</text>
+
+      <rect x="420" y="105" width="100" height="36" rx="8" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+      <text x="470" y="128" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">Node B · Follower</text>
+
+      <rect x="420" y="172" width="100" height="36" rx="8" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+      <text x="470" y="195" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">Node C · Follower</text>
+
+      <!-- Heartbeat arrows -->
+      <line x1="520" y1="60" x2="540" y2="60" stroke="#a8c880" stroke-width="1"/>
+      <line x1="540" y1="60" x2="540" y2="123" stroke="#a8c880" stroke-width="1"/>
+      <line x1="540" y1="123" x2="521" y2="123" stroke="#a8c880" stroke-width="1"/>
+      <polygon points="521,123 529,119 529,127" fill="#a8c880"/>
+      <line x1="540" y1="60" x2="540" y2="190" stroke="#a8c880" stroke-width="1"/>
+      <line x1="540" y1="190" x2="521" y2="190" stroke="#a8c880" stroke-width="1"/>
+      <polygon points="521,190 529,186 529,194" fill="#a8c880"/>
+      <text x="548" y="130" font-family="monospace" font-size="8" fill="#a8c880">heartbeat</text>
+      <text x="548" y="142" font-family="monospace" font-size="8" fill="#a8c880">(AppendEntries</text>
+      <text x="548" y="154" font-family="monospace" font-size="8" fill="#a8c880"> empty)</text>
+
+      <text x="470" y="235" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">sends heartbeats every ~50ms</text>
+      <text x="470" y="248" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">to prevent new elections</text>
+    </svg>
+  </div>
+
+  <h3>Log Replication (the happy path)</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--clay);color:white;border-radius:50%;font-family:var(--mono);font-size:12px;font-weight:700;flex-shrink:0;">1</div>
+      <div class="step-body"><strong>Client writes to Leader:</strong> Client sends write request to any node. If not the leader, the node redirects. Leader receives the request.</div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--clay);color:white;border-radius:50%;font-family:var(--mono);font-size:12px;font-weight:700;flex-shrink:0;">2</div>
+      <div class="step-body"><strong>Leader appends to its log:</strong> Entry is added with current term number. Not yet committed.</div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--clay);color:white;border-radius:50%;font-family:var(--mono);font-size:12px;font-weight:700;flex-shrink:0;">3</div>
+      <div class="step-body"><strong>AppendEntries RPC to all followers:</strong> Leader sends the new log entry in parallel. Followers append to their local logs and acknowledge.</div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--clay);color:white;border-radius:50%;font-family:var(--mono);font-size:12px;font-weight:700;flex-shrink:0;">4</div>
+      <div class="step-body"><strong>Commit once majority ACK:</strong> Once ⌊N/2⌋+1 nodes acknowledge, the Leader commits the entry and applies it to its state machine. Updates commitIndex.</div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--clay);color:white;border-radius:50%;font-family:var(--mono);font-size:12px;font-weight:700;flex-shrink:0;">5</div>
+      <div class="step-body"><strong>Notify followers to commit:</strong> Next AppendEntries (or heartbeat) includes updated commitIndex. Followers apply committed entries to their state machines.</div>
+    </div>
+  </div>
+</section>
+
+<section id="types">
+  <h2>4. Raft, Paxos, and Quorums</h2>
+
+  <h3>Raft — Key Safety Properties</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Election Safety</div>
+      <div class="card-title">At most one leader per term</div>
+      <div class="card-body">A candidate must get votes from a majority. Since each node votes for at most one candidate per term, only one candidate can achieve majority — impossible to have two leaders in the same term.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Log Completeness</div>
+      <div class="card-title">Winners have all committed entries</div>
+      <div class="card-body">A candidate can only win if its log is at least as up-to-date as any node in the majority that votes for it. Since committed entries exist on a majority, any winner must have all committed entries.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">State Machine Safety</div>
+      <div class="card-title">All nodes apply same entries in order</div>
+      <div class="card-body">If any node applies log entry at index i, no other node can apply a different entry at index i. Combined with log completeness → all state machines are identical.</div>
+    </div>
+  </div>
+
+  <h3>Paxos — Two Phases</h3>
+  <div class="highlight-box">
+    <strong>Phase 1 — Prepare:</strong> Proposer sends Prepare(n) to quorum. Each Acceptor promises not to accept any proposal numbered &lt; n, and returns the highest-numbered proposal it has already accepted (if any). Proposer collects these responses.<br><br>
+    <strong>Phase 2 — Accept:</strong> If the Proposer got promises from a majority, it sends Accept(n, v) where v is the value from the highest-numbered accepted proposal returned (or its own value if none). Acceptors accept if they haven't promised a higher number. When a majority accepts, the value is chosen.<br><br>
+    <strong>Multi-Paxos optimization:</strong> Elect a stable Proposer (leader) and skip Phase 1 for subsequent proposals within a term. Now it looks very similar to Raft — this is why real implementations converge on the same shape.
+  </div>
+
+  <h3>Quorum Read/Write Tuning</h3>
+  <div class="highlight-box">
+    <strong>Rule:</strong> W + R &gt; N guarantees at least one overlap node between write set and read set → reads always see latest write.<br><br>
+    N=3 examples:<br>
+    • W=1, R=1 → no guarantee (fast, eventual consistency — Cassandra ONE)<br>
+    • W=2, R=2 → W+R=4 &gt; 3 ✓ (Cassandra QUORUM)<br>
+    • W=3, R=1 → W+R=4 &gt; 3 ✓ (max write durability, fast reads)<br>
+    • W=1, R=3 → W+R=4 &gt; 3 ✓ (fast writes, expensive reads)
+  </div>
+</section>
+
+<section id="tradeoffs">
+  <h2>5. Trade-offs</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Algorithm</th><th>Understandability</th><th>Performance</th><th>Membership Changes</th><th>Used In</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Raft</strong></td>
+          <td class="good">High — designed for it</td>
+          <td class="good">Good</td>
+          <td class="good">Joint consensus or single-server changes</td>
+          <td>etcd, Consul, CockroachDB, Kafka KRaft</td>
+        </tr>
+        <tr>
+          <td><strong>Multi-Paxos</strong></td>
+          <td class="bad">Very low</td>
+          <td class="good">Excellent (skip Phase 1)</td>
+          <td class="bad">Complex</td>
+          <td>Google Chubby, Spanner, Zab (ZAB variant)</td>
+        </tr>
+        <tr>
+          <td><strong>ZAB</strong></td>
+          <td class="mid">Moderate</td>
+          <td class="good">Good</td>
+          <td class="mid">Epoch-based</td>
+          <td>ZooKeeper (Kafka legacy metadata)</td>
+        </tr>
+        <tr>
+          <td><strong>Viewstamped Replication</strong></td>
+          <td class="mid">Moderate</td>
+          <td class="good">Good</td>
+          <td class="mid">View changes</td>
+          <td>Academic, influenced Raft</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="highlight-box">
+    <strong>CAP impact:</strong> All consensus protocols (Raft, Paxos, ZAB) are <strong>CP</strong> — they prioritize Consistency over Availability. During a leader election (after crash), the cluster is unavailable for writes for the duration of the election timeout (typically 150–300ms for Raft). This is an acceptable tradeoff for configuration stores, but not for user-facing APIs.
+  </div>
+</section>
+
+<section id="code">
+  <h2>6. Code Examples</h2>
+  <div class="tabs">
+    <div class="tab-btns">
+      <button class="tab-btn active" data-group="raft" onclick="switchTab('raft','replication')">Log Replication</button>
+      <button class="tab-btn" data-group="raft" onclick="switchTab('raft','election')">Leader Election</button>
+      <button class="tab-btn" data-group="raft" onclick="switchTab('raft','paxos')">Paxos Prepare/Accept</button>
+      <button class="tab-btn" data-group="raft" onclick="switchTab('raft','quorum')">Quorum Calculator</button>
+    </div>
+    <div class="tab-pane active" data-group="raft" data-tab="raft-replication">
+<pre><span class="kw">class</span> <span class="cn">RaftLeader</span> {
+  <span class="kw">private</span> <span class="cn">List</span>&lt;<span class="cn">LogEntry</span>&gt; log = <span class="kw">new</span> <span class="cn">ArrayList</span>&lt;&gt;();
+  <span class="kw">private</span> <span class="kw">int</span> commitIndex = <span class="nm">0</span>;
+  <span class="kw">private</span> <span class="cn">List</span>&lt;<span class="cn">RaftPeer</span>&gt; peers;
+  <span class="kw">private</span> <span class="kw">int</span> currentTerm;
+
+  <span class="kw">public</span> <span class="cn">CompletableFuture</span>&lt;<span class="cn">Boolean</span>&gt; <span class="fn">appendEntry</span>(<span class="cn">String</span> command) {
+    <span class="cm">// 1. Append to own log</span>
+    <span class="cn">LogEntry</span> entry = <span class="kw">new</span> <span class="cn">LogEntry</span>(currentTerm, log.size(), command);
+    log.<span class="fn">add</span>(entry);
+    <span class="kw">int</span> entryIndex = log.size() - <span class="nm">1</span>;
+
+    <span class="cm">// 2. Send AppendEntries RPC to all followers in parallel</span>
+    <span class="cn">List</span>&lt;<span class="cn">CompletableFuture</span>&lt;<span class="cn">Boolean</span>&gt;&gt; futures = peers.stream()
+      .<span class="fn">map</span>(peer -> peer.<span class="fn">appendEntries</span>(currentTerm, entry))
+      .<span class="fn">collect</span>(<span class="cn">Collectors</span>.<span class="fn">toList</span>());
+
+    <span class="cm">// 3. Wait for majority ack (quorum = floor(N/2) + 1)</span>
+    <span class="kw">int</span> quorum = peers.size() / <span class="nm">2</span> + <span class="nm">1</span>; <span class="cm">// includes self</span>
+    <span class="kw">return</span> <span class="fn">waitForMajority</span>(futures, quorum).<span class="fn">thenApply</span>(success -> {
+      <span class="kw">if</span> (success) {
+        <span class="cm">// 4. Commit — apply to state machine, advance commitIndex</span>
+        commitIndex = entryIndex;
+        <span class="fn">applyToStateMachine</span>(entry);
+        <span class="cm">// 5. Next heartbeat will carry updated commitIndex to followers</span>
+      }
+      <span class="kw">return</span> success;
+    });
+  }
+
+  <span class="kw">private void</span> <span class="fn">applyToStateMachine</span>(<span class="cn">LogEntry</span> entry) {
+    <span class="cm">// Execute the command (e.g., set key=value in distributed KV store)</span>
+    stateMachine.<span class="fn">apply</span>(entry.command);
+  }
+}
+</pre>
+    </div>
+    <div class="tab-pane" data-group="raft" data-tab="raft-election">
+<pre><span class="kw">class</span> <span class="cn">RaftNode</span> {
+  <span class="kw">enum</span> <span class="cn">Role</span> { FOLLOWER, CANDIDATE, LEADER }
+  <span class="kw">private</span> <span class="cn">Role</span> role = <span class="cn">Role</span>.FOLLOWER;
+  <span class="kw">private</span> <span class="kw">int</span> currentTerm = <span class="nm">0</span>;
+  <span class="kw">private</span> <span class="cn">String</span> votedFor = <span class="kw">null</span>; <span class="cm">// persisted to disk!</span>
+  <span class="kw">private</span> <span class="kw">int</span> votesReceived = <span class="nm">0</span>;
+
+  <span class="kw">void</span> <span class="fn">onElectionTimeout</span>() {
+    <span class="cm">// Election timeout fires if no heartbeat received (150-300ms random)</span>
+    role = <span class="cn">Role</span>.CANDIDATE;
+    currentTerm++;           <span class="cm">// increment term</span>
+    votedFor = <span class="kw">this</span>.nodeId; <span class="cm">// vote for self</span>
+    votesReceived = <span class="nm">1</span>;      <span class="cm">// count own vote</span>
+    <span class="fn">persistState</span>();          <span class="cm">// MUST persist term+votedFor before sending RPCs</span>
+
+    <span class="cm">// Send RequestVote to all other nodes in parallel</span>
+    peers.<span class="fn">forEach</span>(peer -> peer.<span class="fn">requestVote</span>(
+      currentTerm, nodeId, log.<span class="fn">lastIndex</span>(), log.<span class="fn">lastTerm</span>()
+    ).<span class="fn">thenAccept</span>(<span class="kw">this</span>::<span class="fn">handleVoteResponse</span>));
+  }
+
+  <span class="kw">synchronized void</span> <span class="fn">handleVoteResponse</span>(<span class="cn">VoteResponse</span> resp) {
+    <span class="kw">if</span> (role != <span class="cn">Role</span>.CANDIDATE) <span class="kw">return</span>; <span class="cm">// already elected or stepped down</span>
+    <span class="kw">if</span> (resp.term > currentTerm) {
+      <span class="cm">// Stale — higher term node exists, step down</span>
+      currentTerm = resp.term;
+      role = <span class="cn">Role</span>.FOLLOWER;
+      votedFor = <span class="kw">null</span>;
+      <span class="fn">persistState</span>();
+      <span class="kw">return</span>;
+    }
+    <span class="kw">if</span> (resp.voteGranted) {
+      votesReceived++;
+      <span class="kw">if</span> (votesReceived >= peers.size() / <span class="nm">2</span> + <span class="nm">1</span>) {
+        <span class="fn">becomeLeader</span>(); <span class="cm">// won the election!</span>
+      }
+    }
+  }
+
+  <span class="kw">void</span> <span class="fn">handleVoteRequest</span>(<span class="cn">VoteRequest</span> req) {
+    <span class="cm">// Only grant vote if: candidate term >= ours AND
+    // we haven't voted this term AND candidate's log is up-to-date</span>
+    <span class="kw">boolean</span> logOk = req.lastLogTerm > log.<span class="fn">lastTerm</span>() ||
+      (req.lastLogTerm == log.<span class="fn">lastTerm</span>() && req.lastLogIndex >= log.<span class="fn">lastIndex</span>());
+    <span class="kw">boolean</span> grant = req.term >= currentTerm
+      && (votedFor == <span class="kw">null</span> || votedFor.<span class="fn">equals</span>(req.candidateId))
+      && logOk;
+    <span class="kw">if</span> (grant) { votedFor = req.candidateId; <span class="fn">persistState</span>(); }
+    peer.<span class="fn">sendVoteResponse</span>(<span class="kw">new</span> <span class="cn">VoteResponse</span>(currentTerm, grant));
+  }
+}
+</pre>
+    </div>
+    <div class="tab-pane" data-group="raft" data-tab="raft-paxos">
+<pre><span class="kw">class</span> <span class="cn">PaxosProposer</span> {
+  <span class="kw">private int</span> proposalNumber = <span class="nm">0</span>;
+  <span class="kw">private</span> <span class="cn">List</span>&lt;<span class="cn">PaxosAcceptor</span>&gt; acceptors;
+  <span class="kw">private int</span> quorum;
+
+  <span class="cm">// Phase 1: Prepare — "promise not to accept lower-numbered proposals"</span>
+  <span class="cn">Object</span> <span class="fn">propose</span>(<span class="cn">Object</span> myValue) {
+    proposalNumber++;
+    <span class="kw">int</span> n = proposalNumber;
+    <span class="cm">// uniqueness: proposalNumber = (round * numProposers) + proposerId</span>
+
+    <span class="cm">// Send Prepare(n) to quorum</span>
+    <span class="cn">List</span>&lt;<span class="cn">Promise</span>&gt; promises = acceptors.stream()
+      .<span class="fn">map</span>(a -> a.<span class="fn">prepare</span>(n))
+      .<span class="fn">filter</span>(<span class="cn">Objects</span>::<span class="fn">nonNull</span>)  <span class="cm">// null = rejected (promised higher n)</span>
+      .<span class="fn">collect</span>(<span class="cn">Collectors</span>.<span class="fn">toList</span>());
+
+    <span class="kw">if</span> (promises.size() < quorum) <span class="kw">return null</span>; <span class="cm">// failed, retry with higher n</span>
+
+    <span class="cm">// Phase 2: Accept — use highest-accepted value from promises, or our own</span>
+    <span class="cn">Object</span> value = promises.stream()
+      .<span class="fn">filter</span>(p -> p.acceptedValue != <span class="kw">null</span>)
+      .<span class="fn">max</span>(<span class="cn">Comparator</span>.<span class="fn">comparingInt</span>(p -> p.acceptedProposal))
+      .<span class="fn">map</span>(p -> p.acceptedValue)
+      .<span class="fn">orElse</span>(myValue); <span class="cm">// no prior accepted value → use our own</span>
+
+    <span class="kw">long</span> acceptCount = acceptors.stream()
+      .<span class="fn">filter</span>(a -> a.<span class="fn">accept</span>(n, value)) <span class="cm">// returns true if accepted</span>
+      .<span class="fn">count</span>();
+
+    <span class="kw">return</span> acceptCount >= quorum ? value : <span class="kw">null</span>; <span class="cm">// consensus reached!</span>
+  }
+}
+
+<span class="kw">class</span> <span class="cn">PaxosAcceptor</span> {
+  <span class="kw">private int</span> promisedN = <span class="nm">-1</span>;
+  <span class="kw">private int</span> acceptedN = <span class="nm">-1</span>;
+  <span class="kw">private</span> <span class="cn">Object</span> acceptedValue = <span class="kw">null</span>;
+
+  <span class="cn">Promise</span> <span class="fn">prepare</span>(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n <= promisedN) <span class="kw">return null</span>; <span class="cm">// reject — already promised higher</span>
+    promisedN = n; <span class="fn">persist</span>(); <span class="cm">// MUST persist before responding</span>
+    <span class="kw">return new</span> <span class="cn">Promise</span>(acceptedN, acceptedValue); <span class="cm">// tell proposer what we've seen</span>
+  }
+
+  <span class="kw">boolean</span> <span class="fn">accept</span>(<span class="kw">int</span> n, <span class="cn">Object</span> value) {
+    <span class="kw">if</span> (n < promisedN) <span class="kw">return false</span>; <span class="cm">// reject — promised not to accept < promisedN</span>
+    acceptedN = n; acceptedValue = value; <span class="fn">persist</span>();
+    <span class="kw">return true</span>;
+  }
+}
+</pre>
+    </div>
+    <div class="tab-pane" data-group="raft" data-tab="raft-quorum">
+<pre><span class="kw">class</span> <span class="cn">QuorumConfig</span> {
+  <span class="kw">private final int</span> n; <span class="cm">// total nodes</span>
+
+  <span class="kw">public</span> <span class="cn">QuorumConfig</span>(<span class="kw">int</span> n) { <span class="kw">this</span>.n = n; }
+
+  <span class="kw">public int</span> <span class="fn">quorum</span>() { <span class="kw">return</span> n / <span class="nm">2</span> + <span class="nm">1</span>; } <span class="cm">// floor(N/2) + 1</span>
+  <span class="kw">public int</span> <span class="fn">maxFailures</span>() { <span class="kw">return</span> n / <span class="nm">2</span>; }   <span class="cm">// N - quorum = floor(N/2)</span>
+
+  <span class="cm">// W + R > N for overlap guarantee</span>
+  <span class="kw">public boolean</span> <span class="fn">isConsistentReadWrite</span>(<span class="kw">int</span> w, <span class="kw">int</span> r) {
+    <span class="kw">return</span> w + r > n;
+  }
+
+  <span class="kw">public void</span> <span class="fn">printConfigs</span>() {
+    <span class="cn">System</span>.out.<span class="fn">printf</span>(<span class="st">"N=%d: quorum=%d, max failures=%d%n"</span>, n, <span class="fn">quorum</span>(), <span class="fn">maxFailures</span>());
+    <span class="cm">// N=3: quorum=2, max failures=1  → recommend for most use cases</span>
+    <span class="cm">// N=5: quorum=3, max failures=2  → for higher availability</span>
+    <span class="cm">// N=7: quorum=4, max failures=3  → geo-distributed across 3 regions</span>
+  }
+}
+
+<span class="cm">// Common Cassandra consistency configurations for N=3:
+//   CL.ONE:      W=1, R=1 → fast but no consistency guarantee
+//   CL.QUORUM:   W=2, R=2 → W+R=4 > 3, consistent
+//   CL.ALL:      W=3, R=1 → max durability, not recommended (loses availability)
+//   CL.LOCAL_QUORUM: quorum within local datacenter only (for multi-DC)</span>
+</pre>
+    </div>
+  </div>
+</section>
+
+<section id="real-world">
+  <h2>7. Real-World Usage</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">etcd</div>
+      <div class="card-title">Raft — Kubernetes backbone</div>
+      <div class="card-body">Stores all Kubernetes cluster state (pods, services, config). 3 or 5 node Raft cluster. Typical election timeout: 1s. Critical — etcd downtime = k8s control plane downtime. Recommends NVMe SSDs for WAL latency.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">CockroachDB</div>
+      <div class="card-title">Raft per range</div>
+      <div class="card-body">Data split into 64MB ranges, each with its own Raft group. 3 replicas per range by default. Allows fine-grained replication and failover at range level, not database level.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Kafka KRaft</div>
+      <div class="card-title">Raft replacing ZooKeeper</div>
+      <div class="card-body">Kafka 3.x+ uses KRaft (Kafka Raft) for controller metadata. Eliminates ZooKeeper dependency. Supports 3-node quorum controllers. Enables clusters with millions of partitions.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Google Spanner</div>
+      <div class="card-title">Paxos + TrueTime</div>
+      <div class="card-body">Uses Paxos across datacenters for globally-consistent transactions. TrueTime API gives bounded clock uncertainty — Spanner waits out the uncertainty before committing to guarantee external consistency.</div>
+    </div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2>8. Interview Tips</h2>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"How does Raft prevent split-brain?"</strong> A leader can only be elected with a majority (quorum) of votes. Since a majority requires more than half the nodes, only one group can form a quorum in any partition. Similarly, commits require a majority ACK — a partitioned leader can't commit without the majority.</div></div>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"What happens if the leader crashes after appending to its log but before a majority ACK?"</strong> The entry is uncommitted. The new leader (elected by majority) will have an up-to-date log. If the new leader has the entry, it will commit it in the next write (leaders commit previous-term entries indirectly). If not, the entry is rolled back on the crashed node when it rejoins and syncs from the new leader.</div></div>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"Why do most production systems use Raft over Paxos?"</strong> The Raft paper explicitly optimized for understandability, which translates to fewer implementation bugs. Multi-Paxos requires many engineering decisions not specified in the original paper (leader election mechanism, membership changes, log compaction) — each implementation differs. Raft specifies all of these.</div></div>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"What's the CAP tradeoff for Raft?"</strong> CP — Raft prioritizes Consistency. During leader election, the cluster is unavailable for writes (typically 150–600ms). This is acceptable for config stores and coordination services, but not for user-facing APIs. That's why you'd use Cassandra (AP, tunable) for a user-facing service, not etcd.</div></div>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"Why must votedFor be persisted to disk before sending a vote response?"</strong> If a node votes, crashes, and restarts, it must remember it already voted in this term. Otherwise it might vote twice — once before the crash and once after restart — potentially allowing two leaders in the same term. Persistent state = currentTerm + votedFor + log entries.</div></div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <span>Distributed Consensus — Senior SDE Interview Prep</span>
+  <a href="concepts-index.html">← All Concepts</a>
+</footer>
+
+<script>
+function switchTab(group, id) {
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el => el.classList.add('active'));
+}
+</script>
+</body>
+</html>

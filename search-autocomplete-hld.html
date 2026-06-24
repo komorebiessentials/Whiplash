@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Search Autocomplete — HLD</title>
+<style>
+:root {
+  --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+  --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+  --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+  --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 0 28px 100px; }
+.top-nav { padding: 24px 0 0; display: flex; align-items: center; gap: 16px; }
+.back { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); text-decoration: none; display: flex; align-items: center; gap: 6px; }
+.back:hover { color: var(--clay); }
+header { padding: 48px 0 40px; border-bottom: 1.5px solid var(--g300); margin-bottom: 32px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--clay); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.eyebrow::before { content: ""; width: 20px; height: 1.5px; background: var(--clay); }
+h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(32px, 5vw, 52px); line-height: 1.06; letter-spacing: -.02em; margin-bottom: 12px; }
+.tagline { font-size: 16px; color: var(--g700); max-width: 560px; }
+nav.toc { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 48px; }
+nav.toc a { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); text-decoration: none; padding: 5px 12px; border: 1.5px solid var(--g200); border-radius: 20px; transition: all .15s; }
+nav.toc a:hover { color: var(--clay); border-color: var(--clay); }
+.section { margin-bottom: 64px; }
+.section-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--clay); margin-bottom: 6px; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 28px; letter-spacing: -.01em; margin-bottom: 24px; }
+.req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:600px){.req-grid{grid-template-columns:1fr;}}
+.req-item { padding: 14px 16px; border-radius: 10px; font-size: 14px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+.req-item.func { background: var(--paper); border: 1.5px solid var(--g300); }
+.req-item.nfunc { background: var(--g100); border: 1.5px solid var(--g200); }
+.req-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.req-item.func .req-dot { background: var(--clay); }
+.req-item.nfunc .req-dot { background: var(--olive); }
+.est-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.est-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); padding: 8px 12px; text-align: left; border-bottom: 1.5px solid var(--g300); }
+.est-table td { padding: 10px 12px; border-bottom: 1px solid var(--g200); }
+.est-table tr:last-child td { border-bottom: none; }
+.est-table td:first-child { font-weight: 500; color: var(--g700); }
+.est-table td:last-child { font-family: var(--mono); font-size: 13px; color: var(--clay); }
+.arch-box { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 14px; padding: 28px; overflow-x: auto; }
+.arch-box svg { display: block; margin: 0 auto; }
+.api-block { background: var(--slate); border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; overflow-x: auto; }
+.api-block pre { font-family: var(--mono); font-size: 13px; color: #e8e6e0; line-height: 1.7; white-space: pre; }
+.api-method { color: var(--clay); font-weight: 700; }
+.api-path { color: #a8d8b4; }
+.api-comment { color: var(--g500); }
+.schema-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 12px; padding: 20px 22px; margin-bottom: 14px; }
+.schema-name { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--clay); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.schema-fields { font-family: var(--mono); font-size: 13px; color: var(--g700); line-height: 1.9; }
+.schema-fields .field-name { color: var(--slate); font-weight: 600; }
+.schema-fields .field-type { color: var(--olive); }
+.schema-note { font-size: 13px; color: var(--g500); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--g200); }
+.dive-card { background: var(--paper); border-left: 3px solid var(--clay); border-radius: 0 10px 10px 0; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+.dive-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: var(--slate); }
+.dive-body { font-size: 14px; color: var(--g700); line-height: 1.6; }
+.dive-body ul { margin: 6px 0 0 16px; }
+.dive-body li { margin-bottom: 4px; }
+.dive-body code { font-family: var(--mono); font-size: 12px; background: var(--g100); padding: 1px 5px; border-radius: 4px; color: var(--clay); }
+.scale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:600px){.scale-grid{grid-template-columns:1fr;}}
+.scale-card { background: var(--g100); border-radius: 10px; padding: 16px 18px; }
+.scale-card h4 { font-size: 13px; font-weight: 600; color: var(--clay); margin-bottom: 6px; }
+.scale-card p { font-size: 13px; color: var(--g700); line-height: 1.5; }
+.tip { display: flex; gap: 14px; align-items: flex-start; background: var(--paper); border: 1.5px solid var(--g300); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+.tip-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.tip-text { font-size: 14px; color: var(--g700); line-height: 1.55; }
+.tip-text strong { color: var(--slate); }
+footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 24px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--g500); }
+footer a { color: var(--clay); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+/* ── Interactive arch ── */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:700px){.arch-wrap{grid-template-columns:1fr}}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px}
+.ap-empty{color:var(--g500);font-size:13px;text-align:center;padding-top:40px}
+/* ── Flow stepper ── */
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g400,#bbb);font-size:14px;margin:0 2px}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin:16px 0;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.65;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:12px;margin-top:8px}
+.fnav-btn{padding:7px 18px;border-radius:7px;border:1.5px solid var(--g300);font-size:13px;font-weight:500;background:var(--g100);cursor:pointer;transition:all .15s}
+.fnav-btn:hover:not(:disabled){background:var(--clay);border-color:var(--clay);color:white}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:12px;color:var(--g500)}
+.flow-dots{display:flex;gap:6px;margin-left:auto}
+.fdot{width:8px;height:8px;border-radius:50%;background:var(--g300);cursor:pointer;transition:background .15s}
+.fdot.on{background:var(--clay)}
+/* ── Self-check ── */
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden;margin-bottom:8px}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+/* ── Playground ── */
+.playground{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin:28px 0}
+.pg-input{width:100%;padding:10px 14px;font-family:var(--mono);font-size:15px;border:1.5px solid var(--g300);border-radius:8px;background:var(--g100);color:var(--slate);outline:none;margin-bottom:16px}
+.pg-input:focus{border-color:var(--clay)}
+.trie-traverse{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:16px;min-height:36px}
+.trie-char{font-family:var(--mono);font-size:16px;font-weight:700;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:2px solid var(--g300);border-radius:6px;background:var(--g100);color:var(--g700);transition:all .2s}
+.trie-char.hi{border-color:var(--clay);background:rgba(217,119,87,.1);color:var(--clay)}
+.trie-arr{color:var(--g400,#bbb);font-size:14px}
+.pg-suggestions h4{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);margin-bottom:8px}
+.pg-sugg-list{list-style:none}
+.pg-sugg-list li{padding:8px 12px;font-size:14px;color:var(--slate);border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:8px}
+.pg-sugg-list li:last-child{border-bottom:none}
+.pg-sugg-list li::before{content:"↩";font-family:var(--mono);font-size:11px;color:var(--clay)}
+.pg-empty{color:var(--g500);font-size:13px;font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top-nav">
+  <a class="back" href="index.html">← Home</a>
+  <span style="color:var(--g300)">|</span>
+  <a class="back" href="hld-index.html">HLD Problems</a>
+</div>
+
+<header>
+  <div class="eyebrow">High Level Design</div>
+  <h1>Search Autocomplete</h1>
+  <p class="tagline">Design a typeahead system serving 58K suggestions/sec at sub-100ms p99 latency, backed by an in-memory trie with cached top-K per node.</p>
+</header>
+
+<nav class="toc">
+  <a href="#overview">Requirements</a>
+  <a href="#estimation">Estimation</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Request Flow</a>
+  <a href="#api">API</a>
+  <a href="#database">Data Model</a>
+  <a href="#deep-dive">Deep Dive</a>
+  <a href="#playground">Trie Explorer</a>
+  <a href="#self-check">Self-Check</a>
+  <a href="#tips">Interview Tips</a>
+</nav>
+
+<!-- 1. Requirements -->
+<div class="section" id="overview">
+  <div class="section-label">Section 01</div>
+  <h2>Requirements</h2>
+  <div style="margin-bottom:16px"><strong style="font-size:13px;color:var(--clay)">Functional</strong></div>
+  <div class="req-grid" style="margin-bottom:20px">
+    <div class="req-item func"><span class="req-dot"></span>Return top-K (5–10) query suggestions as the user types each character</div>
+    <div class="req-item func"><span class="req-dot"></span>Suggestions ranked by global query frequency (and optionally recency)</div>
+    <div class="req-item func"><span class="req-dot"></span>Support multiple languages and character sets</div>
+    <div class="req-item func"><span class="req-dot"></span>Personalized suggestions: blend global rankings with user's own recent searches</div>
+    <div class="req-item func"><span class="req-dot"></span>Trending queries reflected in suggestions within ~10 minutes</div>
+  </div>
+  <div style="margin-bottom:16px"><strong style="font-size:13px;color:var(--olive)">Non-Functional</strong></div>
+  <div class="req-grid">
+    <div class="req-item nfunc"><span class="req-dot"></span>100M DAU; 58K QPS for suggestion requests</div>
+    <div class="req-item nfunc"><span class="req-dot"></span>p99 response latency &lt; 100ms end-to-end</div>
+    <div class="req-item nfunc"><span class="req-dot"></span>Highly available — no single point of failure in the suggestion path</div>
+    <div class="req-item nfunc"><span class="req-dot"></span>Eventual consistency: frequency data updated every 10 min via Flink pipeline</div>
+  </div>
+</div>
+
+<!-- 2. Scale Estimation -->
+<div class="section" id="estimation">
+  <div class="section-label">Section 02</div>
+  <h2>Scale Estimation</h2>
+  <table class="est-table">
+    <tr><th>Metric</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>DAU</td><td>Given</td><td>100M users</td></tr>
+    <tr><td>Searches per user per day</td><td>~10</td><td>1B searches/day</td></tr>
+    <tr><td>Keystrokes per search (avg)</td><td>~5 characters typed</td><td>5B suggestion requests/day</td></tr>
+    <tr><td>Suggestion QPS</td><td>5B / 86,400</td><td>~58K QPS</td></tr>
+    <tr><td>Unique queries in index</td><td>10M distinct queries</td><td>10M entries</td></tr>
+    <tr><td>Trie size in memory</td><td>10M × 50 bytes</td><td>~500 MB RAM</td></tr>
+    <tr><td>Search logs/day</td><td>1B × 100 bytes</td><td>~100 GB Kafka ingestion</td></tr>
+  </table>
+</div>
+
+<!-- 3. Architecture -->
+<div class="section" id="architecture">
+  <div class="section-label">Section 03</div>
+  <h2>High-Level Architecture</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:14px">Click any component to learn more.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 780 300" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width:740px;width:100%">
+        <!-- Browser -->
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="10" y="120" width="90" height="60" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="55" y="145" text-anchor="middle" font-family="monospace" font-size="10" fill="#3D3D3A" font-weight="600">BROWSER</text>
+          <text x="55" y="160" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">keyup event</text>
+          <text x="55" y="173" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">→ debounce</text>
+        </g>
+
+        <!-- CDN -->
+        <g class="arch-node" data-id="cdn" onclick="showNode('cdn')">
+          <rect x="150" y="120" width="90" height="60" rx="8" fill="#FFFFFF" stroke="#D97757" stroke-width="2"/>
+          <text x="195" y="145" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">CDN</text>
+          <text x="195" y="160" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">cache prefix</text>
+          <text x="195" y="172" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">responses TTL=5min</text>
+        </g>
+
+        <!-- LB -->
+        <rect x="290" y="130" width="80" height="40" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text x="330" y="153" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">LOAD BALANCER</text>
+
+        <!-- Autocomplete Servers -->
+        <g class="arch-node" data-id="api" onclick="showNode('api')">
+          <rect x="420" y="90" width="120" height="80" rx="8" fill="#141413" stroke="#D97757" stroke-width="2"/>
+          <text x="480" y="116" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">AUTOCOMPLETE</text>
+          <text x="480" y="130" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">SERVERS</text>
+          <text x="480" y="148" text-anchor="middle" font-family="monospace" font-size="8" fill="#E3DACC">in-memory trie</text>
+          <text x="480" y="162" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">top-K per node</text>
+        </g>
+
+        <!-- Arrows left side -->
+        <line x1="100" y1="150" x2="149" y2="150" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="149,150 143,146 143,154" fill="#D1CFC5"/>
+        <line x1="240" y1="150" x2="289" y2="150" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="289,150 283,146 283,154" fill="#D1CFC5"/>
+        <line x1="370" y1="150" x2="419" y2="130" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="419,130 413,130 416,124" fill="#D1CFC5"/>
+
+        <!-- S3 Trie Snapshots -->
+        <rect x="420" y="200" width="120" height="40" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text x="480" y="222" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">S3</text>
+        <text x="480" y="234" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">trie snapshots</text>
+
+        <!-- Arrow server → S3 (load on startup) -->
+        <line x1="480" y1="170" x2="480" y2="199" stroke="#3D3D3A" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+        <!-- Kafka Search Logs -->
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="600" y="30" width="110" height="36" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="655" y="51" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">SEARCH LOGS</text>
+          <text x="655" y="62" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Kafka topic</text>
+        </g>
+
+        <!-- Flink Aggregator -->
+        <g class="arch-node" data-id="topk" onclick="showNode('topk')">
+          <rect x="600" y="100" width="110" height="36" rx="8" fill="#F0EEE6" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="655" y="120" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D" font-weight="600">AGGREGATOR</text>
+          <text x="655" y="131" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Flink streaming job</text>
+        </g>
+
+        <g class="arch-node" data-id="topk" onclick="showNode('topk')">
+          <rect x="600" y="170" width="110" height="36" rx="8" fill="#FFFFFF" stroke="#D97757" stroke-width="1.5"/>
+          <text x="655" y="190" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="600">TRIE BUILDER</text>
+          <text x="655" y="201" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">rebuilds + uploads</text>
+        </g>
+
+        <!-- Pipeline arrows -->
+        <line x1="655" y1="66" x2="655" y2="99" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="655,99 651,93 659,93" fill="#D1CFC5"/>
+        <line x1="655" y1="136" x2="655" y2="169" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="655,169 651,163 659,163" fill="#D1CFC5"/>
+        <!-- Builder → S3 -->
+        <line x1="600" y1="188" x2="541" y2="220" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="541,220 543,214 549,218" fill="#D1CFC5"/>
+        <!-- Autocomplete → pipeline (actual search fires log) -->
+        <line x1="540" y1="130" x2="599" y2="48" stroke="#3D3D3A" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="570" y="90" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">POST /search</text>
+        <text x="570" y="100" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">logs to Kafka</text>
+      </svg>
+    </div>
+    <div id="arch-panel" class="arch-panel">
+      <p class="ap-empty">Click any component to learn more</p>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Request Flow -->
+<section class="section" id="flow">
+  <div class="section-label">Section 04</div>
+  <h2>Request Flow — Autocomplete Query</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">
+    <span id="fn-client" class="fn">Client</span>
+    <span class="farr">→</span>
+    <span id="fn-cdn" class="fn">CDN</span>
+    <span class="farr">→</span>
+    <span id="fn-api" class="fn">API Server</span>
+    <span class="farr">→</span>
+    <span id="fn-redis" class="fn">Redis</span>
+    <span class="farr">→</span>
+    <span id="fn-trie" class="fn">Trie</span>
+    <span class="farr">→</span>
+    <span id="fn-kafka" class="fn">Kafka</span>
+  </div>
+  <div id="flow-card" class="flow-card">
+    <div class="fc-title" id="fc-title"></div>
+    <div class="fc-desc" id="fc-desc"></div>
+    <pre class="fc-code" id="fc-code"></pre>
+  </div>
+  <div class="flow-nav">
+    <button class="fnav-btn" id="flow-prev" onclick="prevStep()">← Prev</button>
+    <button class="fnav-btn" id="flow-next" onclick="nextStep()">Next →</button>
+    <span class="fnav-counter" id="flow-counter"></span>
+    <div class="flow-dots" id="flow-dots"></div>
+  </div>
+</section>
+
+<!-- 5. API Design -->
+<div class="section" id="api">
+  <div class="section-label">Section 05</div>
+  <h2>API Design</h2>
+  <div class="api-block">
+    <pre><span class="api-method">GET</span>  <span class="api-path">/api/v1/suggest?q=app&amp;limit=5&amp;lang=en</span>
+<span class="api-comment">// Hot path — must be &lt;100ms p99</span>
+→ 200 OK {
+    suggestions: [
+      { query: "apple music",    score: 98523, category: "music" },
+      { query: "app store",      score: 87210, category: "tech" },
+      { query: "apple id",       score: 74100, category: "account" },
+      { query: "apply for jobs", score: 61200, category: null },
+      { query: "appendix",       score: 42000, category: null }
+    ]
+  }</pre>
+  </div>
+  <div class="api-block">
+    <pre><span class="api-method">POST</span>  <span class="api-path">/api/v1/search</span>
+<span class="api-comment">// Actual search submit — publishes event to Kafka for frequency tracking</span>
+Body: { query: "apple music", userId: "usr_anon_hash" }
+→ 200 OK { results: [...] }
+
+<span class="api-method">PUT</span>   <span class="api-path">/internal/trie/reload</span>     <span class="api-comment">// Called by Trie Builder after uploading new snapshot</span>
+→ 202 Accepted  <span class="api-comment">// server hot-reloads trie from S3 in background</span></pre>
+  </div>
+</div>
+
+<!-- 6. Database Design -->
+<div class="section" id="database">
+  <div class="section-label">Section 06</div>
+  <h2>Database Design</h2>
+  <div class="schema-card">
+    <div class="schema-name">In-Memory Trie (on Autocomplete Servers)</div>
+    <div class="schema-fields">
+      Each node: <span class="field-name">children</span> <span class="field-type">Map&lt;char, TrieNode&gt;</span><br>
+      Each node: <span class="field-name">topK</span> <span class="field-type">List&lt;{query, score}&gt;</span> — cached top-5<br>
+      Lookup: O(prefix_length) — traverse prefix, return node.topK<br>
+      Memory: ~500 MB for 10M queries (fits in RAM)
+    </div>
+    <div class="schema-note">Loaded from S3 snapshot on startup. Hot-reloaded every 10min when new snapshot is available. Zero-downtime: load into new trie object, swap reference atomically.</div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">ac:{prefix} (Redis Cache)</div>
+    <div class="schema-fields">
+      Key: <span class="field-name">ac:{prefix}</span><br>
+      Value: <span class="field-type">JSON array of top-10 suggestions</span><br>
+      TTL: <span class="field-type">10 minutes</span><br>
+      <br>
+      Covers the long tail of prefixes not cached by CDN
+    </div>
+    <div class="schema-note">Sub-ms lookup. Updated every 10min by Flink job for trending terms. On miss: query Trie Service, then populate Redis.</div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">query_logs (Kafka → Flink → Redis)</div>
+    <div class="schema-fields">
+      <span class="field-name">query</span>      <span class="field-type">TEXT</span> — the search string<br>
+      <span class="field-name">user_hash</span>  <span class="field-type">TEXT</span> — anonymized user (GDPR)<br>
+      <span class="field-name">timestamp</span>  <span class="field-type">TIMESTAMP</span><br>
+      <span class="field-name">lang</span>       <span class="field-type">TEXT</span>
+    </div>
+    <div class="schema-note">Raw events in Kafka, consumed by Flink Streaming. 24h sliding window aggregation produces query → count map. Updates Redis top-K every 10min. Count-Min Sketch for approximate counting (sub-linear memory).</div>
+  </div>
+</div>
+
+<!-- 7. Deep Dive -->
+<div class="section" id="deep-dive">
+  <div class="section-label">Section 07</div>
+  <h2>Key Design Decisions</h2>
+  <div class="dive-card">
+    <div class="dive-title">Trie with Cached Top-K per Node — The Core Optimization</div>
+    <div class="dive-body">
+      <strong>Naive trie:</strong> traverse to prefix node, then DFS to collect all words → O(p + n) where n = all words with that prefix. Too slow at 58K QPS.<br><br>
+      <strong>Optimized:</strong> each node pre-caches its top-K completions (sorted by frequency). Lookup = traverse prefix → return <code>node.topK</code> → O(p) constant time.<br><br>
+      Trade-off: more memory (each node stores K query strings), harder to update (must propagate score changes up the tree). But the serving latency benefit is decisive.
+    </div>
+  </div>
+  <div class="dive-card">
+    <div class="dive-title">Data Pipeline: Search Logs → Flink → Redis → Trie</div>
+    <div class="dive-body">
+      <ul>
+        <li>Every search submit fires Kafka event with query + timestamp</li>
+        <li>Flink streaming job: 24h sliding window, Count-Min Sketch counting → top-K per prefix</li>
+        <li>Every 10 minutes: Flink pushes updated top-K to Redis, hot-patches Trie</li>
+        <li>Nightly: full Trie Builder rebuilds complete trie from Flink aggregates, uploads to S3</li>
+        <li>Servers hot-reload trie atomically — zero downtime</li>
+      </ul>
+    </div>
+  </div>
+  <div class="dive-card">
+    <div class="dive-title">Personalization — Client-Side Merge</div>
+    <div class="dive-body">
+      Global trie gives the same results to all users for "app". To personalize: store user's recent 50 searches in client-side localStorage. On keyup, client merges global suggestions (from server) with local recent searches, boosts recency-matched results.<br><br>
+      Server-side personalization requires per-user index — expensive (1B user models). Client-side merge is the practical approach used by Google/YouTube.
+    </div>
+  </div>
+  <div class="dive-card">
+    <div class="dive-title">CDN Caching — Huge Win</div>
+    <div class="dive-body">
+      The top-5 suggestions for "ap", "app", "appl", "apple" are the same for all users (before personalization). CDN caches <code>GET /suggest?q=app</code> with TTL=5min. Cache hit rate for common prefixes is &gt;65%. This drops origin server load from 58K to ~20K QPS — the CDN absorbs the rest.
+    </div>
+  </div>
+</div>
+
+<!-- 8. Trie Explorer Playground -->
+<section class="section" id="playground">
+  <div class="section-label">Section 08</div>
+  <h2>Trie Prefix Lookup</h2>
+  <div class="playground">
+    <p style="font-size:13px;color:var(--g700);margin-bottom:14px">Type a prefix below to simulate traversing the trie character by character. The highlighted letter shows the current node being visited.</p>
+    <input id="pg-prefix" class="pg-input" type="text" placeholder="Type a prefix (e.g. 'app', 'ar', 'ap')…" oninput="runTrie()" maxlength="12" autocomplete="off" spellcheck="false">
+    <div id="pg-traverse" class="trie-traverse"></div>
+    <div class="pg-suggestions">
+      <h4>Top 5 Suggestions</h4>
+      <div id="pg-sugg"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Self-check -->
+<section class="section" id="self-check">
+  <div class="section-label">Section 09</div>
+  <h2>Self-Check: Interview Questions</h2>
+  <div class="sc-item" id="sc-1">
+    <div class="sc-q" onclick="toggleSC('sc-1')">
+      <span>Trie vs SQL LIKE query — why trie? <span class="sc-tag">Data Structure</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>SQL LIKE 'app%' requires scanning all rows where the term starts with 'app' — even with a B-tree index, this is O(matching_rows). With 1 billion unique search terms, this is too slow. A trie traverses exactly prefix_length nodes to reach the prefix node, then returns top-K children by score — O(p+K) where p=prefix length (3) and K=10. The speed difference is dramatic: SQL might scan 50 million rows for a 3-letter prefix; the trie visits 3 nodes then pops 10 results. Memory tradeoff: a trie for 1B terms can be 50-100GB — that's why it lives in service memory on dedicated machines and is sharded by first letter.</p></div>
+  </div>
+  <div class="sc-item" id="sc-2">
+    <div class="sc-q" onclick="toggleSC('sc-2')">
+      <span>How do you keep suggestions fresh when a term trends? <span class="sc-tag">Freshness</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>The Flink streaming job consumes all search events from Kafka in real-time. It uses a 24-hour sliding window with Count-Min Sketch to count phrase frequencies per prefix. Every 10 minutes, it pushes updated top-K to Redis, invalidating stale suggestions. The trie is rebuilt nightly from the complete dataset and hot-patched every 10 minutes with the top trending terms from Flink. TTL-based expiry (CDN: 5min, Redis: 10min) ensures stale data eventually evicts. A term going viral (e.g. "apple vision pro" on announcement day) appears in suggestions within ~10 minutes.</p></div>
+  </div>
+  <div class="sc-item" id="sc-3">
+    <div class="sc-q" onclick="toggleSC('sc-3')">
+      <span>What is Count-Min Sketch and why use it? <span class="sc-tag">Algorithms</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Exact frequency counting for 1 billion unique terms would require a hash map with 1 billion entries — ~32GB just for counters. Count-Min Sketch uses a fixed 2D array (e.g., 8 hash functions × 1M buckets = 8MB). Each term is hashed 8 times; each bucket is incremented. To query: hash 8 times, return the minimum count seen. The minimum eliminates over-counting from collisions. The result is approximate (always over-counts, never under-counts) within a provable error bound. For ranking autocomplete suggestions, approximate top-K is perfectly fine — whether 'apple' was searched 1,000,000 or 1,001,234 times doesn't change its rank.</p></div>
+  </div>
+  <div class="sc-item" id="sc-4">
+    <div class="sc-q" onclick="toggleSC('sc-4')">
+      <span>How does personalization work without adding latency? <span class="sc-tag">Personalization</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Personalized results can't be CDN-cached (they're per-user). Strategy: two-phase approach. (1) Return CDN/Redis result immediately (&lt;10ms). (2) Simultaneously fetch personalized top-5 from the API (with auth token, ~50ms). (3) If personalization arrives before user selects, update the dropdown. This is 'stale-while-revalidate' — the user sees generic results instantly, personalization augments them within 50ms without blocking the initial render. Personalization data (user's recent searches) stored in Redis per-user with 7-day TTL: key 'user_history:{userId}', sorted set of (term, last_searched_timestamp).</p></div>
+  </div>
+  <div class="sc-item" id="sc-5">
+    <div class="sc-q" onclick="toggleSC('sc-5')">
+      <span>A user types 'autocomplete system design' — how many API calls? <span class="sc-tag">Optimization</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Without debouncing: 26 characters = 26 API calls in ~3 seconds. With 150ms debounce: only fires when user pauses typing for 150ms. For a 3-word phrase, typical pauses are after each word: after 'autocomplete', after 'system', after 'design'. Result: ~3-4 API calls instead of 26. Browser sessionStorage cache: if user types 'app', sees results, types more, then backspaces to 'app' — second time is instant from session cache, zero API call. This combination (debounce + session cache) reduces API calls by ~90% compared to naive per-keystroke requests.</p></div>
+  </div>
+</section>
+
+<!-- 10. Scaling -->
+<div class="section" id="scaling">
+  <div class="section-label">Section 10</div>
+  <h2>Scaling &amp; Bottlenecks</h2>
+  <div class="scale-grid">
+    <div class="scale-card">
+      <h4>CDN Offload</h4>
+      <p>Common prefixes (2–4 chars) are served from CDN edge. 65%+ cache hit rate means origin servers only handle rare/long prefixes. Most critical scaling lever.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Stateless Servers</h4>
+      <p>All autocomplete servers load the same trie from S3 — fully stateless. Add servers behind the load balancer with no coordination needed. Scale to 100s of servers.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Trie Sharding</h4>
+      <p>If trie exceeds available RAM: shard by first letter (a-f → server group 1, g-m → group 2, etc.). 26 shards × 500MB = fits in small fleet. Route by first char of query.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Hot-Reload Zero Downtime</h4>
+      <p>Hourly trie rebuild uses atomic reference swap (CAS). Rolling reload across servers means some serve old trie briefly — acceptable since updates are every 10min anyway.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Kafka Partitioning</h4>
+      <p>Search log topic partitioned by language. Flink consumes per-language partition → builds per-language trie. Multilingual support with clean separation.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Debouncing on Client</h4>
+      <p>Client fires suggestion request only after 150ms of no keystrokes (debounce). Reduces actual QPS by ~5x vs sending on every keyup. Critical for mobile keyboards.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 11. Interview Tips -->
+<div class="section" id="tips">
+  <div class="section-label">Section 11</div>
+  <h2>Interview Tips</h2>
+  <div class="tip"><div class="tip-icon">🌳</div><div class="tip-text"><strong>Top-K per node is the key insight:</strong> Without it, suffix traversal makes every suggestion O(p+n). With it, every lookup is O(p) — prefix length only. This is the main algo question in this problem.</div></div>
+  <div class="tip"><div class="tip-icon">⚡</div><div class="tip-text"><strong>CDN before talking about servers:</strong> Mention CDN caching of prefix responses early. "app" has the same 5 suggestions for everyone — CDN can handle 65% of traffic. Interviewers love this insight.</div></div>
+  <div class="tip"><div class="tip-icon">🔄</div><div class="tip-text"><strong>Separate serving from data pipeline:</strong> The trie serving layer is read-only and ultra-fast. The data pipeline (Kafka → Flink → Redis) is async and streaming. Never let pipeline latency affect suggestion latency.</div></div>
+  <div class="tip"><div class="tip-icon">📉</div><div class="tip-text"><strong>Eventual consistency is fine here:</strong> Trending queries appearing in suggestions within 10 minutes is acceptable. Real-time exact counting is overkill — Count-Min Sketch + 10min batch is the right call.</div></div>
+  <div class="tip"><div class="tip-icon">🔍</div><div class="tip-text"><strong>Elasticsearch trade-off:</strong> If asked about alternatives, Elasticsearch with edge n-gram gives you fuzzy matching and easier ops at the cost of higher latency (~50-200ms vs &lt;5ms for trie). Know when to recommend it over a custom trie.</div></div>
+</div>
+
+<footer>
+  <span style="font-family:var(--serif);font-style:italic;font-size:14px;color:var(--g700)">SDE Interview Prep</span>
+  <a href="hld-index.html">← Back to HLD Problems</a>
+</footer>
+
+</div>
+
+<script>
+// ── NODE_INFO ──
+const NODE_INFO = {
+  client: {
+    title: "Client (Browser / Mobile App)",
+    body: "Sends autocomplete query on each keystroke with 150ms debounce. Checks sessionStorage for cached prefix results before firing the network request. Displays 5-10 suggestions in a dropdown within 100ms of typing.",
+    stats: ["150ms debounce","sessionStorage prefix cache","5-10 suggestions shown","<100ms display SLA"],
+    warn: null
+  },
+  cdn: {
+    title: "CDN (Popular Prefix Cache)",
+    body: "Caches autocomplete responses for the most popular prefixes (top 1M searches like 'app', 'amazon'). These suggestions are identical for millions of users — perfect CDN workload. Handles ~65% of all autocomplete requests at the edge without touching origin servers.",
+    stats: ["Top 1M prefixes cached","5-min TTL","~65% global cache hit","No personalization at edge"],
+    warn: null
+  },
+  api: {
+    title: "Autocomplete API Servers",
+    body: "Stateless servers that check Redis for cached prefix result first. On Redis miss, query the in-memory Trie Service. Merge result with user's personal search history for personalization. Return ranked top-10 suggestions.",
+    stats: ["Stateless, horizontally scaled","Redis first, Trie on miss","Personalization merge","<50ms server SLA"],
+    warn: null
+  },
+  redis: {
+    title: "Redis (Hot Prefix Cache)",
+    body: "Caches top-10 suggestions per prefix. Key format: 'ac:{prefix}'. Value: JSON array of suggestion strings with scores. Covers the long tail of prefixes not in CDN. Updated every 10 minutes by the Flink aggregation job.",
+    stats: ["Key: ac:{prefix}","Top-10 JSON value","10-min TTL","Sub-ms lookup"],
+    warn: null
+  },
+  trie: {
+    title: "Trie Service (In-Memory)",
+    body: "Maintains a compressed prefix trie of all indexed search terms with frequency scores. Prefix lookup: O(prefix_length + K) — traverse to the prefix node, return its pre-cached top-K list. Rebuilt nightly from full dataset. Hot-patched every 10 minutes for trending terms.",
+    stats: ["In-memory compressed trie","O(p+K) prefix lookup","Rebuilt nightly","Sharded by first char"],
+    warn: "A trie for 1 billion unique terms requires 50-100GB RAM. Shard across multiple instances: 'a*' prefixes → trie-shard-1, 'b*' → trie-shard-2, etc. Each shard holds its letter's terms — ~4GB per shard."
+  },
+  kafka: {
+    title: "Kafka (Search Events)",
+    body: "Every search query and click event published here in real-time. Multiple consumers: Flink Top-K aggregation job (counts frequencies), Personalization service (user search history), Analytics pipeline. 7-day retention allows backfill if Flink job crashes.",
+    stats: ["Raw search + click events","Multiple consumer groups","7-day retention for backfill","Decoupled pipeline"],
+    warn: null
+  },
+  topk: {
+    title: "Flink Top-K Aggregation",
+    body: "Streaming job counting query frequencies over a 24-hour sliding window. Uses Count-Min Sketch for approximate counting (8MB vs 32GB for exact counting). Every 10 minutes: pushes updated top-K suggestions per prefix to Redis. Trending terms surface within 10 minutes of going viral.",
+    stats: ["24h sliding window","Count-Min Sketch (8MB vs 32GB)","Updates Redis every 10min","Trending term detection"],
+    warn: null
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  document.querySelectorAll(`.arch-node[data-id="${id}"]`).forEach(g => g.classList.add('sel'));
+  const info = NODE_INFO[id];
+  if (!info) return;
+  const panel = document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  panel.innerHTML = `
+    <div class="ap-title">${info.title}</div>
+    <div class="ap-body">${info.body}</div>
+    <div>${info.stats.map(s => `<span class="ap-stat">${s}</span>`).join('')}</div>
+    ${info.warn ? `<div class="ap-warn">${info.warn}</div>` : ''}
+  `;
+}
+
+// ── FLOW STEPPER ──
+const STEPS = [
+  {
+    nodes: ['fn-client'],
+    title: "User types 'app' — debounced request fires",
+    desc: "User types the third character. Client waits 150ms for the user to pause (debounce). Checks sessionStorage: has 'app' been queried this session? On miss, fires the HTTP request.",
+    code: "// 150ms debounce + sessionStorage cache\ndebounce(() => {\n  const cached = sessionStorage.getItem('ac:app');\n  if (cached) return showSuggestions(JSON.parse(cached));\n  fetch('/autocomplete?q=app&limit=10');\n}, 150);"
+  },
+  {
+    nodes: ['fn-client','fn-cdn'],
+    title: "CDN checks popular prefix cache",
+    desc: "'app' is one of the top-100 most searched prefixes globally. CDN edge has it cached (5-min TTL set 2 minutes ago). Returns cached results directly — no request reaches origin servers. ~65% of all autocomplete requests are served this way.",
+    code: "CDN Edge: GET /autocomplete?q=app\nCache-Control: public, max-age=300\nResult: HIT\n→ [\"apple\",\"app store\",\"apple music\",\n   \"applebee's\",\"apple tv\",\"application\"]"
+  },
+  {
+    nodes: ['fn-cdn','fn-api','fn-redis'],
+    title: "Less common prefix → API checks Redis",
+    desc: "For 'app stor' (less popular), CDN misses. API server queries Redis: GET ac:app+stor. Cache hit (queried 3 minutes ago). Returns top-10 in ~0.5ms. API personalizes: if this user recently searched 'app store connect', move it to position 1.",
+    code: "// Redis lookup for less-common prefix\nString cached = redis.get('ac:app+stor');\n// '[\"app store\",\"app store connect\",...]'\n// Personalize: merge user's recent searches\nList<String> results = personalize(cached, userId);"
+  },
+  {
+    nodes: ['fn-api','fn-trie'],
+    title: "Cold prefix → Trie lookup",
+    desc: "Redis miss (prefix never queried, or TTL expired). API routes to correct Trie shard (prefix 'a*' → trie-shard-1). Trie traverses to the 'appetizer' node and returns top-K children by frequency score in O(p+K) time.",
+    code: "// Trie lookup on Redis miss\nList<String> results = trieService.lookup(\n  prefix: 'appetizer', topK: 10\n);\n// Traverses: a→p→p→e→t→i→z→e→r\n// Returns: terms with highest scores below this node"
+  },
+  {
+    nodes: ['fn-api','fn-redis'],
+    title: "Populate Redis cache",
+    desc: "API writes result back to Redis for future requests: SET ac:appetizer <json> EX 600. CDN also caches the response for 300s. Future requests for 'appetizer' are served from CDN or Redis without hitting the Trie.",
+    code: "redis.setex('ac:appetizer', 600, JSON.stringify(results));\n// CDN caches response: Cache-Control: public, max-age=300\n// Next 'appetizer' query → CDN or Redis hit"
+  },
+  {
+    nodes: ['fn-client','fn-kafka'],
+    title: "User selects suggestion → search event logged",
+    desc: "User clicks 'apple music' from suggestions. Client fires a click event to Kafka. Flink aggregation counts 'apple music' as selected for prefix 'app'. Over 24h, frequency scores update. Trending terms surface within 10 minutes.",
+    code: "kafka.publish('search-events', {\n  userId, query: 'app', selected: 'apple music',\n  position: 3, sessionId, timestamp\n});\n// Flink: increments 'apple music' score\n// Re-ranks in Redis within 10 minutes"
+  }
+];
+
+const FN_IDS = ['fn-client','fn-cdn','fn-api','fn-redis','fn-trie','fn-kafka'];
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  FN_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const idx = STEPS.findIndex(st => st.nodes.includes(id));
+    el.className = 'fn';
+    if (s.nodes.includes(id)) el.classList.add('act');
+    else if (STEPS.slice(0, curStep).some(st => st.nodes.includes(id))) el.classList.add('done');
+  });
+  document.getElementById('fc-title').textContent = s.title;
+  document.getElementById('fc-desc').textContent = s.desc;
+  document.getElementById('fc-code').textContent = s.code;
+  document.getElementById('flow-counter').textContent = `Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('flow-prev').disabled = curStep === 0;
+  document.getElementById('flow-next').disabled = curStep === STEPS.length - 1;
+  const dots = document.getElementById('flow-dots');
+  dots.innerHTML = STEPS.map((_, i) => `<div class="fdot${i===curStep?' on':''}" onclick="goStep(${i})"></div>`).join('');
+}
+function nextStep() { if (curStep < STEPS.length-1) { curStep++; renderStep(); } }
+function prevStep() { if (curStep > 0) { curStep--; renderStep(); } }
+function goStep(n) { curStep = n; renderStep(); }
+
+// ── SELF-CHECK ──
+function toggleSC(id) { document.getElementById(id).classList.toggle('open'); }
+
+// ── TRIE VISUALIZER ──
+const VOCAB = ['apple','application','apply','approach','april','apt','aqua','are','area','arena','argument','art','arrow','app store','appetizer','amazon','android','anime','architecture','array'];
+function runTrie() {
+  const prefix = document.getElementById('pg-prefix').value.toLowerCase();
+  const traverse = document.getElementById('pg-traverse');
+  const suggBox = document.getElementById('pg-sugg');
+  if (!prefix) {
+    traverse.innerHTML = '<span style="color:var(--g500);font-size:13px">Start typing to visualize trie traversal…</span>';
+    suggBox.innerHTML = '';
+    return;
+  }
+  // Render letter-by-letter traversal
+  traverse.innerHTML = prefix.split('').map((ch, i) =>
+    `<span class="trie-char hi" style="animation-delay:${i*0.05}s">${ch}</span>${i < prefix.length-1 ? '<span class="trie-arr">→</span>' : ''}`
+  ).join('');
+  // Filter vocab
+  const matches = VOCAB.filter(w => w.startsWith(prefix)).sort().slice(0, 5);
+  if (matches.length === 0) {
+    suggBox.innerHTML = '<p class="pg-empty">No suggestions found in sample vocabulary.</p>';
+  } else {
+    suggBox.innerHTML = `<ul class="pg-sugg-list">${matches.map(m => `<li>${m}</li>`).join('')}</ul>`;
+  }
+}
+
+// Init
+renderStep();
+</script>
+</body>
+</html>

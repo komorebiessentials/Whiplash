@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLID Principles — Key Concept</title>
+<style>
+  :root{--ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;--clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;--g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;--serif:ui-serif,Georgia,"Times New Roman",Times,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;}
+  *{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}
+  body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px 120px;}
+  header.masthead{padding:72px 0 48px;border-bottom:1.5px solid var(--g300);margin-bottom:8px;}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--g500);margin-bottom:16px;display:flex;align-items:center;gap:10px;}.eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay);}
+  .back{font-family:var(--mono);font-size:11px;text-decoration:none;color:var(--g500);margin-right:14px;transition:color 120ms;}.back:hover{color:var(--clay);}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5vw,54px);line-height:1.06;letter-spacing:-.018em;margin-bottom:8px;}h1 em{font-style:italic;color:var(--clay);}
+  .intro{font-size:15px;color:var(--g700);margin-top:16px;max-width:600px;}
+  nav.toc{display:flex;flex-wrap:wrap;gap:8px;padding-top:24px;}
+  nav.toc a{font-size:12px;padding:6px 14px;border:1.5px solid var(--g300);border-radius:999px;text-decoration:none;color:var(--g700);background:var(--paper);transition:border-color 120ms,color 120ms;}nav.toc a:hover{border-color:var(--slate);color:var(--slate);}
+  section{margin-top:60px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px;}.sec-head .idx{font-family:var(--mono);font-size:12px;color:var(--clay);font-weight:600;width:30px;flex-shrink:0;}.sec-head h2{font-family:var(--serif);font-weight:500;font-size:24px;letter-spacing:-.012em;}
+  .sec-intro{font-size:14px;color:var(--g700);max-width:680px;margin:0 0 20px 44px;}.content-block{margin-left:44px;}
+  @media(max-width:600px){.content-block,.sec-intro{margin-left:0;}}
+  .principle{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+  .principle-head{padding:14px 18px;background:var(--g100);border-bottom:1.5px solid var(--g200);display:flex;align-items:center;gap:14px;}
+  .principle-letter{font-family:var(--serif);font-size:28px;font-weight:500;font-style:italic;color:var(--clay);width:30px;flex-shrink:0;}
+  .principle-title{font-size:15px;font-weight:600;}.principle-sub{font-size:12.5px;color:var(--g500);}
+  .principle-body{padding:16px 18px;}
+  .principle-body p{font-size:13.5px;color:var(--g700);margin-bottom:12px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}@media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+  pre{background:#1A1A18;color:#E8E6DF;border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;margin:8px 0;}
+  pre .kw{color:#CF9F6E;}pre .cn{color:#88C0A0;}pre .cm{color:#5F5F5A;}pre .st{color:#A8C97A;}pre .fn{color:#D97757;}
+  .label-bad{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--clay);margin-bottom:4px;}
+  .label-good{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--olive);margin-bottom:4px;}
+  .tip{display:flex;gap:12px;background:var(--g100);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+  .tip .tip-icon{font-size:15px;flex-shrink:0;font-weight:700;color:var(--clay);}.tip .tip-text{font-size:13.5px;color:var(--g700);}.tip .tip-text strong{color:var(--slate);}
+  .pattern-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+  .pattern-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:10px;padding:14px 16px;}
+  .pattern-card .p-name{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--olive);margin-bottom:6px;}.pattern-card .p-title{font-size:14px;font-weight:600;margin-bottom:5px;}.pattern-card .p-desc{font-size:12.5px;color:var(--g700);}
+  footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:28px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:16px;font-size:12.5px;color:var(--g500);}
+  footer .k{font-family:var(--serif);font-style:italic;color:var(--g700);font-size:14px;}footer a{color:var(--clay);text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="masthead">
+  <div class="eyebrow"><a class="back" href="index.html">← Home</a> OOP Design · Key Concept</div>
+  <h1><em>SOLID</em> Principles</h1>
+  <p class="intro">5 principles for writing maintainable, extensible object-oriented code. The vocabulary every LLD interviewer expects you to use fluently.</p>
+  <nav class="toc">
+    <a href="#what">What Is It</a><a href="#srp">S — SRP</a><a href="#ocp">O — OCP</a><a href="#lsp">L — LSP</a>
+    <a href="#isp">I — ISP</a><a href="#dip">D — DIP</a><a href="#realworld">Real World</a><a href="#tips">Interview Tips</a>
+  </nav>
+</header>
+
+<section id="what">
+  <div class="sec-head"><span class="idx">01</span><h2>What Is It</h2></div>
+  <p class="sec-intro">Coined by Robert C. Martin ("Uncle Bob"). Five principles that, when followed together, produce code that is easy to extend without breaking existing functionality.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name" style="color:var(--clay);">S</div><div class="p-title">Single Responsibility</div><div class="p-desc">A class should have only one reason to change.</div></div>
+      <div class="pattern-card"><div class="p-name" style="color:var(--clay);">O</div><div class="p-title">Open/Closed</div><div class="p-desc">Open for extension, closed for modification.</div></div>
+      <div class="pattern-card"><div class="p-name" style="color:var(--clay);">L</div><div class="p-title">Liskov Substitution</div><div class="p-desc">Subtypes must be substitutable for their base types.</div></div>
+      <div class="pattern-card"><div class="p-name" style="color:var(--clay);">I</div><div class="p-title">Interface Segregation</div><div class="p-desc">Many specific interfaces over one general interface.</div></div>
+      <div class="pattern-card"><div class="p-name" style="color:var(--clay);">D</div><div class="p-title">Dependency Inversion</div><div class="p-desc">Depend on abstractions, not concretions.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="srp">
+  <div class="sec-head"><span class="idx">02</span><h2>S — Single Responsibility Principle</h2></div>
+  <p class="sec-intro">"A class should have only one reason to change." If a class does multiple jobs, changing any one of them can break the others.</p>
+  <div class="content-block">
+    <div class="principle">
+      <div class="principle-head"><span class="principle-letter">S</span><div><div class="principle-title">Single Responsibility</div><div class="principle-sub">One job, one reason to change</div></div></div>
+      <div class="principle-body">
+        <p>If <code>UserService</code> creates users, sends emails, AND saves to DB — it has 3 reasons to change: business logic, email template, DB schema. Any change can break the others.</p>
+        <div class="two-col">
+          <div><div class="label-bad">✗ Violation</div>
+<pre><span class="kw">class</span> <span class="cn">UserService</span> {
+  <span class="kw">void</span> <span class="fn">createUser</span>(<span class="cn">User</span> u) {
+    db.<span class="fn">save</span>(u);           <span class="cm">// DB job</span>
+    email.<span class="fn">sendWelcome</span>(u); <span class="cm">// Email job</span>
+    log.<span class="fn">info</span>(<span class="st">"created"</span>); <span class="cm">// Logging job</span>
+  }
+}</pre></div>
+          <div><div class="label-good">✓ Fix</div>
+<pre><span class="kw">class</span> <span class="cn">UserService</span> {    <span class="cm">// only business logic</span>
+  <span class="kw">void</span> <span class="fn">createUser</span>(<span class="cn">User</span> u) { repo.<span class="fn">save</span>(u); }
+}
+<span class="kw">class</span> <span class="cn">WelcomeEmailJob</span> { <span class="cm">// only email</span>
+  <span class="kw">void</span> <span class="fn">send</span>(<span class="cn">User</span> u) { email.<span class="fn">sendWelcome</span>(u); }
+}
+<span class="kw">class</span> <span class="cn">UserRepository</span> { <span class="cm">// only persistence</span>
+  <span class="kw">void</span> <span class="fn">save</span>(<span class="cn">User</span> u) { db.<span class="fn">insert</span>(u); }
+}</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="ocp">
+  <div class="sec-head"><span class="idx">03</span><h2>O — Open/Closed Principle</h2></div>
+  <p class="sec-intro">"Open for extension, closed for modification." Add new behavior by adding new code, not by changing existing tested code.</p>
+  <div class="content-block">
+    <div class="principle">
+      <div class="principle-head"><span class="principle-letter">O</span><div><div class="principle-title">Open/Closed</div><div class="principle-sub">Extend without modifying — the Strategy pattern in practice</div></div></div>
+      <div class="principle-body">
+        <p>Adding a new customer tier should not require modifying the discount calculator. Each new type = a new class, zero changes to existing code.</p>
+        <div class="two-col">
+          <div><div class="label-bad">✗ Violation — add tier = edit this</div>
+<pre><span class="kw">double</span> <span class="fn">getDiscount</span>(<span class="cn">Customer</span> c) {
+  <span class="kw">if</span> (c.type == PREMIUM) <span class="kw">return</span> 0.10;
+  <span class="kw">if</span> (c.type == VIP)     <span class="kw">return</span> 0.20;
+  <span class="kw">return</span> 0; <span class="cm">// add GOLD? modify here ← bad</span>
+}</pre></div>
+          <div><div class="label-good">✓ Fix — add tier = new class only</div>
+<pre><span class="kw">interface</span> <span class="cn">DiscountStrategy</span> {
+  <span class="kw">double</span> <span class="fn">calculate</span>(<span class="cn">Customer</span> c);
+}
+<span class="kw">class</span> <span class="cn">PremiumDiscount</span> <span class="kw">implements</span> <span class="cn">DiscountStrategy</span> {
+  <span class="kw">public double</span> <span class="fn">calculate</span>(<span class="cn">Customer</span> c) { <span class="kw">return</span> 0.10; }
+}
+<span class="kw">class</span> <span class="cn">GoldDiscount</span> <span class="kw">implements</span> <span class="cn">DiscountStrategy</span> {
+  <span class="kw">public double</span> <span class="fn">calculate</span>(<span class="cn">Customer</span> c) { <span class="kw">return</span> 0.30; }
+}</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="lsp">
+  <div class="sec-head"><span class="idx">04</span><h2>L — Liskov Substitution Principle</h2></div>
+  <p class="sec-intro">"Subtypes must be substitutable for their base types without altering correctness." If code works with a Rectangle, it must work with any Rectangle subclass.</p>
+  <div class="content-block">
+    <div class="principle">
+      <div class="principle-head"><span class="principle-letter">L</span><div><div class="principle-title">Liskov Substitution</div><div class="principle-sub">The Square/Rectangle trap — the most misunderstood principle</div></div></div>
+      <div class="principle-body">
+        <p>Square "is-a" Rectangle geometrically. But Square violates Rectangle's behavioral contract: setting width must not change height. The fix: don't model this with inheritance.</p>
+        <div class="two-col">
+          <div><div class="label-bad">✗ Violation</div>
+<pre><span class="kw">class</span> <span class="cn">Rectangle</span> {
+  <span class="kw">int</span> w, h;
+  <span class="kw">void</span> <span class="fn">setWidth</span>(<span class="kw">int</span> w) { <span class="kw">this</span>.w=w; }
+  <span class="kw">void</span> <span class="fn">setHeight</span>(<span class="kw">int</span> h){ <span class="kw">this</span>.h=h; }
+  <span class="kw">int</span> <span class="fn">area</span>() { <span class="kw">return</span> w*h; }
+}
+<span class="kw">class</span> <span class="cn">Square</span> <span class="kw">extends</span> <span class="cn">Rectangle</span> {
+  <span class="kw">void</span> <span class="fn">setWidth</span>(<span class="kw">int</span> w) { <span class="kw">this</span>.w=<span class="kw">this</span>.h=w; } <span class="cm">// breaks contract!</span>
+}
+<span class="cm">// Test: r.setWidth(4); r.setHeight(5); r.area()==20</span>
+<span class="cm">// For Square: area()==25  ← WRONG</span></pre></div>
+          <div><div class="label-good">✓ Fix</div>
+<pre><span class="kw">interface</span> <span class="cn">Shape</span> { <span class="kw">int</span> <span class="fn">area</span>(); }
+
+<span class="kw">class</span> <span class="cn">Rectangle</span> <span class="kw">implements</span> <span class="cn">Shape</span> {
+  <span class="kw">int</span> w, h;
+  <span class="kw">public int</span> <span class="fn">area</span>() { <span class="kw">return</span> w*h; }
+}
+<span class="kw">class</span> <span class="cn">Square</span> <span class="kw">implements</span> <span class="cn">Shape</span> {
+  <span class="kw">int</span> side;
+  <span class="kw">public int</span> <span class="fn">area</span>() { <span class="kw">return</span> side*side; }
+}
+<span class="cm">// No inheritance — no contract violation</span></pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="isp">
+  <div class="sec-head"><span class="idx">05</span><h2>I — Interface Segregation Principle</h2></div>
+  <p class="sec-intro">"Clients should not be forced to depend on interfaces they don't use." A fat interface forces implementations to define methods they don't need.</p>
+  <div class="content-block">
+    <div class="principle">
+      <div class="principle-head"><span class="principle-letter">I</span><div><div class="principle-title">Interface Segregation</div><div class="principle-sub">Many small interfaces &gt; one large interface</div></div></div>
+      <div class="principle-body">
+        <div class="two-col">
+          <div><div class="label-bad">✗ Violation — Dog forced to fly</div>
+<pre><span class="kw">interface</span> <span class="cn">Animal</span> {
+  <span class="kw">void</span> <span class="fn">eat</span>();
+  <span class="kw">void</span> <span class="fn">fly</span>();   <span class="cm">// Dog can't fly!</span>
+  <span class="kw">void</span> <span class="fn">swim</span>();
+}
+<span class="kw">class</span> <span class="cn">Dog</span> <span class="kw">implements</span> <span class="cn">Animal</span> {
+  <span class="kw">public void</span> <span class="fn">eat</span>()  { <span class="cm">/* ok */</span> }
+  <span class="kw">public void</span> <span class="fn">fly</span>()  { <span class="kw">throw new</span> <span class="cn">UnsupportedOperationException</span>(); }
+  <span class="kw">public void</span> <span class="fn">swim</span>() { <span class="cm">/* ok */</span> }
+}</pre></div>
+          <div><div class="label-good">✓ Fix — compose only what's needed</div>
+<pre><span class="kw">interface</span> <span class="cn">Eatable</span>  { <span class="kw">void</span> <span class="fn">eat</span>(); }
+<span class="kw">interface</span> <span class="cn">Flyable</span>  { <span class="kw">void</span> <span class="fn">fly</span>(); }
+<span class="kw">interface</span> <span class="cn">Swimmable</span>{ <span class="kw">void</span> <span class="fn">swim</span>(); }
+
+<span class="kw">class</span> <span class="cn">Dog</span> <span class="kw">implements</span> <span class="cn">Eatable</span>, <span class="cn">Swimmable</span> {
+  <span class="kw">public void</span> <span class="fn">eat</span>()  { <span class="cm">/* ok */</span> }
+  <span class="kw">public void</span> <span class="fn">swim</span>() { <span class="cm">/* ok */</span> }
+}
+<span class="kw">class</span> <span class="cn">Bird</span> <span class="kw">implements</span> <span class="cn">Eatable</span>, <span class="cn">Flyable</span> {
+  <span class="kw">public void</span> <span class="fn">eat</span>() { <span class="cm">/* ok */</span> }
+  <span class="kw">public void</span> <span class="fn">fly</span>() { <span class="cm">/* ok */</span> }
+}</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="dip">
+  <div class="sec-head"><span class="idx">06</span><h2>D — Dependency Inversion Principle</h2></div>
+  <p class="sec-intro">"High-level modules should not depend on low-level modules. Both should depend on abstractions." The foundation of dependency injection.</p>
+  <div class="content-block">
+    <div class="principle">
+      <div class="principle-head"><span class="principle-letter">D</span><div><div class="principle-title">Dependency Inversion</div><div class="principle-sub">Inject abstractions — enables testing and swapping implementations</div></div></div>
+      <div class="principle-body">
+        <div class="two-col">
+          <div><div class="label-bad">✗ Violation — hardcoded MySQL</div>
+<pre><span class="kw">class</span> <span class="cn">OrderService</span> {
+  <span class="cm">// Hardcoded — can't test, can't swap</span>
+  <span class="kw">private</span> <span class="cn">MySQLDatabase</span> db = <span class="kw">new</span> <span class="cn">MySQLDatabase</span>();
+
+  <span class="kw">void</span> <span class="fn">placeOrder</span>(<span class="cn">Order</span> o) {
+    db.<span class="fn">save</span>(o);
+  }
+}</pre></div>
+          <div><div class="label-good">✓ Fix — injected abstraction</div>
+<pre><span class="kw">interface</span> <span class="cn">Database</span> { <span class="kw">void</span> <span class="fn">save</span>(<span class="cn">Order</span> o); }
+
+<span class="kw">class</span> <span class="cn">OrderService</span> {
+  <span class="kw">private final</span> <span class="cn">Database</span> db; <span class="cm">// abstraction</span>
+  <span class="cn">OrderService</span>(<span class="cn">Database</span> db) { <span class="kw">this</span>.db = db; }
+  <span class="kw">void</span> <span class="fn">placeOrder</span>(<span class="cn">Order</span> o) { db.<span class="fn">save</span>(o); }
+}
+<span class="cm">// Production: new OrderService(new MySQLDatabase())</span>
+<span class="cm">// Tests:      new OrderService(new InMemoryDatabase())</span></pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="realworld">
+  <div class="sec-head"><span class="idx">07</span><h2>Real-World Usage</h2></div>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name">Spring Framework</div><div class="p-title">DIP via IoC</div><div class="p-desc">Spring's entire dependency injection container is DIP automated. @Autowired injects abstractions, not concretions.</div></div>
+      <div class="pattern-card"><div class="p-name">JPA / Hibernate</div><div class="p-title">OCP</div><div class="p-desc">You extend behavior by adding entity classes and repository interfaces — zero modification to JPA internals.</div></div>
+      <div class="pattern-card"><div class="p-name">Java Collections</div><div class="p-title">ISP</div><div class="p-desc">List, Set, Map are separate interfaces. Iterable, Collection, List are a hierarchy — each adds only what's needed.</div></div>
+      <div class="pattern-card"><div class="p-name">Strategy Pattern</div><div class="p-title">OCP in action</div><div class="p-desc">Every Strategy pattern implementation directly demonstrates OCP: new algorithm = new class, no changes to context.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="tips">
+  <div class="sec-head"><span class="idx">08</span><h2>Interview Tips</h2></div>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>Don't just recite definitions.</strong> For each principle, have a violation and a fix ready. "SRP means one reason to change — here's a class with 3 reasons and here's how I'd split it."</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>OCP is the most visible in LLD designs.</strong> When an interviewer asks "how do you add a new vehicle type?", your answer should demonstrate OCP: new class, no modification to existing code.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>LSP is the most subtle.</strong> The Square/Rectangle example is the canonical one — know it cold. The test: can you substitute a subtype everywhere the base type is used without changing behavior?</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>DIP is the foundation of testability.</strong> "I inject dependencies so I can swap in a mock in tests." This connects SOLID to testing — interviewers love seeing this connection.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Know when NOT to apply SOLID.</strong> Over-engineering is a trap. A 20-line utility class doesn't need 5 sub-interfaces. Mention: "I'd apply OCP here because I expect this code to be extended. For this simpler class, the overhead isn't justified."</div></div>
+    <div class="tip"><div class="tip-icon">6</div><div class="tip-text"><strong>SOLID in your LLD answers.</strong> When presenting your design, explicitly name the principles: "I used an interface here to follow DIP." "Adding a new split type follows OCP." This is the vocabulary interviewers listen for.</div></div>
+  </div>
+</section>
+
+<footer><span class="k">SOLID Principles — OOP Design</span><span><a href="concepts-index.html">← All Concepts</a></span></footer>
+</div>
+</body></html>

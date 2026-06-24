@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Database Internals — SDE Interview Prep</title>
+<style>
+:root {
+  --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+  --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+  --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+  --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+.page-header { background: var(--slate); padding: 0; }
+.page-header .inner { max-width: 1200px; margin: 0 auto; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+.back-link { color: var(--g300); text-decoration: none; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; display: flex; align-items: center; gap: 8px; }
+.back-link:hover { color: var(--paper); }
+.header-badge { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--clay); background: rgba(217,119,87,.15); padding: 4px 10px; border-radius: 4px; }
+
+.hero { background: var(--slate); padding: 48px 32px 56px; }
+.hero .inner { max-width: 1200px; margin: 0 auto; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--clay); margin-bottom: 16px; }
+.hero h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(36px, 5vw, 56px); line-height: 1.06; letter-spacing: -.022em; color: var(--paper); margin-bottom: 16px; }
+.hero h1 em { font-style: italic; color: var(--clay); }
+.hero-sub { font-size: 16px; color: var(--g500); max-width: 600px; line-height: 1.65; }
+
+.layout { max-width: 1200px; margin: 0 auto; padding: 48px 32px 100px; display: grid; grid-template-columns: 220px 1fr; gap: 48px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } .toc { display: none; } }
+
+.toc { position: sticky; top: 32px; }
+.toc-title { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--g500); margin-bottom: 12px; }
+.toc a { display: block; font-size: 13px; color: var(--g500); text-decoration: none; padding: 5px 0 5px 12px; border-left: 2px solid var(--g200); transition: color 120ms, border-color 120ms; line-height: 1.4; }
+.toc a:hover { color: var(--slate); border-left-color: var(--clay); }
+
+section { margin-bottom: 64px; scroll-margin-top: 32px; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 28px; letter-spacing: -.015em; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1.5px solid var(--g200); }
+h3 { font-size: 15px; font-weight: 600; margin: 28px 0 10px; color: var(--slate); }
+p { font-size: 15px; color: var(--g700); margin-bottom: 14px; line-height: 1.7; }
+
+.diagram-box { background: var(--slate); border-radius: 16px; padding: 32px; margin: 24px 0; overflow: hidden; }
+.diagram-box svg { width: 100%; height: auto; display: block; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin: 20px 0; }
+.card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 18px 20px; }
+.card-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--clay); margin-bottom: 8px; }
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.card-body { font-size: 13.5px; color: var(--g700); line-height: 1.6; }
+
+.table-wrap { overflow-x: auto; margin: 20px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { background: var(--g100); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--g200); }
+td { padding: 10px 14px; border-bottom: 1px solid var(--g200); color: var(--g700); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--g100); }
+.good { color: var(--olive); font-weight: 600; }
+.bad { color: #c0392b; font-weight: 600; }
+.mid { color: var(--clay); font-weight: 600; }
+
+.tabs { margin: 20px 0; }
+.tab-btns { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
+.tab-btn { font-family: var(--mono); font-size: 11px; padding: 7px 14px; border: 1.5px solid var(--g200); border-bottom: none; border-radius: 8px 8px 0 0; background: var(--g100); color: var(--g500); cursor: pointer; transition: all 120ms; }
+.tab-btn.active { background: var(--slate); color: var(--paper); border-color: var(--slate); }
+.tab-pane { display: none; border: 1.5px solid var(--g300); border-radius: 0 8px 8px 8px; overflow: hidden; }
+.tab-pane.active { display: block; }
+pre { background: var(--slate); color: #e8e6df; font-family: var(--mono); font-size: 13px; line-height: 1.65; padding: 24px 28px; overflow-x: auto; margin: 0; }
+.kw { color: #7eb8f7; } .cn { color: #a8c880; } .cm { color: #6a7a6a; font-style: italic; }
+.st { color: #D97757; } .nm { color: #c39bd3; } .fn { color: #5bc4c4; }
+
+.tip { display: flex; gap: 14px; background: var(--paper); border: 1.5px solid var(--g200); border-left: 3px solid var(--clay); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+.tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.tip-text { font-size: 13.5px; color: var(--g700); line-height: 1.6; }
+.tip-text strong { color: var(--slate); }
+
+.highlight-box { background: rgba(217,119,87,.07); border: 1.5px solid rgba(217,119,87,.25); border-radius: 10px; padding: 16px 20px; margin: 16px 0; font-size: 14px; color: var(--g700); line-height: 1.65; }
+.highlight-box strong { color: var(--clay); }
+
+footer { max-width: 1200px; margin: 0 auto; padding: 0 32px 48px; border-top: 1.5px solid var(--g300); padding-top: 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--g500); }
+footer a { color: var(--clay); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="inner">
+    <a class="back-link" href="index.html">← Home</a>
+    <span class="header-badge">Senior SDE</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="inner">
+    <div class="eyebrow">Database Internals</div>
+    <h1>How Databases<br><em>Actually Work</em></h1>
+    <p class="hero-sub">B-trees vs LSM trees, MVCC, WAL, index internals, and query optimization — the layer below SQL that senior engineers must understand.</p>
+  </div>
+</div>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <a href="#what">1. What Is It</a>
+  <a href="#problem">2. The Problem</a>
+  <a href="#how">3. How It Works</a>
+  <a href="#types">4. Storage Engines & Indexing</a>
+  <a href="#tradeoffs">5. Trade-offs</a>
+  <a href="#code">6. Code Examples</a>
+  <a href="#real-world">7. Real-World Usage</a>
+  <a href="#tips">8. Interview Tips</a>
+</nav>
+
+<main>
+
+<section id="what">
+  <h2>1. What Is It</h2>
+  <p>Database internals refers to the implementation machinery underneath SQL — how data is physically stored on disk, how indexes accelerate queries, how transactions remain consistent under concurrent access, and how the database survives crashes. For a senior engineer, understanding this layer is what separates someone who can <em>use</em> a database from someone who can <em>reason about it</em> under load.</p>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Storage Engine</div>
+      <div class="card-title">How data lives on disk</div>
+      <div class="card-body">B-tree pages vs LSM SSTables. Every read/write decision flows from the storage engine choice.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Indexing</div>
+      <div class="card-title">How queries find data fast</div>
+      <div class="card-body">B-tree indexes, hash indexes, composite index column ordering, covering indexes.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Transactions</div>
+      <div class="card-title">ACID + MVCC</div>
+      <div class="card-body">How isolation levels work, why readers don't block writers in MVCC, and what WAL buys you.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Query Optimizer</div>
+      <div class="card-title">How the planner decides</div>
+      <div class="card-body">Cost-based planning, join algorithm selection, why EXPLAIN ANALYZE is your best friend.</div>
+    </div>
+  </div>
+</section>
+
+<section id="problem">
+  <h2>2. The Problem It Solves</h2>
+  <p>Disk I/O is 100,000× slower than RAM access. A naive database that stored every row in a flat file would require scanning the entire file for every query — O(N) per read. Databases solve this with layered machinery:</p>
+  <div class="highlight-box">
+    <strong>The core tension:</strong> writes want sequential I/O (fast on disk); reads want random access to any record (fast with indexes). Every storage engine design is a tradeoff between these two imperatives.
+  </div>
+  <p>On top of storage, concurrent users create a second problem: how do you prevent one transaction from reading half-written data from another? MVCC (Multi-Version Concurrency Control) solves this by keeping multiple versions of a row, so readers always see a consistent snapshot without blocking writers.</p>
+  <p>Finally, crashes happen. WAL (Write-Ahead Log) ensures durability: all changes are recorded to a sequential log before being applied to data pages. On restart, the database replays the log to recover.</p>
+</section>
+
+<section id="how">
+  <h2>3. How It Works</h2>
+  <p>B-tree and LSM tree are the two dominant storage engine architectures. They make opposite tradeoffs.</p>
+
+  <div class="diagram-box">
+    <svg viewBox="0 0 760 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- B-TREE side -->
+      <text x="140" y="24" text-anchor="middle" font-family="monospace" font-size="13" fill="#D97757" font-weight="700">B-TREE (PostgreSQL, MySQL)</text>
+
+      <!-- Root node -->
+      <rect x="90" y="38" width="100" height="32" rx="5" fill="rgba(217,119,87,.2)" stroke="#D97757" stroke-width="1.5"/>
+      <text x="140" y="59" text-anchor="middle" font-family="monospace" font-size="11" fill="#D97757">30 | 70</text>
+
+      <!-- Level 1 -->
+      <rect x="20" y="104" width="80" height="28" rx="4" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+      <text x="60" y="123" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">10 | 20</text>
+      <rect x="110" y="104" width="80" height="28" rx="4" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+      <text x="150" y="123" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">40 | 60</text>
+      <rect x="200" y="104" width="80" height="28" rx="4" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+      <text x="240" y="123" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.7)">80 | 90</text>
+
+      <!-- Leaf nodes -->
+      <rect x="10" y="168" width="60" height="24" rx="3" fill="rgba(120,140,93,.2)" stroke="rgba(120,140,93,.4)" stroke-width="1"/>
+      <text x="40" y="184" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">10,20</text>
+      <rect x="78" y="168" width="60" height="24" rx="3" fill="rgba(120,140,93,.2)" stroke="rgba(120,140,93,.4)" stroke-width="1"/>
+      <text x="108" y="184" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">30,40</text>
+      <rect x="146" y="168" width="60" height="24" rx="3" fill="rgba(120,140,93,.2)" stroke="rgba(120,140,93,.4)" stroke-width="1"/>
+      <text x="176" y="184" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">60,70</text>
+      <rect x="214" y="168" width="60" height="24" rx="3" fill="rgba(120,140,93,.2)" stroke="rgba(120,140,93,.4)" stroke-width="1"/>
+      <text x="244" y="184" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">80,90</text>
+
+      <!-- B-tree connectors -->
+      <line x1="130" y1="70" x2="60" y2="104" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <line x1="140" y1="70" x2="150" y2="104" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <line x1="150" y1="70" x2="240" y2="104" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <line x1="40" y1="132" x2="40" y2="168" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+      <line x1="70" y1="132" x2="108" y2="168" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+      <line x1="150" y1="132" x2="176" y2="168" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+      <line x1="240" y1="132" x2="244" y2="168" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+      <!-- Leaf chain -->
+      <line x1="70" y1="180" x2="78" y2="180" stroke="rgba(120,140,93,.4)" stroke-width="1" stroke-dasharray="2,2"/>
+      <line x1="138" y1="180" x2="146" y2="180" stroke="rgba(120,140,93,.4)" stroke-width="1" stroke-dasharray="2,2"/>
+      <line x1="206" y1="180" x2="214" y2="180" stroke="rgba(120,140,93,.4)" stroke-width="1" stroke-dasharray="2,2"/>
+
+      <text x="140" y="222" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">O(log N) reads &amp; writes · in-place updates</text>
+      <text x="140" y="237" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">page size: 4–16 KB · balanced at all times</text>
+
+      <!-- Divider -->
+      <line x1="295" y1="20" x2="295" y2="250" stroke="rgba(255,255,255,.08)" stroke-width="1" stroke-dasharray="6,4"/>
+
+      <!-- LSM-TREE side -->
+      <text x="530" y="24" text-anchor="middle" font-family="monospace" font-size="13" fill="#7eb8f7" font-weight="700">LSM-TREE (Cassandra, RocksDB)</text>
+
+      <!-- MemTable -->
+      <rect x="390" y="38" width="130" height="36" rx="6" fill="rgba(126,184,247,.2)" stroke="#7eb8f7" stroke-width="1.5"/>
+      <text x="455" y="55" text-anchor="middle" font-family="monospace" font-size="10" fill="#7eb8f7">MemTable</text>
+      <text x="455" y="68" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(126,184,247,.7)">(in-memory red-black tree)</text>
+      <!-- WAL -->
+      <rect x="535" y="44" width="60" height="24" rx="4" fill="rgba(217,119,87,.15)" stroke="rgba(217,119,87,.4)" stroke-width="1"/>
+      <text x="565" y="60" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757">WAL</text>
+      <line x1="520" y1="56" x2="535" y2="56" stroke="rgba(217,119,87,.4)" stroke-width="1" stroke-dasharray="3,2"/>
+
+      <!-- Flush arrow -->
+      <line x1="455" y1="74" x2="455" y2="98" stroke="rgba(126,184,247,.5)" stroke-width="1.5"/>
+      <polygon points="455,98 451,90 459,90" fill="rgba(126,184,247,.5)"/>
+      <text x="480" y="92" font-family="monospace" font-size="9" fill="var(--g500)">flush</text>
+
+      <!-- L0 SSTables -->
+      <text x="395" y="113" font-family="monospace" font-size="9" fill="var(--g500)">L0</text>
+      <rect x="415" y="102" width="50" height="22" rx="3" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <text x="440" y="117" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.6)">SST-1</text>
+      <rect x="472" y="102" width="50" height="22" rx="3" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+      <text x="497" y="117" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.6)">SST-2</text>
+
+      <!-- Compact arrow -->
+      <line x1="455" y1="124" x2="455" y2="148" stroke="rgba(120,140,93,.4)" stroke-width="1.5"/>
+      <polygon points="455,148 451,140 459,140" fill="rgba(120,140,93,.4)"/>
+      <text x="480" y="142" font-family="monospace" font-size="9" fill="var(--g500)">compact</text>
+
+      <!-- L1 -->
+      <text x="395" y="166" font-family="monospace" font-size="9" fill="var(--g500)">L1</text>
+      <rect x="415" y="155" width="130" height="22" rx="3" fill="rgba(120,140,93,.15)" stroke="rgba(120,140,93,.35)" stroke-width="1"/>
+      <text x="480" y="170" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">sorted SSTable (10MB)</text>
+
+      <!-- Compact arrow -->
+      <line x1="455" y1="177" x2="455" y2="200" stroke="rgba(120,140,93,.3)" stroke-width="1.5"/>
+      <polygon points="455,200 451,192 459,192" fill="rgba(120,140,93,.3)"/>
+
+      <!-- L2 -->
+      <text x="395" y="218" font-family="monospace" font-size="9" fill="var(--g500)">L2</text>
+      <rect x="415" y="207" width="200" height="22" rx="3" fill="rgba(120,140,93,.1)" stroke="rgba(120,140,93,.25)" stroke-width="1"/>
+      <text x="515" y="222" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(120,140,93,.7)">sorted SSTable (100MB)</text>
+
+      <text x="530" y="247" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">sequential writes · bloom filter per SSTable</text>
+    </svg>
+  </div>
+
+  <h3>MVCC — Snapshot Isolation Without Locks</h3>
+  <p>When a transaction starts, PostgreSQL assigns it a transaction ID (xid). Every row stores the xmin (xid that created it) and xmax (xid that deleted it). A reader only sees rows where xmin is committed and less than its own xid, and xmax is either null or not yet committed. This means readers never need locks — they simply ignore versions written after their snapshot time.</p>
+
+  <h3>Write-Ahead Log (WAL)</h3>
+  <p>Before any data page is modified, the change is appended to the WAL (a sequential, append-only file). On crash, PostgreSQL replays the WAL from the last checkpoint to redo committed changes, then undoes uncommitted ones. Sequential log writes are far faster than random page writes, which is why WAL enables both durability and high write throughput.</p>
+</section>
+
+<section id="types">
+  <h2>4. Storage Engines, Indexing & Transactions</h2>
+
+  <h3>Storage Engines</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">B-Tree</div>
+      <div class="card-title">InnoDB, PostgreSQL</div>
+      <div class="card-body">Balanced tree of fixed-size pages (4–16KB). In-place updates — good for reads, random writes cause expensive page splits. Self-balancing: O(log N) for reads and writes. Leaf nodes in a B+ tree form a linked list for range scans.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">LSM Tree</div>
+      <div class="card-title">Cassandra, RocksDB, LevelDB</div>
+      <div class="card-body">Writes go to in-memory MemTable (red-black tree) + WAL. Periodically flushed to sorted SSTables on disk. Background compaction merges levels. Sequential writes = very fast. Reads may check multiple SSTables (use bloom filters to skip). High write amplification on compaction.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Heap Files</div>
+      <div class="card-title">Simple row storage</div>
+      <div class="card-body">Unordered rows written sequentially. Fast inserts, slow reads (full scan without index). PostgreSQL uses heap files + separate B-tree index files. Updates write new version to heap; VACUUM cleans dead tuples.</div>
+    </div>
+  </div>
+
+  <h3>Index Types</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">B-Tree Index</div>
+      <div class="card-title">Most common — range + equality</div>
+      <div class="card-body">Supports =, &lt;, &gt;, BETWEEN, LIKE 'prefix%', ORDER BY. Default index type. Maintained on every write — adds overhead to INSERT/UPDATE/DELETE.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Hash Index</div>
+      <div class="card-title">Equality only — O(1)</div>
+      <div class="card-body">Only useful for exact equality (=). No range scans. Used in Redis, and InnoDB adaptive hash index (automatic, in-memory). PostgreSQL supports explicit hash indexes but rarely used.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Composite Index</div>
+      <div class="card-title">Column order matters critically</div>
+      <div class="card-body">INDEX (a, b, c) can satisfy queries on (a), (a,b), (a,b,c) — but NOT (b) or (c) alone. Leftmost prefix rule. Think of it as a phone book sorted by last name then first name: you can look up "Smith" or "Smith, John" but not "John" alone.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Covering Index</div>
+      <div class="card-title">Eliminates table lookup entirely</div>
+      <div class="card-body">If the index contains ALL columns the query needs (SELECT + WHERE + ORDER BY), the DB can answer the query from the index alone — no heap/row access. Can be 5–10× faster for high-selectivity queries. Create with INCLUDE columns in PostgreSQL.</div>
+    </div>
+  </div>
+
+  <h3>Isolation Levels</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Isolation Level</th><th>Dirty Read</th><th>Non-Repeatable Read</th><th>Phantom Read</th><th>Default In</th></tr></thead>
+      <tbody>
+        <tr><td>Read Uncommitted</td><td class="bad">Possible</td><td class="bad">Possible</td><td class="bad">Possible</td><td>—</td></tr>
+        <tr><td>Read Committed</td><td class="good">Prevented</td><td class="bad">Possible</td><td class="bad">Possible</td><td>PostgreSQL</td></tr>
+        <tr><td>Repeatable Read</td><td class="good">Prevented</td><td class="good">Prevented</td><td class="bad">Possible</td><td>MySQL InnoDB</td></tr>
+        <tr><td>Serializable</td><td class="good">Prevented</td><td class="good">Prevented</td><td class="good">Prevented</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Query Optimization — Join Algorithms</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Nested Loop Join</div>
+      <div class="card-title">Best for small outer tables</div>
+      <div class="card-body">For each row in outer table, scan inner table. O(N×M). Good when outer is small and inner has an index. Bad for large unindexed joins.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Hash Join</div>
+      <div class="card-title">Large equality joins</div>
+      <div class="card-body">Build hash table from smaller relation. Probe with larger relation. O(N+M). Requires equality condition. Memory-intensive — spills to disk if table doesn't fit.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Merge Join</div>
+      <div class="card-title">Pre-sorted inputs</div>
+      <div class="card-body">Sort both sides, then merge. O(N log N + M log M). Efficient when both sides are already sorted (e.g., indexed columns). Optimal for range joins.</div>
+    </div>
+  </div>
+</section>
+
+<section id="tradeoffs">
+  <h2>5. Trade-offs</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Engine</th><th>Write Perf</th><th>Read Perf</th><th>Space Amp.</th><th>Write Amp.</th><th>Best For</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>B-Tree</strong><br><small>PostgreSQL, InnoDB</small></td>
+          <td class="mid">Moderate</td>
+          <td class="good">Excellent</td>
+          <td class="good">Low</td>
+          <td class="mid">Moderate</td>
+          <td>OLTP, mixed read/write, range queries</td>
+        </tr>
+        <tr>
+          <td><strong>LSM Tree</strong><br><small>Cassandra, RocksDB</small></td>
+          <td class="good">Excellent</td>
+          <td class="mid">Good (with bloom filters)</td>
+          <td class="bad">High (compaction)</td>
+          <td class="bad">High (compaction rewrites)</td>
+          <td>Write-heavy workloads, time-series, append-only</td>
+        </tr>
+        <tr>
+          <td><strong>Heap + Index</strong><br><small>PostgreSQL base</small></td>
+          <td class="mid">Moderate</td>
+          <td class="mid">Good</td>
+          <td class="mid">Moderate (dead tuples)</td>
+          <td class="mid">Moderate</td>
+          <td>General OLTP with VACUUM</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="highlight-box">
+    <strong>Write amplification:</strong> LSM compaction rewrites data multiple times as it moves through levels. A single user write might result in 10–30× actual disk writes across compactions. This wears out SSDs faster and is a key operational concern for RocksDB-based systems.
+  </div>
+</section>
+
+<section id="code">
+  <h2>6. Code Examples</h2>
+  <div class="tabs">
+    <div class="tab-btns">
+      <button class="tab-btn active" data-group="db" onclick="switchTab('db','btree')">B-Tree vs LSM</button>
+      <button class="tab-btn" data-group="db" onclick="switchTab('db','mvcc')">MVCC Transactions</button>
+      <button class="tab-btn" data-group="db" onclick="switchTab('db','index')">Index Design</button>
+      <button class="tab-btn" data-group="db" onclick="switchTab('db','wal')">WAL Recovery</button>
+    </div>
+    <div class="tab-pane active" data-group="db" data-tab="db-btree">
+<pre><span class="cm">-- Range scan on B-tree index: efficient (index range scan)</span>
+<span class="kw">EXPLAIN ANALYZE</span>
+<span class="kw">SELECT</span> id, name, email
+<span class="kw">FROM</span> users
+<span class="kw">WHERE</span> created_at <span class="kw">BETWEEN</span> <span class="st">'2024-01-01'</span> <span class="kw">AND</span> <span class="st">'2024-06-01'</span>;
+<span class="cm">-- → Index Scan using idx_users_created_at
+--    Index Cond: (created_at >= '2024-01-01' AND created_at <= '2024-06-01')
+--    Rows: 45231  Actual Rows: 44890  Time: 23ms</span>
+
+<span class="cm">-- Same query on Cassandra (LSM) — must specify partition key!</span>
+<span class="cm">-- Cassandra stores data in SSTables partitioned by partition key.</span>
+<span class="cm">-- Range scan WITHOUT partition key = full cluster scan (avoid!)</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> user_events
+<span class="kw">WHERE</span> user_id = <span class="nm">12345</span>           <span class="cm">-- partition key (required)</span>
+  <span class="kw">AND</span> event_time &gt; <span class="st">'2024-01-01'</span>  <span class="cm">-- clustering key (range OK)</span>
+<span class="kw">LIMIT</span> <span class="nm">100</span>;
+
+<span class="cm">-- LSM bloom filter check: before reading an SSTable,
+-- check the bloom filter. If it says "no", skip the file entirely.
+-- Reduces read amplification from O(levels) to ~O(1) for non-existent keys.</span>
+</pre>
+    </div>
+    <div class="tab-pane" data-group="db" data-tab="db-mvcc">
+<pre><span class="cm">-- Session 1: begin transaction, don't commit yet</span>
+<span class="kw">BEGIN</span>;
+<span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="nm">100</span> <span class="kw">WHERE</span> id = <span class="nm">1</span>;
+<span class="cm">-- PostgreSQL creates new row version: xmin=txn_101, xmax=NULL
+-- Old version: xmin=txn_50, xmax=txn_101 (visible to concurrent readers)</span>
+
+<span class="cm">-- Session 2: concurrent read — sees OLD value due to MVCC</span>
+<span class="kw">BEGIN</span>;
+<span class="kw">SELECT</span> balance <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> id = <span class="nm">1</span>;
+<span class="cm">-- Returns original balance — Session 2's snapshot predates txn_101
+-- No lock needed! Readers never block writers in MVCC.</span>
+
+<span class="cm">-- Session 1 commits</span>
+<span class="kw">COMMIT</span>; <span class="cm">-- txn_101 marked as committed in pg_xact</span>
+
+<span class="cm">-- Session 2 still sees old value (Repeatable Read) or new (Read Committed)</span>
+<span class="kw">SELECT</span> balance <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> id = <span class="nm">1</span>;
+<span class="cm">-- Read Committed: sees 900 (new committed value)
+-- Repeatable Read: sees 1000 (snapshot from txn start)</span>
+
+<span class="cm">-- Dead tuples accumulate from MVCC — VACUUM reclaims them</span>
+<span class="kw">VACUUM</span> ANALYZE accounts;
+<span class="cm">-- Removes versions where xmax is committed and no live txn needs them</span>
+</pre>
+    </div>
+    <div class="tab-pane" data-group="db" data-tab="db-index">
+<pre><span class="cm">-- Composite index: LEFT-PREFIX rule matters</span>
+<span class="kw">CREATE INDEX</span> idx_orders_composite
+  <span class="kw">ON</span> orders (user_id, status, created_at);
+
+<span class="cm">-- Uses index (leftmost prefix matches)</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> user_id = <span class="nm">42</span>;
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> user_id = <span class="nm">42</span> <span class="kw">AND</span> status = <span class="st">'PAID'</span>;
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> user_id = <span class="nm">42</span> <span class="kw">AND</span> status = <span class="st">'PAID'</span> <span class="kw">AND</span> created_at > <span class="st">'2024-01'</span>;
+
+<span class="cm">-- Does NOT use index (missing leftmost column)</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> status = <span class="st">'PAID'</span>; <span class="cm">-- full table scan!</span>
+
+<span class="cm">-- Covering index: no heap access needed (index-only scan)</span>
+<span class="kw">CREATE INDEX</span> idx_users_covering
+  <span class="kw">ON</span> users (email)
+  <span class="kw">INCLUDE</span> (id, name, created_at);  <span class="cm">-- PostgreSQL 11+ INCLUDE syntax</span>
+
+<span class="cm">-- This query hits ONLY the index:</span>
+<span class="kw">SELECT</span> id, name, created_at <span class="kw">FROM</span> users <span class="kw">WHERE</span> email = <span class="st">'user@example.com'</span>;
+<span class="cm">-- EXPLAIN shows: Index Only Scan using idx_users_covering
+-- Heap Fetches: 0  ← never touches the actual table rows!</span>
+
+<span class="cm">-- Index selectivity: avoid indexing low-cardinality columns</span>
+<span class="kw">CREATE INDEX</span> idx_bad <span class="kw">ON</span> orders (status);   <span class="cm">-- BAD: 4 values, low selectivity</span>
+<span class="kw">CREATE INDEX</span> idx_good <span class="kw">ON</span> orders (order_id); <span class="cm">-- GOOD: unique, high selectivity</span>
+</pre>
+    </div>
+    <div class="tab-pane" data-group="db" data-tab="db-wal">
+<pre><span class="cm">// WAL crash recovery — pseudocode showing PostgreSQL recovery logic</span>
+
+<span class="kw">class</span> <span class="cn">WALRecovery</span> {
+
+  <span class="kw">void</span> <span class="fn">recover</span>() {
+    <span class="cm">// 1. Find last checkpoint (written periodically, ~every 5 min)</span>
+    <span class="cn">Checkpoint</span> checkpoint = <span class="fn">readLastCheckpoint</span>();
+    <span class="nm">long</span> replayFrom = checkpoint.walPosition;
+
+    <span class="cn">Set</span>&lt;<span class="cn">Long</span>&gt; committedTxns = <span class="kw">new</span> <span class="cn">HashSet</span>&lt;&gt;();
+    <span class="cn">Set</span>&lt;<span class="cn">Long</span>&gt; uncommittedTxns = <span class="kw">new</span> <span class="cn">HashSet</span>&lt;&gt;();
+
+    <span class="cm">// 2. REDO PASS — replay all WAL records from checkpoint forward</span>
+    <span class="kw">for</span> (<span class="cn">WALRecord</span> record : <span class="fn">readWAL</span>(replayFrom)) {
+      <span class="kw">if</span> (record.type == <span class="cn">COMMIT</span>) {
+        committedTxns.<span class="fn">add</span>(record.txnId);
+      } <span class="kw">else if</span> (record.type == <span class="cn">ABORT</span>) {
+        uncommittedTxns.<span class="fn">remove</span>(record.txnId);
+      } <span class="kw">else</span> {
+        <span class="cm">// Apply the data change to the page</span>
+        <span class="fn">applyChange</span>(record);
+        uncommittedTxns.<span class="fn">add</span>(record.txnId);
+      }
+    }
+
+    <span class="cm">// 3. UNDO PASS — roll back uncommitted transactions</span>
+    <span class="kw">for</span> (<span class="nm">long</span> txnId : uncommittedTxns) {
+      <span class="cm">// Walk undo log backwards, reverse each change</span>
+      <span class="fn">undoTransaction</span>(txnId);
+    }
+
+    <span class="cm">// DB is now in consistent state — open for connections</span>
+  }
+}
+
+<span class="cm">// WAL write flow (called on every DML statement):
+// 1. Generate WAL record (old + new values)
+// 2. Append to WAL buffer in memory
+// 3. On COMMIT: fsync WAL buffer to disk (synchronous_commit=on)
+// 4. Only THEN acknowledge commit to client
+// WAL is ALWAYS written before data pages — that's the "write-ahead" guarantee</span>
+</pre>
+    </div>
+  </div>
+</section>
+
+<section id="real-world">
+  <h2>7. Real-World Usage</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">PostgreSQL</div>
+      <div class="card-title">B-Tree + MVCC + WAL</div>
+      <div class="card-body">Heap storage + B-tree indexes. MVCC with version chains in heap. WAL for crash recovery. VACUUM to reclaim dead tuples. Extensible index types: GIN (full-text), GiST (geometry), BRIN (time-series ranges).</div>
+    </div>
+    <div class="card">
+      <div class="card-label">MySQL InnoDB</div>
+      <div class="card-title">Clustered B-Tree + Doublewrite</div>
+      <div class="card-body">Primary key IS the clustered index — rows stored in PK order. Doublewrite buffer prevents torn page writes. Redo log (WAL) + undo log. Gap locks to prevent phantom reads at Repeatable Read level.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Cassandra</div>
+      <div class="card-title">LSM + SSTables + Compaction</div>
+      <div class="card-body">Pure LSM tree. All writes go to MemTable + CommitLog (WAL). Bloom filters per SSTable reduce read amplification. Compaction strategies: STCS (write-heavy), LCS (read-heavy, space-efficient), TWCS (time-series).</div>
+    </div>
+    <div class="card">
+      <div class="card-label">RocksDB</div>
+      <div class="card-title">LSM engine — embedded</div>
+      <div class="card-body">Used as embedded storage in Kafka, TiKV, MyRocks (MySQL + RocksDB). Tunable compaction, block cache, bloom filter per level. Write-optimized — ideal for event logs and KV stores.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">MongoDB WiredTiger</div>
+      <div class="card-title">B-Tree + MVCC</div>
+      <div class="card-body">B-tree storage engine with document-level concurrency. MVCC snapshot isolation. Journal (WAL) for durability. Compression (snappy/zstd) on data blocks by default.</div>
+    </div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2>8. Interview Tips</h2>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"Why is Cassandra fast for writes?"</strong> LSM tree — writes go to in-memory MemTable and sequential WAL. No random disk I/O on the write path. Compaction happens in the background, not blocking writes.</div></div>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"Why doesn't a SELECT block an UPDATE in PostgreSQL?"</strong> MVCC — the reader sees the row version from its snapshot timestamp. The writer creates a new version. They operate on different row versions simultaneously.</div></div>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"What causes index bloat in PostgreSQL?"</strong> MVCC dead tuples. When a row is updated, the old version isn't immediately deleted — it stays in the heap until VACUUM runs. Indexes still point to both old and new versions. autovacuum handles this, but high-write tables may need manual tuning.</div></div>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"When NOT to add an index?"</strong> (1) Low-cardinality columns (e.g., boolean, status with 3 values) — the planner may prefer a seq scan. (2) Write-heavy tables — every index costs an additional write on INSERT/UPDATE/DELETE. (3) Small tables — seq scan is faster than index overhead.</div></div>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"What is write amplification and why does it matter?"</strong> LSM compaction rewrites data multiple times as SSTables move through levels. A single user write can cause 10–30 actual disk writes. On SSDs with finite write cycles, this is a real operational concern. RocksDB tuning (compaction strategy, level sizes) significantly affects this.</div></div>
+  <div class="tip"><span class="tip-icon">💡</span><div class="tip-text"><strong>"Explain the N+1 query problem."</strong> Loading 100 orders then firing a separate SELECT for each order's user = 101 queries. Fix: JOIN in one query, or batch load (SELECT ... WHERE user_id IN (...)). ORMs are notorious for this — always check generated SQL in production.</div></div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <span>Database Internals — Senior SDE Interview Prep</span>
+  <a href="concepts-index.html">← All Concepts</a>
+</footer>
+
+<script>
+function switchTab(group, id) {
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el => el.classList.add('active'));
+}
+</script>
+</body>
+</html>

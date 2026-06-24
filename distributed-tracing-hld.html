@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Distributed Tracing — HLD Interview Prep</title>
+<style>
+:root {
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 120px}
+.back{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none;padding:28px 0 0}
+.back:hover{color:var(--slate)}
+header{padding:40px 0 52px;border-bottom:1.5px solid var(--g200);margin-bottom:52px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);margin-bottom:16px}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(30px,5vw,48px);line-height:1.08;letter-spacing:-.02em}
+.sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:600px;line-height:1.65}
+section{margin-bottom:64px}
+h2{font-family:var(--serif);font-size:26px;font-weight:500;letter-spacing:-.01em;margin-bottom:20px;padding-bottom:10px;border-bottom:1.5px solid var(--g200)}
+h3{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--g500);margin:28px 0 12px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.55;position:relative;padding-left:36px}
+.req-item::before{content:"";position:absolute;left:14px;top:18px;width:8px;height:8px;border-radius:50%}
+.req-item.func::before{background:var(--olive)}
+.req-item.nfunc::before{background:var(--clay)}
+.req-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);margin-bottom:4px}
+.est-table{width:100%;border-collapse:collapse;font-size:14px}
+.est-table th{background:var(--g100);padding:10px 14px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);border-bottom:1.5px solid var(--g300)}
+.est-table td{padding:11px 14px;border-bottom:1px solid var(--g100);vertical-align:top}
+.est-table tr:last-child td{border-bottom:none}
+.est-table td:first-child{font-weight:500;color:var(--g700);width:36%}
+.est-num{font-family:var(--mono);color:var(--clay);font-size:13px;font-weight:600}
+/* arch */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:700px){.arch-wrap{grid-template-columns:1fr}}
+.arch-box{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;overflow:hidden}
+.arch-box svg{width:100%;height:auto;display:block}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:200px}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px}
+.ap-empty{color:var(--g500);font-size:13px;text-align:center;padding-top:40px}
+/* flow stepper */
+.flow-pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.fpill{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fpill.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fpill.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;min-height:160px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:14px;color:var(--g700);line-height:1.65;margin-bottom:14px}
+.fc-code{background:var(--slate);color:#e8e6df;border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;justify-content:space-between;margin-top:16px}
+.flow-btn{background:var(--paper);border:1.5px solid var(--g300);border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;color:var(--g700)}
+.flow-btn:hover{border-color:var(--clay);color:var(--clay)}
+.flow-btn:disabled{opacity:.35;cursor:default}
+.flow-dots{display:flex;gap:6px}
+.flow-dot{width:8px;height:8px;border-radius:50%;background:var(--g300);cursor:pointer;transition:background .2s}
+.flow-dot.cur{background:var(--clay)}
+.flow-ctr{font-family:var(--mono);font-size:11px;color:var(--g500)}
+/* self-check */
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.sc-q{display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;user-select:none}
+.sc-q:hover{background:var(--g100)}
+.sc-plus{width:22px;height:22px;border-radius:50%;background:var(--g200);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;transition:transform .2s,background .2s}
+.sc-item.open .sc-plus{transform:rotate(45deg);background:var(--clay);color:white}
+.sc-qtext{font-size:14px;font-weight:500;flex:1}
+.sc-a{display:none;padding:0 18px 16px 52px;font-size:14px;color:var(--g700);line-height:1.65}
+.sc-item.open .sc-a{display:block}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:auto;flex-shrink:0}
+/* code blocks */
+pre.api{background:var(--slate);color:#e8e6df;border-radius:10px;padding:20px 22px;font-family:var(--mono);font-size:13px;line-height:1.7;overflow-x:auto;margin-bottom:14px}
+pre.api .method{color:var(--clay);font-weight:700}
+pre.api .path{color:#7eb8f7}
+pre.api .comment{color:var(--g500);font-style:italic}
+pre.api .kw{color:#7eb8f7}
+pre.api .cn{color:#a8c880}
+pre.api .st{color:#D97757}
+pre.api .nm{color:#C39BD3}
+pre.api .cfn{color:#79c9c0}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-bottom:24px}
+.card{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--serif);font-size:15px;font-weight:500;margin-bottom:6px}
+.card p{font-size:13px;color:var(--g700);line-height:1.6}
+.card code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 5px;border-radius:4px}
+.tip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.tip{background:var(--paper);border:1.5px solid var(--g200);border-left:4px solid var(--clay);border-radius:0 10px 10px 0;padding:14px 16px}
+.tip strong{display:block;font-size:13px;margin-bottom:4px}
+.tip p{font-size:12.5px;color:var(--g700);margin-bottom:0;line-height:1.5}
+.tip p code{font-family:var(--mono);font-size:11px;background:var(--g100);padding:1px 4px;border-radius:3px}
+/* sampling table */
+.samp-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+.samp-table th{background:var(--g100);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);border-bottom:1.5px solid var(--g300)}
+.samp-table td{padding:9px 14px;border-bottom:1px solid var(--g100);vertical-align:top}
+.samp-table tr:nth-child(even) td{background:rgba(240,238,230,.5)}
+/* waterfall */
+.wf-container{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px}
+.wf-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.wf-title{font-family:var(--serif);font-size:16px;font-weight:500}
+.wf-hint{font-size:12px;color:var(--g500)}
+.wf-spans{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+.wf-row{display:flex;align-items:center;gap:12px;cursor:pointer;padding:3px 0;border-radius:4px;transition:background .15s}
+.wf-row:hover{background:var(--g100)}
+.wf-row.sel{background:var(--g100)}
+.wf-svc{font-family:var(--mono);font-size:10px;color:var(--g700);width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-track{flex:1;height:22px;position:relative;background:var(--g100);border-radius:3px}
+.wf-bar{position:absolute;top:3px;height:16px;border-radius:3px;display:flex;align-items:center;padding:0 6px;font-family:var(--mono);font-size:9px;font-weight:700;color:white;white-space:nowrap;overflow:hidden}
+.wf-dur{font-family:var(--mono);font-size:10px;color:var(--g500);width:50px;text-align:right;flex-shrink:0}
+.wf-timeline{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--g500);margin-bottom:12px;padding:0 132px 0 132px}
+.wf-detail{background:var(--g100);border-radius:10px;padding:14px 16px;min-height:60px;font-size:13px;color:var(--g700);line-height:1.65}
+.wf-detail .tag{font-family:var(--mono);font-size:10px;background:var(--paper);border:1px solid var(--g300);padding:2px 7px;border-radius:4px;display:inline-block;margin:2px}
+footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;font-size:12px;color:var(--g500)}
+footer a{color:var(--clay);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&#8592; Home</a>
+
+<header>
+  <div class="eyebrow">High Level Design &middot; Senior SDE</div>
+  <h1>Distributed Tracing System</h1>
+  <p class="sub">Design a Jaeger/Zipkin-like system &mdash; trace context propagation, span collection, head-based vs tail-based sampling, and sub-second trace queries at 100K traces/sec.</p>
+</header>
+
+<section id="overview">
+  <h2>1. Requirements</h2>
+  <h3>Functional</h3>
+  <div class="req-grid">
+    <div class="req-item func"><div class="req-label">Functional</div>Instrument services to emit spans with parent-child relationships</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Propagate trace context across service boundaries (HTTP, gRPC, queues)</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Collect, store, and query traces by traceId, service, duration, error</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Visualise trace waterfall (Gantt chart of spans)</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Service dependency graph derived from trace data</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Configurable sampling rates per service and operation</div>
+  </div>
+  <h3>Non-Functional</h3>
+  <div class="req-grid">
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Handle 1M req/sec instrumented &rarr; 100K traces/sec after 10% sampling</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>&lt;1% overhead on instrumented services (CPU + latency)</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Trace query latency &lt;1 second for traceId lookup</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>72-hour full-fidelity retention; 1-year sampled retention</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>99.9% availability for the collection pipeline</div>
+  </div>
+</section>
+
+<section id="estimation">
+  <h2>2. Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Raw spans/sec</td><td>1M req/sec &times; 10 spans/req avg</td><td class="est-num">10M spans/sec</td></tr>
+      <tr><td>Sampled spans/sec (1%)</td><td>10M &times; 0.01</td><td class="est-num">100K spans/sec</td></tr>
+      <tr><td>Span size</td><td>traceId + spanId + tags + logs</td><td class="est-num">~1 KB avg</td></tr>
+      <tr><td>Ingest bandwidth</td><td>100K &times; 1 KB</td><td class="est-num">100 MB/sec</td></tr>
+      <tr><td>72-hour storage</td><td>100 MB/sec &times; 259,200 sec</td><td class="est-num">~26 TB</td></tr>
+      <tr><td>Cassandra nodes</td><td>26 TB &divide; 2 TB/node (3x replication)</td><td class="est-num">~40 nodes</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="architecture">
+  <h2>3. High-Level Architecture</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:14px;">Click any component to explore its role and design choices.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 760 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#D1CFC5"/>
+          </marker>
+        </defs>
+        <!-- Arrows -->
+        <!-- SDKs to Collector -->
+        <line x1="108" y1="70" x2="178" y2="105" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="108" y1="130" x2="178" y2="140" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="108" y1="185" x2="178" y2="170" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Collector to Kafka -->
+        <line x1="298" y1="140" x2="338" y2="140" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Kafka to Processor -->
+        <line x1="438" y1="140" x2="478" y2="140" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Processor to Cassandra -->
+        <line x1="558" y1="125" x2="618" y2="90" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Processor to ES -->
+        <line x1="558" y1="155" x2="618" y2="185" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- Cassandra to Query -->
+        <line x1="718" y1="80" x2="718" y2="245" stroke="#D1CFC5" stroke-width="1" stroke-dasharray="4,2"/>
+        <!-- ES to Query -->
+        <line x1="718" y1="200" x2="718" y2="245" stroke="none"/>
+        <!-- Cassandra+ES to Query Service vertical line -->
+        <line x1="700" y1="80" x2="700" y2="245" stroke="#D1CFC5" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arr)"/>
+
+        <!-- SDK services -->
+        <g class="arch-node" data-id="sdk" onclick="showNode('sdk')">
+          <rect x="8" y="50" width="100" height="34" rx="6" fill="#F0EEE6" stroke="#D97757" stroke-width="1.5"/>
+          <text x="58" y="72" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">svc-frontend</text>
+        </g>
+        <g class="arch-node" data-id="sdk" onclick="showNode('sdk')">
+          <rect x="8" y="110" width="100" height="34" rx="6" fill="#F0EEE6" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="58" y="132" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D" font-weight="700">svc-order</text>
+        </g>
+        <g class="arch-node" data-id="sdk" onclick="showNode('sdk')">
+          <rect x="8" y="168" width="100" height="34" rx="6" fill="#F0EEE6" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="58" y="190" text-anchor="middle" font-family="monospace" font-size="9" fill="#4A6FA5" font-weight="700">svc-payment</text>
+        </g>
+        <text x="58" y="36" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">OTLP SDK</text>
+
+        <!-- Collector -->
+        <g class="arch-node" data-id="collector" onclick="showNode('collector')">
+          <rect x="178" y="90" width="120" height="100" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="238" y="130" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">Collector</text>
+          <text x="238" y="147" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">validate &middot; sample</text>
+          <text x="238" y="162" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">batch &middot; export</text>
+        </g>
+
+        <!-- Kafka -->
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="338" y="105" width="100" height="70" rx="7" fill="#F0EEE6" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="388" y="138" text-anchor="middle" font-family="monospace" font-size="10" fill="#4A6FA5" font-weight="700">Kafka</text>
+          <text x="388" y="155" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">spans topic</text>
+        </g>
+
+        <!-- Span Processor -->
+        <g class="arch-node" data-id="processor" onclick="showNode('processor')">
+          <rect x="478" y="100" width="80" height="80" rx="7" fill="#141413" stroke="#D97757" stroke-width="1.5"/>
+          <text x="518" y="133" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">Span</text>
+          <text x="518" y="148" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">Processor</text>
+          <text x="518" y="167" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">enrich &middot; index</text>
+        </g>
+
+        <!-- Cassandra -->
+        <g class="arch-node" data-id="cassandra" onclick="showNode('cassandra')">
+          <rect x="618" y="55" width="110" height="50" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="673" y="76" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">Cassandra</text>
+          <text x="673" y="93" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">spans by traceId</text>
+        </g>
+
+        <!-- Elasticsearch -->
+        <g class="arch-node" data-id="elasticsearch" onclick="showNode('elasticsearch')">
+          <rect x="618" y="165" width="110" height="50" rx="7" fill="#FAF9F5" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="673" y="186" text-anchor="middle" font-family="monospace" font-size="9" fill="#4A6FA5" font-weight="700">Elasticsearch</text>
+          <text x="673" y="203" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">search indexes</text>
+        </g>
+
+        <!-- Query Service -->
+        <g class="arch-node" data-id="query" onclick="showNode('query')">
+          <rect x="608" y="250" width="130" height="60" rx="7" fill="#F0EEE6" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="673" y="275" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D" font-weight="700">Query Service</text>
+          <text x="673" y="292" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">+ Jaeger UI</text>
+          <text x="673" y="305" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">waterfall view</text>
+        </g>
+      </svg>
+    </div>
+    <div class="arch-panel" id="arch-panel">
+      <p class="ap-empty">Click a component<br>to see details</p>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>4. Trace Lifecycle</h2>
+  <div class="flow-pill-row" id="flow-pills"></div>
+  <div class="flow-card" id="flow-card"></div>
+  <div class="flow-nav">
+    <button class="flow-btn" onclick="prevStep()" id="btn-prev" disabled>&#8592; Prev</button>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div class="flow-dots" id="flow-dots"></div>
+      <span class="flow-ctr" id="flow-ctr"></span>
+    </div>
+    <button class="flow-btn" onclick="nextStep()" id="btn-next">Next &#8594;</button>
+  </div>
+</section>
+
+<section id="waterfall">
+  <h2>5. Trace Waterfall Visualizer</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:16px;">Click any span to see its details. Orange = critical path (longest chain determining total latency).</p>
+  <div class="wf-container">
+    <div class="wf-header">
+      <div>
+        <div class="wf-title">GET /api/orders &mdash; trace: 4bf92f35</div>
+        <div style="font-size:12px;color:var(--g500);margin-top:2px">5 spans &middot; svc-frontend root &middot; Total: 425ms</div>
+      </div>
+      <div class="wf-hint">Click a span for details</div>
+    </div>
+    <div class="wf-timeline">
+      <span>0ms</span><span>100ms</span><span>200ms</span><span>300ms</span><span>425ms</span>
+    </div>
+    <div class="wf-spans" id="wf-spans"></div>
+    <div class="wf-detail" id="wf-detail">Select a span above to see its tags, logs, and metadata.</div>
+  </div>
+</section>
+
+<section id="api">
+  <h2>6. API Design</h2>
+  <pre class="api"><span class="comment">// SDK emits spans via OTLP gRPC (OpenTelemetry Protocol)</span>
+<span class="cn">CollectorService</span>.<span class="cfn">Export</span>(<span class="cn">ExportTraceServiceRequest</span> {
+  resource_spans: [{
+    resource: { attributes: [{key: <span class="st">"service.name"</span>, value: <span class="st">"svc-order"</span>}] },
+    scope_spans: [{ spans: [{ trace_id, span_id, parent_span_id,
+                name: <span class="st">"POST /orders"</span>, start_time_unix_nano,
+                end_time_unix_nano, status, attributes }] }]
+  }]
+})
+
+<span class="comment">// Query API</span>
+<span class="kw">GET</span> /api/traces/{traceId}
+&#8594; { trace_id, spans: [{ spanId, parentSpanId, service, operation,
+                       duration_ms, status, tags, logs, startTime }] }
+
+<span class="kw">GET</span> /api/traces?service=svc-order&amp;minDuration=1000&amp;error=true&amp;limit=20&amp;lookback=1h
+&#8594; { traces: [{ traceId, rootService, rootOperation, duration_ms, spanCount }] }
+
+<span class="kw">GET</span> /api/dependencies?endTs=now&amp;lookback=1h
+&#8594; { dependencies: [{ parent: <span class="st">"svc-order"</span>, child: <span class="st">"svc-payment"</span>, callCount: <span class="nm">1250</span> }] }</pre>
+</section>
+
+<section id="database">
+  <h2>7. Database Design</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h4>Cassandra &mdash; Span Storage</h4>
+      <p>Partition key = <code>trace_id</code> &rarr; all spans for a trace on the same partition &rarr; O(1) trace reconstruction. Cluster key = <code>span_id</code>. TTL on rows for auto-expiry (72 hours). Replication factor 3.</p>
+    </div>
+    <div class="card">
+      <h4>Elasticsearch &mdash; Search Index</h4>
+      <p>Index per day: <code>spans-2026-06-22</code>. Fields indexed: service_name, operation_name, duration_ms, error, timestamp, tags (selective). Powers the search UI. Eventually consistent &mdash; async write from Kafka consumer.</p>
+    </div>
+    <div class="card">
+      <h4>Cassandra &mdash; Dependency Graph</h4>
+      <p>Derived by aggregating parent/child service pairs from spans. Stored as time-bucketed adjacency list: <code>(ts_bucket, parent_svc, child_svc) &rarr; call_count</code>. Pre-aggregated hourly by Flink.</p>
+    </div>
+    <div class="card">
+      <h4>Redis &mdash; Tail Sampling Buffer</h4>
+      <p>For tail-based sampling: buffer all spans in Redis with trace_id as key, TTL 30s. On trace completion (or timeout), apply sampling decision, then write selected traces to Cassandra + ES.</p>
+    </div>
+  </div>
+</section>
+
+<section id="deep-dive">
+  <h2>8. Key Design Decisions</h2>
+
+  <h3>Trace Context Propagation</h3>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:12px;">The W3C <code style="font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 5px;border-radius:4px">traceparent</code> header carries the trace across service boundaries:</p>
+  <pre class="api"><span class="comment">traceparent: 00-{traceId-32hex}-{parentSpanId-16hex}-{flags-2hex}</span>
+Example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+<span class="comment">// SDK automatically injects on outbound HTTP calls:</span>
+<span class="cn">Span</span> span = tracer.<span class="cfn">spanBuilder</span>(<span class="st">"GET /inventory"</span>).<span class="cfn">startSpan</span>();
+<span class="kw">try</span> (<span class="kw">var</span> scope = span.<span class="cfn">makeCurrent</span>()) {
+    <span class="cn">W3CTraceContextPropagator</span>.<span class="cfn">inject</span>(context, httpRequest, setter);
+    httpClient.<span class="cfn">send</span>(httpRequest);
+} <span class="kw">finally</span> {
+    span.<span class="cfn">end</span>();  <span class="comment">// emits span to collector via OTLP</span>
+}</pre>
+
+  <h3>Head-Based vs Tail-Based Sampling</h3>
+  <table class="samp-table">
+    <thead><tr><th></th><th>Head-Based</th><th>Tail-Based</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Decision point</strong></td><td>At root span (first service)</td><td>After trace is complete (all spans received)</td></tr>
+      <tr><td><strong>Accuracy</strong></td><td>Can't know if trace is interesting</td><td>Can target errors / slow traces specifically</td></tr>
+      <tr><td><strong>Overhead</strong></td><td>Minimal (random sample only)</td><td>Must buffer all spans in memory (~30s window)</td></tr>
+      <tr><td><strong>Partial traces</strong></td><td>Possible if decision not propagated</td><td>None &mdash; decision after all spans received</td></tr>
+      <tr><td><strong>Use case</strong></td><td>High-traffic, uniform sampling OK</td><td>Must capture all errors &amp; slow traces</td></tr>
+      <tr><td><strong>Examples</strong></td><td>Jaeger agent, Zipkin</td><td>Honeycomb, AWS X-Ray (with reservoir)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Adaptive Sampling</h3>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:12px;">Jaeger's adaptive sampling automatically adjusts the sampling rate per service+operation to maintain a target throughput (e.g., 100 traces/sec per operation). High-traffic operations like <code style="font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 5px;border-radius:4px">GET /health</code> are sampled at 0.01%; critical low-traffic operations like <code style="font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 5px;border-radius:4px">POST /checkout</code> at 100%. The Sampling Manager publishes updated rates periodically; SDKs poll and apply them.</p>
+
+  <h3>Consistent-Hash Routing for Tail Sampling</h3>
+  <p style="font-size:14px;color:var(--g700);">Tail-based sampling needs all spans from a trace to arrive at the same collector instance. Use consistent hashing on <code style="font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 5px;border-radius:4px">trace_id</code> to route spans to the same collector. If a collector crashes, the ring reroutes &mdash; some traces may have partial spans (acceptable).</p>
+</section>
+
+<section id="scaling">
+  <h2>9. Scaling &amp; Bottlenecks</h2>
+  <div class="card-grid">
+    <div class="card"><h4>Collector Tier</h4><p>Stateless for head-based sampling &mdash; scale horizontally. Stateful for tail-based &mdash; use consistent hashing. Each instance handles ~10K spans/sec before CPU becomes bottleneck.</p></div>
+    <div class="card"><h4>Kafka Buffer</h4><p>Decouples collector from storage. Handles ingestion spikes. Partitioned by trace_id for ordered delivery to processors. 7-day retention for replay.</p></div>
+    <div class="card"><h4>Cassandra Write Path</h4><p>Excels at high write throughput. All spans for a trace on one partition = fast reads. Batch writes from processor. TTL on data avoids manual cleanup.</p></div>
+    <div class="card"><h4>Elasticsearch Indexing</h4><p>Async write from Kafka consumer. ES may lag Cassandra by seconds. Shard by day &mdash; most searches are time-bounded. Don't index all tags (cardinality explosion).</p></div>
+    <div class="card"><h4>Query Service</h4><p>Cassandra for traceId lookup (single partition read). ES for search by service/duration/error. Redis cache for recently queried traces. Stateless, horizontally scalable.</p></div>
+    <div class="card"><h4>Storage Tiering</h4><p>Hot (0&ndash;72h): Cassandra full-fidelity. Cold (72h&ndash;1yr): S3 Parquet sampled traces. Dependency graph pre-aggregated with longer TTL (1yr).</p></div>
+  </div>
+</section>
+
+<section id="self-check">
+  <h2>10. Self-Check</h2>
+
+  <div class="sc-item" id="sc1">
+    <div class="sc-q" onclick="toggleSC('sc1')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">How does trace context cross service boundaries?</div>
+      <div class="sc-tag">Propagation</div>
+    </div>
+    <div class="sc-a">The W3C traceparent header is injected by the SDK on every outbound call (HTTP, gRPC, Kafka message headers). The header carries: version (00), traceId (16 bytes hex), parentSpanId (8 bytes hex of the caller's span), and flags (01 = sampled). The receiving service extracts it and creates a child span with the same trace_id and the caller's span_id as parent_span_id. This creates the parent-child relationship that allows reconstructing the full call graph. OpenTelemetry's SDK handles injection/extraction automatically &mdash; the developer just wraps code in a span context.</div>
+  </div>
+
+  <div class="sc-item" id="sc2">
+    <div class="sc-q" onclick="toggleSC('sc2')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">What is the key trade-off between head-based and tail-based sampling?</div>
+      <div class="sc-tag">Sampling</div>
+    </div>
+    <div class="sc-a">Head-based sampling makes the decision at the root span (first service) before the trace is complete. It's simple and low-overhead but blind &mdash; you randomly sample and may miss all examples of a rare slow request or a specific error pattern. Tail-based sampling buffers all spans in memory (Redis, ~30s window) and makes an informed sampling decision after the trace is complete &mdash; capturing 100% of errors and all traces exceeding a latency threshold. The cost: significant memory overhead per collector, and consistent routing of all trace_id spans to the same collector instance (via consistent hashing).</div>
+  </div>
+
+  <div class="sc-item" id="sc3">
+    <div class="sc-q" onclick="toggleSC('sc3')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">Why is Cassandra's partition key set to trace_id, not service_name or timestamp?</div>
+      <div class="sc-tag">Storage</div>
+    </div>
+    <div class="sc-a">All spans for a trace must be co-located on the same Cassandra partition for fast trace reconstruction. A single trace query (GET /api/traces/{traceId}) should be a single partition read &mdash; O(1), hitting a single Cassandra node. If you partition by service_name, the 10 spans of one trace are scattered across nodes; reconstructing the trace requires N queries across N nodes. If you partition by timestamp, hot partitions form on the current-time shard. trace_id hashes uniformly across nodes and collocates all related spans. Elasticsearch handles the search-by-service use case separately.</div>
+  </div>
+
+  <div class="sc-item" id="sc4">
+    <div class="sc-q" onclick="toggleSC('sc4')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">Why is 100% tracing not feasible at high scale?</div>
+      <div class="sc-tag">Scale</div>
+    </div>
+    <div class="sc-a">At 1M req/sec with 10 spans/request, 100% tracing = 10M spans/sec. At ~1 KB/span = 10 GB/sec of data to ingest, store, and index. That requires ~864 TB of storage per day, plus the compute to index it all in Elasticsearch. The overhead on each instrumented service also compounds &mdash; every outbound call adds a traceparent header, each span adds serialization cost. 1% sampling = 100K spans/sec = 100 MB/sec = manageable, while still providing statistically representative coverage for performance debugging. Adaptive sampling ensures critical low-volume operations (e.g., checkout) are still sampled at 100%.</div>
+  </div>
+
+  <div class="sc-item" id="sc5">
+    <div class="sc-q" onclick="toggleSC('sc5')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">What is OpenTelemetry and why does it matter architecturally?</div>
+      <div class="sc-tag">Standards</div>
+    </div>
+    <div class="sc-a">OpenTelemetry (OTEL) is a CNCF-standard vendor-neutral instrumentation framework covering traces, metrics, and logs. The key architectural value: instrument your services once with the OTEL SDK emitting OTLP (OpenTelemetry Protocol), then switch backends (Jaeger &rarr; Datadog &rarr; Honeycomb) by changing only the exporter configuration &mdash; no code changes. Without OTEL, every backend switch requires re-instrumentation of every service. The OTEL Collector also acts as a pipeline (receive, transform, sample, export to multiple backends simultaneously) that decouples your services from the choice of storage backend.</div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2>11. Interview Tips</h2>
+  <div class="tip-grid">
+    <div class="tip"><strong>"How does trace context cross service boundaries?"</strong><p>W3C <code>traceparent</code> header injected by SDK on every outbound call. Receiver extracts it and creates a child span with the same trace_id and caller's span_id as parent_span_id.</p></div>
+    <div class="tip"><strong>"Why Cassandra partition key = trace_id?"</strong><p>All spans for a trace must be co-located for fast reconstruction. Single trace read = single partition read (one Cassandra node). Partitioning by service would scatter spans.</p></div>
+    <div class="tip"><strong>"Head-based vs tail-based &mdash; key trade-off?"</strong><p>Head-based: simple, low-overhead, but blind (may miss all slow request examples). Tail-based: captures all errors/slow traces, but requires buffering all spans + consistent routing.</p></div>
+    <div class="tip"><strong>"Why not 100% tracing?"</strong><p>10M spans/sec at 1 KB each = 10 GB/sec = 864 TB/day. Cost prohibitive. 1% sampling &rarr; 100 MB/sec = manageable while still giving statistical coverage.</p></div>
+    <div class="tip"><strong>"How do you correlate traces with logs and metrics?"</strong><p>Inject trace_id into every log line (MDC in Java). In Grafana: high-latency metric spike &rarr; query traces in that time window &rarr; jump to logs with that trace_id.</p></div>
+    <div class="tip"><strong>"What is OpenTelemetry?"</strong><p>Vendor-neutral CNCF standard. Instrument once with OTLP; switch backends by changing exporter config. Avoids lock-in at instrumentation layer. OTEL Collector provides pipeline flexibility.</p></div>
+  </div>
+</section>
+
+<footer>
+  <span>&#8592; <a href="hld-index.html">All HLD Problems</a></span>
+  <span><a href="index.html">Home</a></span>
+</footer>
+</div>
+
+<script>
+const NODE_INFO = {
+  sdk: {
+    title: 'Instrumented Services + OTLP SDK',
+    body: 'Each service is instrumented with the OpenTelemetry SDK. The SDK automatically creates spans for inbound requests and outbound calls, injects/extracts the W3C traceparent header, and batches + exports spans to the Collector via OTLP gRPC. Overhead is < 1% per the non-functional requirement.',
+    stats: ['OpenTelemetry SDK', 'OTLP gRPC to Collector', 'traceparent header injection', '< 1% overhead'],
+    warn: null
+  },
+  collector: {
+    title: 'Collector',
+    body: 'Receives spans from all SDK agents via OTLP. Validates span format, applies head-based sampling (or routes for tail-based via consistent hash), enriches with resource attributes, batches into larger payloads, and exports to Kafka. Stateless for head-based; stateful per trace_id for tail-based.',
+    stats: ['Receives OTLP spans', 'Sampling decision point', 'Batches for Kafka export', '~10K spans/sec per instance'],
+    warn: 'For tail-based sampling, all spans from the same trace_id must route to the same Collector instance. Use consistent hashing on trace_id to enforce this.'
+  },
+  kafka: {
+    title: 'Kafka &mdash; Span Buffer',
+    body: 'Decouples the high-throughput collection tier from the storage tier. Partitioned by trace_id for ordered delivery to Span Processors. Handles ingestion spikes. 7-day retention allows replay if downstream storage is temporarily unavailable.',
+    stats: ['Partitioned by trace_id', '7-day retention for replay', 'Decouples ingest from storage', '100 MB/sec ingest bandwidth'],
+    warn: null
+  },
+  processor: {
+    title: 'Span Processor',
+    body: 'Kafka consumer that enriches spans (adds computed fields like duration buckets, error classification), fan-outs to two storage sinks in parallel: Cassandra for the raw span data (by trace_id) and Elasticsearch for the search index. Stateless and horizontally scalable.',
+    stats: ['Enriches + classifies spans', 'Writes to Cassandra + ES', 'Stateless: scale horizontally', 'Consistent ordering via Kafka'],
+    warn: null
+  },
+  cassandra: {
+    title: 'Cassandra &mdash; Primary Span Store',
+    body: 'Primary storage for span data. Partition key = trace_id means all spans for a trace are co-located on one node &mdash; single partition read for trace reconstruction. TTL = 72 hours for auto-expiry without manual cleanup. Replication factor 3 for durability. ~40 nodes for 26 TB at 3x RF.',
+    stats: ['Partition key: trace_id', '72-hour TTL auto-expiry', 'RF=3 durability', '~40 nodes for 26 TB'],
+    warn: null
+  },
+  elasticsearch: {
+    title: 'Elasticsearch &mdash; Search Index',
+    body: 'Powers the search UI: find traces by service name, operation, duration, error status, or custom tags. Indexed per day (spans-2026-06-22) for time-bounded shard pruning. Async write from Kafka consumer &mdash; may lag Cassandra by seconds. Don\'t index all tags &mdash; cardinality explosion will kill performance.',
+    stats: ['Daily index: spans-YYYY-MM-DD', 'Async: 1-2s lag from Cassandra', 'Selective tag indexing', 'Powers search UI'],
+    warn: 'Indexing all tags without selectivity causes cardinality explosion in Elasticsearch. Only index known high-value tags (service.name, http.status_code, db.statement type).'
+  },
+  query: {
+    title: 'Query Service + Jaeger UI',
+    body: 'Stateless service that reads from Cassandra (traceId lookup: single partition read) and Elasticsearch (search: service, duration, error). Reconstructs the trace graph and serves it to the Jaeger UI which renders the waterfall (Gantt chart). Redis caches recently queried traces for sub-100ms response.',
+    stats: ['Cassandra: traceId O(1) lookup', 'ES: search by service/error/duration', 'Redis: recently queried traces', 'Jaeger UI: waterfall render'],
+    warn: null
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  document.querySelectorAll(`.arch-node[data-id="${id}"]`).forEach(g => g.classList.add('sel'));
+  const n = NODE_INFO[id];
+  if (!n) return;
+  const p = document.getElementById('arch-panel');
+  p.classList.add('lit');
+  p.innerHTML = `<p class="ap-title">${n.title}</p><p class="ap-body">${n.body}</p><div style="margin-bottom:10px">${n.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>${n.warn ? `<div class="ap-warn">${n.warn}</div>` : ''}`;
+}
+
+const STEPS = [
+  {
+    title: 'SDK Emits Span',
+    desc: 'When svc-frontend handles GET /api/orders, the OTLP SDK starts a root span. For each outbound call to a downstream service, the SDK creates a child span and injects the W3C traceparent header. All spans share the same 32-hex trace_id.',
+    code: '// Root span (auto-instrumented)\nSpan rootSpan = tracer\n  .spanBuilder("GET /api/orders")\n  .startSpan();\n\n// Child span for downstream call\ntraceparent: 00-4bf92f35...e4736-00f067aa0ba902b7-01\n//              ^^^trace_id^^^  ^^parent_span_id^^'
+  },
+  {
+    title: 'Collector: Validate & Sample',
+    desc: 'The SDK exports spans to the Collector via OTLP gRPC in batches (every 5s or 512 spans). The Collector validates format, applies sampling (head-based: random 1%; or tail-based: route by trace_id to buffer in Redis). Accepted spans are batched and written to Kafka.',
+    code: '// Head-based sampling (simple)\nif (Math.random() < SAMPLE_RATE) {\n  forward(span);\n}\n\n// Tail-based: consistent hash to collector\ncollector = ring.get(hash(trace_id));\ncollector.buffer(span, ttl=30s);\n// Decision made when trace completes'
+  },
+  {
+    title: 'Kafka: Buffer & Partition',
+    desc: 'Sampled spans are written to the Kafka "spans" topic, partitioned by trace_id. This ensures all spans from the same trace are processed by the same Span Processor consumer (ordering guarantee). Kafka absorbs write spikes that would otherwise overwhelm Cassandra.',
+    code: '// Kafka partition assignment\npartition = hash(trace_id) % NUM_PARTITIONS;\n\n// Producer record\nProducerRecord {\n  topic: "spans",\n  key: trace_id,    // → same partition\n  value: Span{...}\n}'
+  },
+  {
+    title: 'Span Processor: Enrich & Store',
+    desc: 'Span Processor consumes from Kafka, enriches spans (computes duration_ms, classifies errors, extracts service dependency edges), and writes in parallel: raw span data to Cassandra (by trace_id), searchable fields to Elasticsearch.',
+    code: '// Cassandra write\nINSERT INTO spans (trace_id, span_id, ...)\nUSING TTL 259200;  // 72h\n\n// Elasticsearch write (async)\nPOST spans-2026-06-22/_doc\n{\n  "service": "svc-order",\n  "duration_ms": 120,\n  "error": false\n}'
+  },
+  {
+    title: 'Query: Cassandra Lookup',
+    desc: 'A developer queries for trace 4bf92f35. Query Service issues a single Cassandra partition read &mdash; all spans for this trace_id are on one node. The response arrives in < 10ms (single-node partition read). Query Service reconstructs the parent-child graph.',
+    code: 'SELECT * FROM spans\nWHERE trace_id = \'4bf92f35...e4736\';\n-- Single partition read: 1 node\n-- Returns: 10 spans in < 10ms\n\n// Reconstruct tree\nbuildTree(spans, root = span where parent=null)'
+  },
+  {
+    title: 'Jaeger UI: Waterfall View',
+    desc: 'Query Service returns the trace to Jaeger UI, which renders the waterfall (Gantt chart). Each span is a horizontal bar showing start time, duration, and parent-child relationships. Critical path (longest chain) is highlighted. Clicking a span shows its tags, logs, and events.',
+    code: '// Trace response\n{\n  "trace_id": "4bf92f35...",\n  "spans": [\n    { "service": "svc-frontend", "op": "GET /api/orders",\n      "start": 0,    "duration": 425, "parent": null },\n    { "service": "svc-order",    "op": "orders.findById",\n      "start": 20,   "duration": 120, "parent": "root" },\n    { "service": "svc-payment", "op": "payment.charge",\n      "start": 200,  "duration": 180, "parent": "root" }\n  ]\n}'
+  }
+];
+
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  document.getElementById('flow-pills').innerHTML = STEPS.map((st,i) => {
+    const cls = i < curStep ? 'fpill done' : i === curStep ? 'fpill act' : 'fpill';
+    return `<span class="${cls}">${st.title.split(' ').slice(0,2).join(' ')}</span>`;
+  }).join('');
+  document.getElementById('flow-card').innerHTML = `<p class="fc-title">${s.title}</p><p class="fc-desc">${s.desc}</p><pre class="fc-code">${s.code}</pre>`;
+  document.getElementById('btn-prev').disabled = curStep === 0;
+  document.getElementById('btn-next').disabled = curStep === STEPS.length - 1;
+  document.getElementById('flow-ctr').textContent = `Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('flow-dots').innerHTML = STEPS.map((_,i) => `<div class="flow-dot${i===curStep?' cur':''}" onclick="goStep(${i})"></div>`).join('');
+}
+
+function nextStep(){if(curStep<STEPS.length-1){curStep++;renderStep();}}
+function prevStep(){if(curStep>0){curStep--;renderStep();}}
+function goStep(n){curStep=n;renderStep();}
+renderStep();
+
+// Waterfall Visualizer
+const SPANS = [
+  {
+    id: 'root',
+    service: 'svc-frontend',
+    op: 'GET /api/orders',
+    start: 0, dur: 425,
+    critical: true,
+    color: '#D97757',
+    tags: ['http.method=GET', 'http.status_code=200', 'http.url=/api/orders'],
+    detail: 'Root span. Total request duration 425ms. This is the entry point from the browser. The span encompasses all downstream work. Critical path runs through svc-payment (longest chain).'
+  },
+  {
+    id: 's1',
+    service: 'svc-frontend',
+    op: 'validateToken',
+    start: 5, dur: 15,
+    critical: false,
+    color: '#788C5D',
+    tags: ['auth.provider=jwt', 'auth.result=ok'],
+    detail: 'JWT validation. 15ms is fast — token signature verified in-process, no network call. Not on the critical path.'
+  },
+  {
+    id: 's2',
+    service: 'svc-order',
+    op: 'orders.findById',
+    start: 22, dur: 120,
+    critical: false,
+    color: '#4A6FA5',
+    tags: ['db.type=postgresql', 'db.statement=SELECT', 'db.rows_returned=1'],
+    detail: 'PostgreSQL query for order details. 120ms is higher than expected — check for missing index on order_id. This runs in parallel with inventory.check but completes first.'
+  },
+  {
+    id: 's3',
+    service: 'svc-inventory',
+    op: 'inventory.check',
+    start: 22, dur: 65,
+    critical: false,
+    color: '#4A6FA5',
+    tags: ['cache.hit=true', 'inventory.sku=SKU-42'],
+    detail: 'Inventory check via Redis cache (cache hit). 65ms total despite cache hit — network RTT to inventory service plus Redis call. Runs in parallel with orders.findById.'
+  },
+  {
+    id: 's4',
+    service: 'svc-payment',
+    op: 'payment.charge',
+    start: 200, dur: 180,
+    critical: true,
+    color: '#D97757',
+    tags: ['payment.amount=2000', 'payment.currency=usd', 'payment.provider=stripe'],
+    detail: 'Stripe payment charge. 180ms — external API call latency. This is on the CRITICAL PATH: it starts at 200ms and ends at 380ms, contributing most to the 425ms total. Optimize by pre-authorizing earlier in the flow.'
+  }
+];
+
+const TOTAL = 425;
+let selectedSpan = null;
+
+function renderWaterfall() {
+  const container = document.getElementById('wf-spans');
+  container.innerHTML = SPANS.map(s => {
+    const leftPct = (s.start / TOTAL) * 100;
+    const widthPct = Math.max((s.dur / TOTAL) * 100, 2);
+    const borderLeft = s.critical ? '3px solid var(--clay)' : '';
+    return `
+      <div class="wf-row${selectedSpan===s.id?' sel':''}" onclick="selectSpan('${s.id}')">
+        <div class="wf-svc">${s.service}<br><span style="color:var(--g500);font-size:9px">${s.op}</span></div>
+        <div class="wf-track">
+          <div class="wf-bar" style="left:${leftPct}%;width:${widthPct}%;background:${s.color};${s.critical?'outline:2px solid #a84a2a;':''}">
+            ${s.dur > 30 ? s.dur+'ms' : ''}
+          </div>
+        </div>
+        <div class="wf-dur">${s.dur}ms</div>
+      </div>`;
+  }).join('');
+}
+
+function selectSpan(id) {
+  selectedSpan = id;
+  const s = SPANS.find(x => x.id === id);
+  const detail = document.getElementById('wf-detail');
+  if (!s) return;
+  detail.innerHTML = `
+    <strong style="font-size:14px">${s.service} &mdash; ${s.op}</strong>
+    <span style="font-family:var(--mono);font-size:10px;color:var(--g500);margin-left:8px">+${s.start}ms &rarr; +${s.start+s.dur}ms (${s.dur}ms)</span>
+    ${s.critical ? '<span style="font-family:var(--mono);font-size:10px;background:rgba(217,119,87,.12);color:var(--clay);padding:2px 8px;border-radius:4px;margin-left:8px">CRITICAL PATH</span>' : ''}
+    <p style="margin-top:8px">${s.detail}</p>
+    <div style="margin-top:8px">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`;
+  renderWaterfall();
+}
+
+renderWaterfall();
+
+function toggleSC(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLD Interview Prep — Machine Coding Practice</title>
+<style>
+  :root {
+    --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+    --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+    --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 32px 120px; }
+
+  header.masthead { padding: 80px 0 56px; border-bottom: 1.5px solid var(--g300); margin-bottom: 12px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--g500); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(36px, 5.2vw, 58px); line-height: 1.06; letter-spacing: -.018em; margin-bottom: 8px; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro { font-size: 15.5px; color: var(--g700); margin-top: 18px; max-width: 600px; }
+
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 26px; }
+  nav.toc a { font-size: 12px; padding: 6px 14px; border: 1.5px solid var(--g300); border-radius: 999px; text-decoration: none; color: var(--g700); background: var(--paper); transition: border-color 120ms, color 120ms; display: inline-flex; align-items: center; gap: 6px; }
+  nav.toc a .n { font-family: var(--mono); font-size: 10px; color: var(--g500); }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+
+  section { margin-top: 64px; scroll-margin-top: 24px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .sec-head .idx { font-family: var(--mono); font-size: 12px; color: var(--clay); font-weight: 600; width: 30px; flex-shrink: 0; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 500; font-size: 24px; letter-spacing: -.012em; }
+  .sec-head .count { font-family: var(--mono); font-size: 10px; color: var(--g500); background: var(--g100); padding: 2px 8px; border-radius: 999px; }
+  .sec-intro { font-size: 13.5px; color: var(--g700); max-width: 680px; margin: 0 0 20px 44px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 18px; margin-left: 44px; }
+  @media (max-width: 640px) { .grid { margin-left: 0; } .sec-intro { margin-left: 0; } }
+
+  a.card { display: flex; flex-direction: column; background: var(--paper); border: 1.5px solid var(--g300); border-radius: 14px; text-decoration: none; color: inherit; transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease; overflow: hidden; }
+  a.card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(20,20,19,.10); border-color: var(--slate); }
+
+  .thumb { height: 128px; background: var(--g100); border-bottom: 1.5px solid var(--g200); display: flex; align-items: center; justify-content: center; padding: 16px; transition: background 150ms ease; }
+  a.card:hover .thumb { background: var(--oat); }
+  .thumb svg { width: 100%; height: 100%; overflow: visible; }
+  .thumb svg .st { stroke: var(--g500); fill: none; stroke-width: 2.5; }
+  .thumb svg .fl { fill: var(--g300); }
+  .thumb svg .cl { fill: var(--clay); }
+  .thumb svg .ol { fill: var(--olive); }
+  .thumb svg .oa { fill: var(--oat); stroke: var(--g500); stroke-width: 2.5; }
+  .thumb svg .sl { fill: var(--slate); }
+  .thumb svg .wh { fill: var(--paper); stroke: var(--g500); stroke-width: 2.5; }
+  .thumb svg .ln { stroke: var(--g500); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+  .thumb svg .lc { stroke: var(--clay); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+  a.card:hover .thumb svg .fl { fill: var(--g500); }
+
+  .body { padding: 16px 18px 14px; display: flex; flex-direction: column; flex: 1; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .title { font-family: var(--serif); font-size: 17px; font-weight: 500; line-height: 1.22; color: var(--slate); letter-spacing: -.008em; }
+  .diff { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; padding: 2px 7px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+  .diff.sde1  { background: #EEF3E8; color: var(--olive); }
+  .diff.sde12 { background: #FEF3EE; color: var(--clay); }
+  .diff.sde2  { background: #EEF1F8; color: #4A6FA5; }
+  .diff.sde23 { background: #F3EEF8; color: #7B5EA7; }
+  .desc { font-size: 13px; color: var(--g700); line-height: 1.5; margin-bottom: 14px; flex: 1; }
+  .file { font-family: var(--mono); font-size: 10.5px; color: var(--g500); border-top: 1px solid var(--g100); padding-top: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .file .arrow { transition: transform 150ms ease; color: var(--g300); }
+  a.card:hover .file { color: var(--clay); }
+  a.card:hover .file .arrow { transform: translateX(3px); color: var(--clay); }
+
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 30px; display: flex; justify-content: space-between; align-items: baseline; gap: 20px; flex-wrap: wrap; font-size: 12.5px; color: var(--g500); }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 14px; }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">Machine Coding · Low Level Design</div>
+  <h1>LLD Interview <em>Prep</em></h1>
+  <p class="intro">10 curated machine coding problems from SDE I to SDE III. Each page covers requirements, class diagrams, key flows, code, design patterns, concurrency, and interview tips.</p>
+  <nav class="toc">
+    <a href="#sde1">SDE I <span class="n">3</span></a>
+    <a href="#sde12">SDE I/II <span class="n">3</span></a>
+    <a href="#sde2">SDE II <span class="n">2</span></a>
+    <a href="#sde23">SDE II/III <span class="n">2</span></a>
+  </nav>
+</header>
+
+<!-- SDE I -->
+<section id="sde1">
+  <div class="sec-head"><span class="idx">01</span><h2>SDE I — Beginner</h2><span class="count">3 problems</span></div>
+  <p class="sec-intro">Game simulations. Focus on clean OOP, turn-based state machines, and Strategy pattern for extensibility.</p>
+  <div class="grid">
+
+    <a class="card" href="snake-and-ladder-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <rect class="wh" x="8" y="8" width="64" height="64" rx="4"/>
+        <line class="ln" x1="8" y1="24" x2="72" y2="24"/><line class="ln" x1="8" y1="40" x2="72" y2="40"/><line class="ln" x1="8" y1="56" x2="72" y2="56"/>
+        <line class="ln" x1="24" y1="8" x2="24" y2="72"/><line class="ln" x1="40" y1="8" x2="40" y2="72"/><line class="ln" x1="56" y1="8" x2="56" y2="72"/>
+        <path d="M64 16 C 64 30, 48 30, 48 44 C 48 58, 32 58, 32 64" fill="none" stroke="var(--clay)" stroke-width="3" stroke-linecap="round"/>
+        <line x1="16" y1="64" x2="60" y2="20" stroke="var(--olive)" stroke-width="2.5" fill="none"/>
+        <line x1="20" y1="64" x2="64" y2="20" stroke="var(--olive)" stroke-width="2.5" fill="none"/>
+        <line x1="18" y1="55" x2="62" y2="30" stroke="var(--olive)" stroke-width="1.5" fill="none"/>
+        <rect class="wh" x="82" y="28" width="30" height="30" rx="6"/>
+        <circle class="cl" cx="92" cy="38" r="3"/><circle class="sl" cx="102" cy="48" r="3"/>
+        <circle class="fl" cx="92" cy="48" r="3"/><circle class="fl" cx="102" cy="38" r="3"/>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">Snake and Ladder</div><span class="diff sde1">SDE I</span></div>
+        <div class="desc">Board simulation with snakes, ladders, multiple players and pluggable dice. Classic turn-based state machine with Strategy and Observer patterns.</div>
+        <div class="file"><span>snake-and-ladder-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="2048-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <rect class="wh" x="10" y="8" width="66" height="66" rx="5"/>
+        <rect class="oa" x="14" y="12" width="28" height="28" rx="4"/>
+        <rect class="cl" x="44" y="12" width="28" height="28" rx="4"/>
+        <rect class="oa" x="14" y="42" width="28" height="28" rx="4"/>
+        <rect class="fl" x="44" y="42" width="28" height="28" rx="4"/>
+        <text x="28" y="31" text-anchor="middle" font-family="monospace" font-size="10" font-weight="700" fill="#141413">256</text>
+        <text x="58" y="29" text-anchor="middle" font-family="monospace" font-size="9" font-weight="700" fill="white">2048</text>
+        <text x="28" y="61" text-anchor="middle" font-family="monospace" font-size="10" font-weight="700" fill="#141413">128</text>
+        <text x="58" y="61" text-anchor="middle" font-family="monospace" font-size="10" font-weight="700" fill="white">4</text>
+        <line stroke="var(--clay)" stroke-width="2.5" x1="88" y1="40" x2="108" y2="40" fill="none" stroke-linecap="round"/>
+        <polygon fill="var(--clay)" points="106,36 114,40 106,44"/>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">2048 Game</div><span class="diff sde1">SDE I</span></div>
+        <div class="desc">Tile sliding, merging logic, win/loss detection. Command pattern enables undo. The rotation trick handles all 4 directions with one algorithm.</div>
+        <div class="file"><span>2048-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="tic-tac-toe-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <line class="ln" x1="20" y1="8" x2="20" y2="72"/><line class="ln" x1="44" y1="8" x2="44" y2="72"/>
+        <line class="ln" x1="8" y1="30" x2="80" y2="30"/><line class="ln" x1="8" y1="52" x2="80" y2="52"/>
+        <line stroke="var(--clay)" stroke-width="2.5" x1="10" y1="12" x2="18" y2="26" fill="none"/><line stroke="var(--clay)" stroke-width="2.5" x1="18" y1="12" x2="10" y2="26" fill="none"/>
+        <line stroke="var(--clay)" stroke-width="2.5" x1="48" y1="34" x2="56" y2="48" fill="none"/><line stroke="var(--clay)" stroke-width="2.5" x1="56" y1="34" x2="48" y2="48" fill="none"/>
+        <line stroke="var(--clay)" stroke-width="2.5" x1="24" y1="56" x2="32" y2="70" fill="none"/><line stroke="var(--clay)" stroke-width="2.5" x1="32" y1="56" x2="24" y2="70" fill="none"/>
+        <circle fill="none" stroke="var(--g500)" stroke-width="2.5" cx="32" cy="19" r="7"/>
+        <circle fill="none" stroke="var(--g500)" stroke-width="2.5" cx="56" cy="19" r="7"/>
+        <line x1="8" y1="19" x2="80" y2="19" stroke="var(--olive)" stroke-width="2.5" stroke-linecap="round"/>
+        <rect class="wh" x="90" y="22" width="24" height="30" rx="4"/>
+        <rect fill="var(--g300)" x="94" y="28" width="6" height="4" rx="1"/><rect fill="var(--clay)" x="104" y="28" width="6" height="4" rx="1"/>
+        <line stroke="var(--g500)" stroke-width="2" x1="97" y1="40" x2="107" y2="40" fill="none"/>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">Tic-Tac-Toe</div><span class="diff sde1">SDE I</span></div>
+        <div class="desc">NxN board, human vs bot players, O(N) win check from last move only. Extensible to M-in-a-row with Strategy pattern for win checking.</div>
+        <div class="file"><span>tic-tac-toe-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- SDE I/II -->
+<section id="sde12">
+  <div class="sec-head"><span class="idx">02</span><h2>SDE I/II — Intermediate</h2><span class="count">3 problems</span></div>
+  <p class="sec-intro">Real-world domain modeling. Focus on OOP hierarchies, design patterns, and thread safety.</p>
+  <div class="grid">
+
+    <a class="card" href="parking-lot-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <rect class="wh" x="6" y="8" width="108" height="64" rx="6"/>
+        <rect class="oa" x="14" y="16" width="22" height="16" rx="3"/>
+        <rect class="oa" x="44" y="16" width="22" height="16" rx="3"/>
+        <rect class="fl" x="74" y="16" width="22" height="16" rx="3"/>
+        <rect class="cl" x="14" y="42" width="22" height="16" rx="3"/>
+        <rect class="oa" x="44" y="42" width="22" height="16" rx="3"/>
+        <rect class="fl" x="74" y="42" width="22" height="16" rx="3"/>
+        <text x="25" y="27" text-anchor="middle" font-size="7" font-family="monospace" fill="#3D3D3A">S</text>
+        <text x="55" y="27" text-anchor="middle" font-size="7" font-family="monospace" fill="#3D3D3A">M</text>
+        <text x="85" y="27" text-anchor="middle" font-size="7" font-family="monospace" fill="white">L</text>
+        <circle fill="var(--clay)" cx="25" cy="50" r="5"/>
+        <text x="55" y="53" text-anchor="middle" font-size="7" font-family="monospace" fill="#3D3D3A">CAR</text>
+        <text x="85" y="53" text-anchor="middle" font-size="7" font-family="monospace" fill="white">FREE</text>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">Parking Lot</div><span class="diff sde12">SDE I/II</span></div>
+        <div class="desc">Multi-floor lot with vehicle types, spot sizes, ticketing, pricing strategy, and thread-safe concurrent entry/exit using synchronized spots.</div>
+        <div class="file"><span>parking-lot-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="splitwise-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <circle fill="var(--paper)" stroke="var(--g500)" stroke-width="2" cx="20" cy="22" r="10"/>
+        <circle fill="var(--paper)" stroke="var(--g500)" stroke-width="2" cx="60" cy="16" r="10"/>
+        <circle fill="var(--paper)" stroke="var(--g500)" stroke-width="2" cx="100" cy="22" r="10"/>
+        <circle fill="var(--g300)" cx="20" cy="20" r="5"/><circle fill="var(--clay)" cx="60" cy="14" r="5"/><circle fill="var(--g300)" cx="100" cy="20" r="5"/>
+        <line stroke="var(--g500)" stroke-width="1.5" x1="30" y1="28" x2="50" y2="24" fill="none"/>
+        <polygon fill="var(--g300)" points="48,20 56,24 48,28"/>
+        <line stroke="var(--clay)" stroke-width="1.5" x1="70" y1="24" x2="90" y2="28" fill="none"/>
+        <polygon fill="var(--clay)" points="88,24 96,28 88,32"/>
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="10" y="48" width="44" height="22" rx="4"/>
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="66" y="48" width="44" height="22" rx="4"/>
+        <text x="32" y="64" text-anchor="middle" font-size="9" font-family="monospace" fill="#D97757">-₹150</text>
+        <text x="88" y="64" text-anchor="middle" font-size="9" font-family="monospace" fill="#788C5D">+₹150</text>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">Splitwise</div><span class="diff sde12">SDE I/II</span></div>
+        <div class="desc">Expense splitting with Equal/Exact/Percentage/Shares strategies, balance map tracking, and greedy O(n log n) debt simplification.</div>
+        <div class="file"><span>splitwise-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="chess-validator-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <rect fill="var(--slate)" x="8" y="8" width="16" height="16" rx="1"/><rect fill="var(--paper)" stroke="var(--g300)" stroke-width="1" x="24" y="8" width="16" height="16" rx="1"/>
+        <rect fill="var(--slate)" x="40" y="8" width="16" height="16" rx="1"/><rect fill="var(--paper)" stroke="var(--g300)" stroke-width="1" x="56" y="8" width="16" height="16" rx="1"/>
+        <rect fill="var(--paper)" stroke="var(--g300)" stroke-width="1" x="8" y="24" width="16" height="16" rx="1"/><rect fill="var(--slate)" x="24" y="24" width="16" height="16" rx="1"/>
+        <rect fill="var(--paper)" stroke="var(--g300)" stroke-width="1" x="40" y="24" width="16" height="16" rx="1"/><rect fill="var(--slate)" x="56" y="24" width="16" height="16" rx="1"/>
+        <rect fill="var(--slate)" x="8" y="40" width="16" height="16" rx="1"/><rect fill="var(--paper)" stroke="var(--g300)" stroke-width="1" x="24" y="40" width="16" height="16" rx="1"/>
+        <rect fill="var(--slate)" x="40" y="40" width="16" height="16" rx="1"/><rect fill="var(--paper)" stroke="var(--g300)" stroke-width="1" x="56" y="40" width="16" height="16" rx="1"/>
+        <rect fill="var(--paper)" stroke="var(--g300)" stroke-width="1" x="8" y="56" width="16" height="16" rx="1"/><rect fill="var(--slate)" x="24" y="56" width="16" height="16" rx="1"/>
+        <rect fill="var(--paper)" stroke="var(--g300)" stroke-width="1" x="40" y="56" width="16" height="16" rx="1"/><rect fill="var(--slate)" x="56" y="56" width="16" height="16" rx="1"/>
+        <circle fill="var(--clay)" cx="48" cy="48" r="7"/>
+        <circle fill="var(--oat)" stroke="var(--g500)" stroke-width="1.5" cx="32" cy="32" r="4"/>
+        <text x="85" y="30" text-anchor="middle" font-size="8.5" font-family="monospace" fill="#D97757" font-weight="700">CHECK</text>
+        <line stroke="var(--clay)" stroke-width="2" stroke-dasharray="3 2" x1="72" y1="20" x2="100" y2="55" fill="none"/>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">Chess Validator</div><span class="diff sde12">SDE I/II</span></div>
+        <div class="desc">Piece move validation, check/checkmate detection via board simulation. Template Method per piece type, State for game lifecycle.</div>
+        <div class="file"><span>chess-validator-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- SDE II -->
+<section id="sde2">
+  <div class="sec-head"><span class="idx">03</span><h2>SDE II — Advanced</h2><span class="count">2 problems</span></div>
+  <p class="sec-intro">Multi-entity domain systems with complex state, roles, and real-world workflows like reservations and activity logs.</p>
+  <div class="grid">
+
+    <a class="card" href="library-management-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <rect fill="var(--slate)" x="8" y="60" width="104" height="5" rx="2"/>
+        <rect fill="var(--clay)" x="14" y="24" width="12" height="38" rx="2"/>
+        <rect fill="var(--olive)" x="28" y="30" width="10" height="32" rx="2"/>
+        <rect fill="var(--g300)" x="40" y="20" width="14" height="42" rx="2"/>
+        <rect fill="var(--oat)" stroke="var(--g500)" stroke-width="1.5" x="56" y="28" width="10" height="34" rx="2"/>
+        <rect fill="var(--slate)" x="68" y="22" width="12" height="40" rx="2"/>
+        <rect fill="var(--clay)" x="82" y="32" width="10" height="30" rx="2"/>
+        <rect fill="var(--g300)" x="94" y="26" width="12" height="36" rx="2"/>
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="28" y="8" width="64" height="16" rx="3"/>
+        <circle fill="var(--clay)" cx="40" cy="16" r="4"/>
+        <rect fill="var(--g300)" x="48" y="12" width="36" height="3" rx="1"/>
+        <rect fill="var(--g300)" x="48" y="18" width="24" height="3" rx="1"/>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">Library Management</div><span class="diff sde2">SDE II</span></div>
+        <div class="desc">Book vs BookItem distinction, borrow/return/reservation flows, fine calculation strategy, FIFO reservation queue, and overdue notifications.</div>
+        <div class="file"><span>library-management-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="trello-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="6" y="10" width="28" height="62" rx="4"/>
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="38" y="10" width="28" height="62" rx="4"/>
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="70" y="10" width="28" height="62" rx="4"/>
+        <rect fill="var(--clay)" x="10" y="18" width="20" height="10" rx="2"/>
+        <rect fill="var(--g300)" x="10" y="32" width="20" height="10" rx="2"/>
+        <rect fill="var(--g300)" x="10" y="46" width="20" height="10" rx="2"/>
+        <rect fill="var(--oat)" stroke="var(--g500)" stroke-width="1" x="42" y="18" width="20" height="10" rx="2"/>
+        <rect fill="var(--olive)" x="42" y="32" width="20" height="10" rx="2"/>
+        <rect fill="var(--g300)" x="74" y="18" width="20" height="10" rx="2"/>
+        <line stroke="var(--clay)" stroke-width="2" x1="100" y1="32" x2="112" y2="32" fill="none" stroke-linecap="round"/>
+        <polygon fill="var(--clay)" points="110,28 116,32 110,36"/>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">Trello</div><span class="diff sde2">SDE II</span></div>
+        <div class="desc">Kanban boards with ordered lists and cards, drag-and-drop card movement, Observer activity log, Builder for rich card creation.</div>
+        <div class="file"><span>trello-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- SDE II/III -->
+<section id="sde23">
+  <div class="sec-head"><span class="idx">04</span><h2>SDE II/III — Expert</h2><span class="count">2 problems</span></div>
+  <p class="sec-intro">Infrastructure-level systems. Concurrency, eviction policies, transactions, and distributed delivery semantics are the focus.</p>
+  <div class="grid">
+
+    <a class="card" href="key-value-store-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="6" y="10" width="108" height="14" rx="3"/>
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="6" y="28" width="108" height="14" rx="3"/>
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="6" y="46" width="108" height="14" rx="3"/>
+        <rect fill="var(--clay)" x="8" y="12" width="24" height="10" rx="2"/>
+        <rect fill="var(--oat)" stroke="var(--g500)" stroke-width="1" x="8" y="30" width="24" height="10" rx="2"/>
+        <rect fill="var(--slate)" x="8" y="48" width="24" height="10" rx="2"/>
+        <rect fill="var(--g300)" x="36" y="12" width="48" height="10" rx="2"/>
+        <rect fill="var(--g300)" x="36" y="30" width="60" height="10" rx="2"/>
+        <rect fill="var(--g300)" x="36" y="48" width="36" height="10" rx="2"/>
+        <rect fill="none" stroke="var(--clay)" stroke-width="1.5" stroke-dasharray="3 2" x="90" y="48" width="22" height="10" rx="2"/>
+        <line stroke="var(--clay)" stroke-width="2" x1="8" y1="68" x2="108" y2="68" fill="none"/>
+        <text x="45" y="77" text-anchor="middle" font-size="7.5" font-family="monospace" fill="var(--g500)">LRU EVICT</text>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">In-Memory Key-Value Store</div><span class="diff sde23">SDE II/III</span></div>
+        <div class="desc">get/put/delete with TTL, LRU/LFU eviction, atomic transactions with rollback, ReadWriteLock for concurrent reads, Decorator for extensibility.</div>
+        <div class="file"><span>key-value-store-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="distributed-queue-lld.html">
+      <div class="thumb"><svg viewBox="0 0 120 80">
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="6" y="28" width="22" height="24" rx="4"/>
+        <text x="17" y="43" text-anchor="middle" font-size="7" font-family="monospace" fill="#3D3D3A">PROD</text>
+        <rect fill="var(--slate)" x="36" y="10" width="48" height="14" rx="3"/>
+        <rect fill="var(--clay)" x="36" y="28" width="48" height="14" rx="3"/>
+        <rect fill="var(--oat)" stroke="var(--g500)" stroke-width="1" x="36" y="46" width="48" height="14" rx="3"/>
+        <rect fill="var(--g300)" x="36" y="63" width="48" height="8" rx="2"/>
+        <text x="60" y="20" text-anchor="middle" font-size="6.5" font-family="monospace" fill="white">P-0</text>
+        <text x="60" y="38" text-anchor="middle" font-size="6.5" font-family="monospace" fill="white">P-1</text>
+        <text x="60" y="56" text-anchor="middle" font-size="6.5" font-family="monospace" fill="#3D3D3A">P-2</text>
+        <rect fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5" x="92" y="28" width="22" height="24" rx="4"/>
+        <text x="103" y="43" text-anchor="middle" font-size="7" font-family="monospace" fill="#3D3D3A">CON</text>
+        <line stroke="var(--g500)" stroke-width="1.5" x1="28" y1="40" x2="34" y2="35" fill="none"/>
+        <polygon fill="var(--g300)" points="32,31 36,35 32,39"/>
+        <line stroke="var(--g500)" stroke-width="1.5" x1="84" y1="35" x2="90" y2="40" fill="none"/>
+        <polygon fill="var(--g300)" points="90,36 94,40 90,44"/>
+      </svg></div>
+      <div class="body">
+        <div class="card-top"><div class="title">Distributed Queue (Kafka)</div><span class="diff sde23">SDE II/III</span></div>
+        <div class="desc">Topic partitions, producer strategies (round-robin, key-hash), consumer group rebalancing, at-least-once delivery via offset commits.</div>
+        <div class="file"><span>distributed-queue-lld.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <span class="k">10 problems · end-to-end LLD prep</span>
+  <span>Source: <a href="https://workat.tech/machine-coding/practice/">workat.tech/machine-coding</a></span>
+</footer>
+
+</div>
+</body>
+</html>

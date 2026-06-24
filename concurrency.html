@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concurrency & Thread Safety — SDE Interview Prep</title>
+<style>
+  :root {
+    --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+    --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+    --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 32px 100px; }
+
+  .back { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); text-decoration: none; padding: 32px 0 0; }
+  .back:hover { color: var(--slate); }
+
+  header { padding: 40px 0 56px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--g500); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(36px, 5vw, 58px); line-height: 1.06; letter-spacing: -.022em; margin-bottom: 6px; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .sub { font-size: 17px; color: var(--g700); margin-top: 16px; max-width: 560px; line-height: 1.6; }
+
+  section { margin-bottom: 64px; }
+  h2 { font-family: var(--serif); font-size: 28px; font-weight: 500; letter-spacing: -.014em; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1.5px solid var(--g200); }
+  h3 { font-family: var(--serif); font-size: 20px; font-weight: 500; margin: 28px 0 10px; }
+  p { color: var(--g700); line-height: 1.7; margin-bottom: 14px; }
+
+  .diagram-box { background: var(--slate); border-radius: 16px; padding: 32px; margin: 24px 0; display: flex; align-items: center; justify-content: center; }
+  .diagram-box svg { max-width: 100%; height: auto; }
+
+  .variant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-top: 20px; }
+  .variant-card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 14px; padding: 20px; }
+  .variant-name { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--clay); margin-bottom: 8px; }
+  .variant-title { font-family: var(--serif); font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+  .variant-desc { font-size: 13.5px; color: var(--g700); line-height: 1.6; }
+  .variant-tag { display: inline-block; margin-top: 10px; font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 4px; }
+  .tag-green { background: #E8F0DE; color: #4a6629; }
+  .tag-yellow { background: #FFF3CD; color: #856404; }
+  .tag-red { background: #FDECEA; color: #9e2a2b; }
+
+  .trade-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13.5px; }
+  .trade-table th { text-align: left; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); padding: 10px 14px; border-bottom: 1.5px solid var(--g300); }
+  .trade-table td { padding: 12px 14px; border-bottom: 1px solid var(--g200); color: var(--g700); vertical-align: top; }
+  .trade-table tr:last-child td { border-bottom: none; }
+  .trade-table tr:hover td { background: var(--g100); }
+  .trade-table td:first-child { font-family: var(--mono); font-size: 12px; color: var(--slate); font-weight: 500; }
+
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
+  .tab-btn { font-family: var(--mono); font-size: 11px; padding: 7px 14px; border-radius: 8px 8px 0 0; border: 1.5px solid var(--g300); border-bottom: none; background: var(--g100); color: var(--g500); cursor: pointer; transition: background 140ms; }
+  .tab-btn.active { background: var(--slate); color: var(--paper); border-color: var(--slate); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+  pre { background: var(--slate); color: #e8e6e0; padding: 24px; border-radius: 0 12px 12px 12px; font-family: var(--mono); font-size: 13px; line-height: 1.65; overflow-x: auto; border: 1.5px solid var(--slate); }
+  .kw { color: #7DADE2; }
+  .cn { color: #82E0AA; }
+  .cm { color: #6e6e6b; font-style: italic; }
+  .st { color: #D97757; }
+  .nm { color: #C39BD3; }
+  .fn { color: #76D7C4; }
+
+  .tip { display: flex; gap: 14px; align-items: flex-start; background: var(--paper); border: 1.5px solid var(--g200); border-left: 4px solid var(--clay); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+  .tip-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .tip-text { font-size: 14px; color: var(--g700); line-height: 1.6; }
+  .tip-text strong { color: var(--slate); }
+
+  .deadlock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0; }
+  @media (max-width: 600px) { .deadlock-grid { grid-template-columns: 1fr; } }
+  .dl-card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 18px; }
+  .dl-num { font-family: var(--mono); font-size: 22px; color: var(--g300); font-weight: 700; margin-bottom: 6px; }
+  .dl-title { font-family: var(--serif); font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+  .dl-desc { font-size: 13px; color: var(--g700); line-height: 1.55; }
+
+  .real-world { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-top: 20px; }
+  .rw-card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 18px; }
+  .rw-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--olive); margin-bottom: 6px; }
+  .rw-desc { font-size: 13px; color: var(--g700); line-height: 1.55; }
+
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 28px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--g500); }
+  footer a { color: var(--clay); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<a class="back" href="index.html">← Home</a>
+
+<header>
+  <div class="eyebrow">Key Concepts · Systems</div>
+  <h1>Concurrency &<br><em>Thread Safety</em></h1>
+  <p class="sub">Primitives for safe concurrent access, deadlock conditions, and the patterns that appear in every Java interview.</p>
+</header>
+
+<!-- 1. What Is It -->
+<section>
+  <h2>1. What Is It</h2>
+  <p><strong>Concurrency</strong> is the ability for multiple threads to make progress simultaneously, sharing CPU time and memory. <strong>Thread safety</strong> means a piece of code behaves correctly when multiple threads execute it at the same time — without data corruption, visibility bugs, or race conditions.</p>
+  <p>Java provides a layered toolkit: language-level <code>synchronized</code>, explicit <code>Lock</code> objects, non-blocking atomics, and high-level concurrent collections in <code>java.util.concurrent</code>.</p>
+</section>
+
+<!-- 2. The Problem It Solves -->
+<section>
+  <h2>2. The Problem It Solves</h2>
+  <p>Without synchronization, multiple threads reading and writing shared state produce non-deterministic results. Two classic bugs:</p>
+  <div class="deadlock-grid" style="margin-top:16px;">
+    <div class="dl-card">
+      <div class="dl-title">Race Condition</div>
+      <div class="dl-desc">Two threads both read counter=5, both increment to 6, both write 6. Net result: one increment lost. Expected: 7.</div>
+    </div>
+    <div class="dl-card">
+      <div class="dl-title">Visibility Bug</div>
+      <div class="dl-desc">Thread A writes a flag to CPU cache. Thread B never sees it because it reads a stale value from its own cache line.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. How It Works -->
+<section>
+  <h2>3. How It Works</h2>
+  <p>Threads compete to acquire a lock (monitor). Only the holder can enter the critical section. When it exits, one waiting thread is unblocked.</p>
+  <div class="diagram-box">
+    <svg viewBox="0 0 540 220" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width:540px;">
+      <!-- Thread boxes -->
+      <rect x="20" y="30" width="80" height="40" rx="8" fill="#D97757" opacity=".85"/>
+      <text x="60" y="55" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="#fff">T1</text>
+
+      <rect x="20" y="100" width="80" height="40" rx="8" fill="rgba(255,255,255,.15)" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+      <text x="60" y="125" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="rgba(255,255,255,.7)">T2</text>
+
+      <rect x="20" y="170" width="80" height="40" rx="8" fill="rgba(255,255,255,.15)" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+      <text x="60" y="195" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="rgba(255,255,255,.7)">T3</text>
+
+      <!-- Arrows to lock -->
+      <line x1="100" y1="50" x2="200" y2="100" stroke="#D97757" stroke-width="2"/>
+      <polygon points="200,100 188,92 192,104" fill="#D97757"/>
+
+      <line x1="100" y1="120" x2="200" y2="110" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <line x1="100" y1="190" x2="200" y2="125" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5,3"/>
+
+      <!-- Lock / Monitor box -->
+      <rect x="200" y="70" width="130" height="80" rx="12" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+      <text x="265" y="100" text-anchor="middle" font-family="monospace" font-size="11" fill="rgba(255,255,255,.5)" text-transform="uppercase">LOCK</text>
+      <text x="265" y="120" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757">● HELD by T1</text>
+      <text x="265" y="140" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.4)">T2, T3 waiting</text>
+
+      <!-- Arrow to critical section -->
+      <line x1="330" y1="110" x2="390" y2="110" stroke="#82E0AA" stroke-width="2"/>
+      <polygon points="390,110 380,105 380,115" fill="#82E0AA"/>
+
+      <!-- Critical section -->
+      <rect x="390" y="70" width="140" height="80" rx="12" fill="rgba(130,224,170,.08)" stroke="#82E0AA" stroke-width="1.5"/>
+      <text x="460" y="98" text-anchor="middle" font-family="monospace" font-size="10" fill="#82E0AA">Critical Section</text>
+      <text x="460" y="116" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.5)">counter++</text>
+      <text x="460" y="134" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.5)">shared state</text>
+
+      <!-- Labels -->
+      <text x="60" y="22" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.4)">THREADS</text>
+      <text x="60" y="88" font-family="monospace" font-size="9" fill="rgba(255,255,255,.3)">BLOCKED</text>
+      <text x="60" y="158" font-family="monospace" font-size="9" fill="rgba(255,255,255,.3)">BLOCKED</text>
+    </svg>
+  </div>
+  <p>The Java Memory Model (JMM) guarantees that actions inside a <code>synchronized</code> block happen-before actions after the lock is released — ensuring both atomicity and visibility.</p>
+</section>
+
+<!-- 4. Types / Variants -->
+<section>
+  <h2>4. Primitives & Variants</h2>
+  <div class="variant-grid">
+    <div class="variant-card">
+      <div class="variant-name">Intrinsic Lock</div>
+      <div class="variant-title">synchronized</div>
+      <div class="variant-desc">Every Java object has a built-in monitor. <code>synchronized</code> on a method or block acquires it automatically and releases on exit (even on exception).</div>
+      <span class="variant-tag tag-yellow">Coarse-grained</span>
+    </div>
+    <div class="variant-card">
+      <div class="variant-name">Explicit Lock</div>
+      <div class="variant-title">ReentrantLock</div>
+      <div class="variant-desc">Same semantics as <code>synchronized</code> but adds <code>tryLock()</code>, timed acquisition, and a fairness flag (FIFO ordering).</div>
+      <span class="variant-tag tag-green">Fine-grained</span>
+    </div>
+    <div class="variant-card">
+      <div class="variant-name">Read/Write Split</div>
+      <div class="variant-title">ReadWriteLock</div>
+      <div class="variant-desc">Allows unlimited concurrent readers OR one exclusive writer. Great when reads vastly outnumber writes (caches, config).</div>
+      <span class="variant-tag tag-green">High Read Throughput</span>
+    </div>
+    <div class="variant-card">
+      <div class="variant-name">Visibility Only</div>
+      <div class="variant-title">volatile</div>
+      <div class="variant-desc">Guarantees that writes are visible to all threads immediately. Does <em>not</em> provide atomicity — <code>volatile int x; x++</code> is still a race.</div>
+      <span class="variant-tag tag-yellow">No Atomicity</span>
+    </div>
+    <div class="variant-card">
+      <div class="variant-name">Lock-Free</div>
+      <div class="variant-title">AtomicInteger / CAS</div>
+      <div class="variant-desc">Uses CPU-level Compare-And-Swap. No lock acquisition — extremely fast under low contention. <code>AtomicInteger</code>, <code>AtomicLong</code>, <code>AtomicReference</code>.</div>
+      <span class="variant-tag tag-green">Lock-Free</span>
+    </div>
+    <div class="variant-card">
+      <div class="variant-name">Counting</div>
+      <div class="variant-title">Semaphore</div>
+      <div class="variant-desc">Allows N concurrent threads to access a resource simultaneously. Useful for connection pools, rate limiting concurrent threads.</div>
+      <span class="variant-tag tag-yellow">N-Permit</span>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Trade-offs -->
+<section>
+  <h2>5. Trade-offs</h2>
+  <table class="trade-table">
+    <thead>
+      <tr>
+        <th>Primitive</th>
+        <th>Granularity</th>
+        <th>Deadlock Risk</th>
+        <th>Performance</th>
+        <th>Use When</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>synchronized</td>
+        <td>Method / block</td>
+        <td>Yes</td>
+        <td>Good (JVM-optimized)</td>
+        <td>Simple critical sections, low contention</td>
+      </tr>
+      <tr>
+        <td>ReentrantLock</td>
+        <td>Block / manual</td>
+        <td>Yes (must unlock)</td>
+        <td>Similar to synchronized</td>
+        <td>Need tryLock, timed lock, or fairness</td>
+      </tr>
+      <tr>
+        <td>ReadWriteLock</td>
+        <td>Read / write split</td>
+        <td>Yes (write starvation)</td>
+        <td>High (concurrent reads)</td>
+        <td>Read-heavy workloads (caches)</td>
+      </tr>
+      <tr>
+        <td>volatile</td>
+        <td>Field</td>
+        <td>No</td>
+        <td>Very fast</td>
+        <td>Single-writer, many-reader flags</td>
+      </tr>
+      <tr>
+        <td>AtomicInteger</td>
+        <td>Field (int/long/ref)</td>
+        <td>No</td>
+        <td>Excellent (low contention)</td>
+        <td>Counters, sequence numbers, CAS loops</td>
+      </tr>
+      <tr>
+        <td>Semaphore</td>
+        <td>N permits</td>
+        <td>Yes</td>
+        <td>Good</td>
+        <td>Resource pools, throttling concurrency</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 6. Code -->
+<section>
+  <h2>6. Code</h2>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab(this,'tab-counter')">Thread-Safe Counter</button>
+    <button class="tab-btn" onclick="switchTab(this,'tab-pc')">Producer-Consumer</button>
+    <button class="tab-btn" onclick="switchTab(this,'tab-rw')">ReadWrite Lock</button>
+    <button class="tab-btn" onclick="switchTab(this,'tab-dl')">Deadlock Prevention</button>
+  </div>
+
+  <div id="tab-counter" class="tab-pane active">
+    <pre><span class="cm">// Approach 1 — synchronized method</span>
+<span class="kw">public class</span> <span class="cn">SyncCounter</span> {
+    <span class="kw">private int</span> count = <span class="nm">0</span>;
+    <span class="kw">public synchronized void</span> <span class="fn">increment</span>() { count++; }
+    <span class="kw">public synchronized int</span> <span class="fn">get</span>() { <span class="kw">return</span> count; }
+}
+
+<span class="cm">// Approach 2 — AtomicInteger (lock-free)</span>
+<span class="kw">public class</span> <span class="cn">AtomicCounter</span> {
+    <span class="kw">private final</span> <span class="cn">AtomicInteger</span> count = <span class="kw">new</span> <span class="cn">AtomicInteger</span>(<span class="nm">0</span>);
+    <span class="kw">public void</span> <span class="fn">increment</span>() { count.<span class="fn">incrementAndGet</span>(); }
+    <span class="kw">public int</span> <span class="fn">get</span>()       { <span class="kw">return</span> count.<span class="fn">get</span>(); }
+}
+
+<span class="cm">// Approach 3 — LongAdder (best throughput under high contention)</span>
+<span class="kw">public class</span> <span class="cn">AdderCounter</span> {
+    <span class="kw">private final</span> <span class="cn">LongAdder</span> count = <span class="kw">new</span> <span class="cn">LongAdder</span>();
+    <span class="kw">public void</span> <span class="fn">increment</span>() { count.<span class="fn">increment</span>(); }
+    <span class="kw">public long</span> <span class="fn">get</span>()       { <span class="kw">return</span> count.<span class="fn">sum</span>(); }
+    <span class="cm">// LongAdder splits across CPU cells — reduces CAS contention</span>
+}</pre>
+  </div>
+
+  <div id="tab-pc" class="tab-pane">
+    <pre><span class="kw">import</span> java.util.concurrent.*;
+
+<span class="kw">public class</span> <span class="cn">ProducerConsumerDemo</span> {
+    <span class="kw">private static final</span> <span class="cn">BlockingQueue</span>&lt;<span class="cn">String</span>&gt; queue =
+        <span class="kw">new</span> <span class="cn">ArrayBlockingQueue</span>&lt;&gt;(<span class="nm">10</span>); <span class="cm">// bounded</span>
+
+    <span class="kw">static class</span> <span class="cn">Producer</span> <span class="kw">implements</span> <span class="cn">Runnable</span> {
+        <span class="kw">public void</span> <span class="fn">run</span>() {
+            <span class="kw">try</span> {
+                queue.<span class="fn">put</span>(<span class="st">"item"</span>); <span class="cm">// blocks if queue full</span>
+            } <span class="kw">catch</span> (<span class="cn">InterruptedException</span> e) {
+                <span class="cn">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>();
+            }
+        }
+    }
+
+    <span class="kw">static class</span> <span class="cn">Consumer</span> <span class="kw">implements</span> <span class="cn">Runnable</span> {
+        <span class="kw">public void</span> <span class="fn">run</span>() {
+            <span class="kw">try</span> {
+                <span class="cn">String</span> item = queue.<span class="fn">take</span>(); <span class="cm">// blocks if queue empty</span>
+                <span class="cn">System</span>.out.<span class="fn">println</span>(<span class="st">"Consumed: "</span> + item);
+            } <span class="kw">catch</span> (<span class="cn">InterruptedException</span> e) {
+                <span class="cn">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>();
+            }
+        }
+    }
+}</pre>
+  </div>
+
+  <div id="tab-rw" class="tab-pane">
+    <pre><span class="kw">import</span> java.util.concurrent.locks.*;
+
+<span class="kw">public class</span> <span class="cn">CachedData</span> {
+    <span class="kw">private</span> <span class="cn">String</span> data;
+    <span class="kw">private final</span> <span class="cn">ReadWriteLock</span> rwLock =
+        <span class="kw">new</span> <span class="cn">ReentrantReadWriteLock</span>();
+    <span class="kw">private final</span> <span class="cn">Lock</span> readLock  = rwLock.<span class="fn">readLock</span>();
+    <span class="kw">private final</span> <span class="cn">Lock</span> writeLock = rwLock.<span class="fn">writeLock</span>();
+
+    <span class="kw">public</span> <span class="cn">String</span> <span class="fn">read</span>() {
+        readLock.<span class="fn">lock</span>();           <span class="cm">// many readers OK</span>
+        <span class="kw">try</span> { <span class="kw">return</span> data; }
+        <span class="kw">finally</span> { readLock.<span class="fn">unlock</span>(); }
+    }
+
+    <span class="kw">public void</span> <span class="fn">write</span>(<span class="cn">String</span> newData) {
+        writeLock.<span class="fn">lock</span>();          <span class="cm">// exclusive — blocks all readers</span>
+        <span class="kw">try</span> { data = newData; }
+        <span class="kw">finally</span> { writeLock.<span class="fn">unlock</span>(); }
+    }
+}</pre>
+  </div>
+
+  <div id="tab-dl" class="tab-pane">
+    <pre><span class="cm">// DEADLOCK scenario: T1 holds A, waits B; T2 holds B, waits A</span>
+<span class="cm">// FIX: always acquire locks in a consistent global order</span>
+
+<span class="kw">public class</span> <span class="cn">DeadlockFree</span> {
+    <span class="kw">private final</span> <span class="cn">Object</span> lockA;
+    <span class="kw">private final</span> <span class="cn">Object</span> lockB;
+
+    <span class="kw">public</span> <span class="cn">DeadlockFree</span>(<span class="cn">Object</span> a, <span class="cn">Object</span> b) {
+        <span class="cm">// Enforce order by System.identityHashCode</span>
+        <span class="kw">if</span> (<span class="cn">System</span>.<span class="fn">identityHashCode</span>(a) &lt; <span class="cn">System</span>.<span class="fn">identityHashCode</span>(b)) {
+            lockA = a; lockB = b;
+        } <span class="kw">else</span> {
+            lockA = b; lockB = a;
+        }
+    }
+
+    <span class="kw">public void</span> <span class="fn">transfer</span>() {
+        <span class="kw">synchronized</span> (lockA) {         <span class="cm">// always A first</span>
+            <span class="kw">synchronized</span> (lockB) {     <span class="cm">// then B</span>
+                <span class="cm">// safe to operate on both</span>
+            }
+        }
+    }
+}</pre>
+  </div>
+</section>
+
+<!-- Deadlock Conditions -->
+<section>
+  <h2>Deadlock: 4 Necessary Conditions</h2>
+  <p>All four must hold simultaneously for a deadlock to occur. Break any one to prevent it.</p>
+  <div class="deadlock-grid">
+    <div class="dl-card">
+      <div class="dl-num">01</div>
+      <div class="dl-title">Mutual Exclusion</div>
+      <div class="dl-desc">A resource can only be held by one thread at a time. (Inherent to locks — can't eliminate.)</div>
+    </div>
+    <div class="dl-card">
+      <div class="dl-num">02</div>
+      <div class="dl-title">Hold and Wait</div>
+      <div class="dl-desc">A thread holds at least one resource and waits for more. Fix: request all resources atomically upfront.</div>
+    </div>
+    <div class="dl-card">
+      <div class="dl-num">03</div>
+      <div class="dl-title">No Preemption</div>
+      <div class="dl-desc">Locks can't be forcibly taken. Fix: use <code>tryLock(timeout)</code> to give up and retry.</div>
+    </div>
+    <div class="dl-card">
+      <div class="dl-num">04</div>
+      <div class="dl-title">Circular Wait</div>
+      <div class="dl-desc">T1→A→B→T2→A forms a cycle. Fix: impose a total lock ordering (always acquire in same sequence).</div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Real-World -->
+<section>
+  <h2>7. Real-World Usage</h2>
+  <div class="real-world">
+    <div class="rw-card">
+      <div class="rw-name">ConcurrentHashMap</div>
+      <div class="rw-desc">Thread-safe map using segment-level (Java 7) or CAS + bucket-level (Java 8+) locking. Never use <code>HashMap</code> across threads.</div>
+    </div>
+    <div class="rw-card">
+      <div class="rw-name">CopyOnWriteArrayList</div>
+      <div class="rw-desc">Every write makes a copy. Reads are lock-free. Ideal for read-heavy lists (event listeners). Bad for frequent writes.</div>
+    </div>
+    <div class="rw-card">
+      <div class="rw-name">ExecutorService</div>
+      <div class="rw-desc">Thread pool — reuse threads rather than creating new ones. Use <code>Executors.newFixedThreadPool(n)</code> or custom <code>ThreadPoolExecutor</code>.</div>
+    </div>
+    <div class="rw-card">
+      <div class="rw-name">Connection Pools</div>
+      <div class="rw-desc">HikariCP uses a <code>Semaphore</code> to limit concurrent DB connections. Threads block until a slot is released.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Interview Tips -->
+<section>
+  <h2>8. Interview Tips</h2>
+  <div class="tip">
+    <div class="tip-icon">🎯</div>
+    <div class="tip-text"><strong>Default to AtomicInteger for counters</strong> — it's lock-free and the interviewer will notice you know the better tool. Mention <code>LongAdder</code> for even higher contention.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">⚠️</div>
+    <div class="tip-text"><strong>volatile ≠ atomic</strong> — a classic trap. <code>volatile int x; x++</code> is still a race because increment is read-modify-write (3 operations).</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">🔒</div>
+    <div class="tip-text"><strong>Always release locks in finally</strong> — <code>lock.lock(); try { ... } finally { lock.unlock(); }</code>. Forgetting this causes lock leaks on exceptions.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">📐</div>
+    <div class="tip-text"><strong>Name the 4 deadlock conditions</strong> — then explain which one you break and how. Lock ordering (break circular wait) is the most common answer.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">📖</div>
+    <div class="tip-text"><strong>ReadWriteLock is a signal</strong> — if you use it in parking lot or cache problems, interviewers know you understand read-heavy vs write-heavy access patterns.</div>
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="concepts-index.html">All Concepts</a></span>
+  <span>SDE Interview Prep</span>
+</footer>
+
+</div>
+<script>
+function switchTab(btn, id) {
+  btn.closest('section').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.closest('section').querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>

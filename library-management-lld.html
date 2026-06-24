@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library Management System — LLD Deep Dive</title>
+<style>
+  :root{--ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;--clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;--g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;--serif:ui-serif,Georgia,"Times New Roman",Times,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace}
+  *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+  body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px 120px}
+  header.masthead{padding:72px 0 48px;border-bottom:1.5px solid var(--g300);margin-bottom:8px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--g500);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay)}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5vw,56px);line-height:1.06;letter-spacing:-.018em;margin-bottom:8px}
+  h1 em{font-style:italic;color:var(--clay)}.intro{font-size:15.5px;color:var(--g700);margin-top:18px;max-width:600px}
+  nav.toc{display:flex;flex-wrap:wrap;gap:8px;padding-top:28px}
+  nav.toc a{font-size:12px;padding:6px 14px;border:1.5px solid var(--g300);border-radius:999px;text-decoration:none;color:var(--g700);background:var(--paper);transition:border-color 120ms,color 120ms;display:inline-flex;align-items:center;gap:6px}
+  nav.toc a .n{font-family:var(--mono);font-size:10px;color:var(--g500)}nav.toc a:hover{border-color:var(--slate);color:var(--slate)}
+  section{margin-top:64px;scroll-margin-top:24px}.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+  .sec-head .idx{font-family:var(--mono);font-size:12px;color:var(--clay);font-weight:600;width:30px;flex-shrink:0}
+  .sec-head h2{font-family:var(--serif);font-weight:500;font-size:25px;letter-spacing:-.012em}
+  .sec-intro{font-size:14px;color:var(--g700);max-width:680px;margin:0 0 22px 44px}.content-block{margin-left:44px}
+  @media(max-width:600px){.content-block,.sec-intro{margin-left:0}}
+  .req-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+  .req-item{background:var(--g100);border-radius:8px;padding:12px 14px;border-left:3px solid var(--g300)}
+  .req-item.func{border-left-color:var(--clay)}.req-item.nfunc{border-left-color:var(--olive)}
+  .req-item .req-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:4px}
+  .req-item p{font-size:13.5px;color:var(--g700)}
+  .diagram-wrap{overflow-x:auto;padding:4px 0 8px}
+  .class-box{display:inline-block;border:2px solid var(--g300);border-radius:8px;overflow:hidden;font-size:13px;min-width:170px;background:var(--paper);vertical-align:top;margin:6px}
+  .class-box .class-name{background:var(--slate);color:var(--paper);font-family:var(--mono);font-size:12px;font-weight:600;padding:7px 12px;letter-spacing:.04em}
+  .class-box .class-name.interface{background:var(--olive)}.class-box .class-name.enum{background:#4A6FA5}.class-box .class-name.abstract{background:var(--clay)}
+  .class-box .field{padding:3px 12px;color:var(--g700);font-family:var(--mono);font-size:11.5px;border-bottom:1px solid var(--g100)}
+  .class-box .field.method{color:var(--clay-d)}.class-box .field.enum-val{color:#4A6FA5}.class-box .divider{height:1.5px;background:var(--g200);margin:4px 0}
+  .flow{display:flex;flex-direction:column;gap:0}.flow-step{display:flex;gap:0;align-items:stretch}
+  .flow-left{display:flex;flex-direction:column;align-items:center;width:40px;flex-shrink:0}
+  .flow-dot{width:14px;height:14px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:3px;border:2px solid var(--ivory);box-shadow:0 0 0 2px var(--clay)}
+  .flow-dot.green{background:var(--olive);box-shadow:0 0 0 2px var(--olive)}.flow-dot.gray{background:var(--g300);box-shadow:0 0 0 2px var(--g300)}
+  .flow-line{flex:1;width:2px;background:var(--g200);margin:2px 0}.flow-content{padding:0 0 20px 0;flex:1}
+  .flow-step-title{font-weight:600;font-size:14px;margin-bottom:4px}.flow-step-desc{font-size:13.5px;color:var(--g700)}
+  .flow-step:last-child .flow-line{display:none}
+  pre{background:#1A1A18;color:#E8E6DF;border-radius:8px;padding:16px 18px;font-family:var(--mono);font-size:12.5px;line-height:1.65;overflow-x:auto;margin:12px 0}
+  pre .kw{color:#CF9F6E}pre .cn{color:#88C0A0}pre .cm{color:#5F5F5A}pre .st{color:#A8C97A}pre .nm{color:#7AABD4}pre .fn{color:#D97757}
+  .tip{display:flex;gap:12px;background:var(--g100);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+  .tip .tip-icon{font-size:16px;flex-shrink:0;margin-top:1px}.tip .tip-text{font-size:13.5px;color:var(--g700)}.tip .tip-text strong{color:var(--slate)}
+  .pattern-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .pattern-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:10px;padding:14px 16px}
+  .pattern-card .p-name{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--olive);margin-bottom:6px}
+  .pattern-card .p-title{font-size:14px;font-weight:600;margin-bottom:5px}.pattern-card .p-desc{font-size:12.5px;color:var(--g700)}
+  .tabs{display:flex;gap:4px;margin-bottom:-1px}
+  .tab-btn{font-family:var(--mono);font-size:11.5px;padding:7px 14px;border:1.5px solid var(--g300);border-bottom:none;border-radius:7px 7px 0 0;background:var(--g100);color:var(--g500);cursor:pointer;transition:background 120ms,color 120ms}
+  .tab-btn.active{background:var(--paper);color:var(--slate);border-color:var(--g300)}
+  .tab-pane{display:none;border:1.5px solid var(--g300);border-radius:0 8px 8px 8px}.tab-pane.active{display:block}
+  .tab-pane pre{margin:0;border-radius:0 6px 6px 6px}
+  .q-list{list-style:none}
+  .q-list li{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--g200);font-size:13.5px}
+  .q-list li:last-child{border-bottom:none}.q-list li .q-icon{color:var(--clay);flex-shrink:0;font-weight:700}
+  .q-list li .q-text strong{display:block;color:var(--slate);margin-bottom:2px}.q-list li .q-text span{color:var(--g700)}
+  .rel-table{width:100%;border-collapse:collapse;font-size:13px}
+  .rel-table th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);text-align:left;padding:6px 10px;border-bottom:1.5px solid var(--g300)}
+  .rel-table td{padding:8px 10px;border-bottom:1px solid var(--g100);color:var(--g700);vertical-align:top}
+  .rel-table td:first-child{font-family:var(--mono);font-size:11.5px;color:var(--slate);white-space:nowrap}
+  .rel-table td .badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:4px;background:var(--g100);color:var(--g500);margin-right:4px}
+  .rel-table td .badge.has{background:#EEF3E8;color:var(--olive)}.rel-table td .badge.uses{background:#FEF3EE;color:var(--clay)}.rel-table td .badge.impl{background:#EEF1F8;color:#4A6FA5}
+  .thread-table{width:100%;border-collapse:collapse;font-size:13px}
+  .thread-table th{background:var(--g100);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);padding:8px 12px;text-align:left}
+  .thread-table td{padding:9px 12px;border-bottom:1px solid var(--g100);color:var(--g700);vertical-align:top}
+  .thread-table td:first-child{font-weight:600;color:var(--slate)}
+  .risk-high{color:#C0392B;font-weight:600}.risk-med{color:#E67E22;font-weight:600}.risk-low{color:var(--olive);font-weight:600}
+  .highlight-box{background:#FEF3EE;border-left:3px solid var(--clay);border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;font-size:13.5px;color:var(--g700)}
+  .highlight-box strong{color:var(--clay-d)}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:600px){.two-col{grid-template-columns:1fr}}
+  .small-note{font-size:12px;color:var(--g500);margin-top:8px;font-family:var(--mono)}
+  ul.bullet{padding-left:18px}ul.bullet li{font-size:13.5px;color:var(--g700);margin-bottom:5px}ul.bullet li strong{color:var(--slate)}
+  footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:30px;font-size:12.5px;color:var(--g500);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  footer .k{font-family:var(--serif);font-style:italic;color:var(--g700);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">LLD Interview Prep — SDE II</div>
+  <h1>Design a <em>Library Management System</em></h1>
+  <p class="intro">End-to-end guide: the Book vs BookItem distinction, borrow/return flows with reservation, fine calculation, and concurrency on the last copy.</p>
+  <nav class="toc">
+    <a href="#requirements">Requirements <span class="n">01</span></a>
+    <a href="#clarifications">Clarifying Qs <span class="n">02</span></a>
+    <a href="#entities">Entities <span class="n">03</span></a>
+    <a href="#relations">Relationships <span class="n">04</span></a>
+    <a href="#flows">Key Flows <span class="n">05</span></a>
+    <a href="#code">Code <span class="n">06</span></a>
+    <a href="#patterns">Patterns <span class="n">07</span></a>
+    <a href="#concurrency">Concurrency <span class="n">08</span></a>
+    <a href="#tips">Interview Tips <span class="n">09</span></a>
+  </nav>
+</header>
+
+<!-- 01 -->
+<section id="requirements">
+  <div class="sec-head"><span class="idx">01</span><h2>Requirements</h2></div>
+  <p class="sec-intro">State these before touching code.</p>
+  <div class="content-block">
+    <div class="req-grid">
+      <div class="req-item func"><div class="req-label">Functional</div><p>Search catalog by title, author, ISBN, or category</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Each physical copy (BookItem) has its own status (AVAILABLE / BORROWED / RESERVED / LOST)</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Members borrow books for a fixed period (e.g., 14 days)</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>If all copies borrowed → member can reserve; notified when a copy is returned</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Return: calculate fine if overdue; free the copy</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Librarian role: add/remove books, ban members</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Concurrent borrows of the last copy must not double-book</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Extensible fine strategies: daily flat rate, tiered, waived</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section id="clarifications">
+  <div class="sec-head"><span class="idx">02</span><h2>Clarifying Questions</h2></div>
+  <p class="sec-intro">These shape the design significantly.</p>
+  <div class="content-block">
+    <ul class="q-list">
+      <li><span class="q-icon">?</span><span class="q-text"><strong>What is the borrowing limit per member?</strong><span>Classic: 5 books max, no books with overdue returns. This is a business rule → goes in a MemberValidator, not Member.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>How is the fine calculated?</strong><span>Flat ₹5/day? First 3 days free? Tiered? Defines the FineCalculator strategy interface.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>How are reservations ordered — FIFO or by priority?</strong><span>FIFO is standard — order by reservedAt timestamp.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Can a member reserve multiple copies of the same book?</strong><span>Typically no — one active reservation per member per book.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>How are notifications delivered?</strong><span>Email/SMS/in-app. Use NotificationService interface — decouples delivery from library logic.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Is multi-branch support required?</strong><span>Single branch simplifies. Multi-branch adds LibraryBranch and cross-branch availability queries.</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 03 -->
+<section id="entities">
+  <div class="sec-head"><span class="idx">03</span><h2>Core Entities</h2></div>
+  <p class="sec-intro">The Book vs BookItem split is the defining insight of this problem.</p>
+  <div class="content-block">
+    <div class="highlight-box" style="margin-bottom:16px"><strong>Key distinction:</strong> <code>Book</code> is the abstract title (ISBN, author, category). <code>BookItem</code> is one physical copy with its own barcode, status, and due date. One Book → many BookItems.</div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px">Enums</p>
+    <div class="diagram-wrap" style="margin-bottom:20px">
+      <div class="class-box"><div class="class-name enum">BookStatus</div><div class="field enum-val">AVAILABLE</div><div class="field enum-val">BORROWED</div><div class="field enum-val">RESERVED</div><div class="field enum-val">LOST</div></div>
+      <div class="class-box"><div class="class-name enum">ReservationStatus</div><div class="field enum-val">WAITING</div><div class="field enum-val">COMPLETED</div><div class="field enum-val">CANCELLED</div></div>
+      <div class="class-box"><div class="class-name enum">AccountStatus</div><div class="field enum-val">ACTIVE</div><div class="field enum-val">BANNED</div><div class="field enum-val">CLOSED</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px">Models</p>
+    <div class="diagram-wrap" style="margin-bottom:20px">
+      <div class="class-box">
+        <div class="class-name">Book</div>
+        <div class="field">- ISBN: String</div>
+        <div class="field">- title: String</div>
+        <div class="field">- author: String</div>
+        <div class="field">- category: String</div>
+        <div class="field">- items: List&lt;BookItem&gt;</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">BookItem</div>
+        <div class="field">- barcode: String</div>
+        <div class="field">- book: Book</div>
+        <div class="field">- status: BookStatus</div>
+        <div class="field">- dueDate: LocalDate</div>
+        <div class="divider"></div>
+        <div class="field method">+ isAvailable(): boolean</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">BookLending</div>
+        <div class="field">- lendingId: String</div>
+        <div class="field">- bookItem: BookItem</div>
+        <div class="field">- member: Member</div>
+        <div class="field">- issuedAt: LocalDateTime</div>
+        <div class="field">- dueDate: LocalDate</div>
+        <div class="field">- returnedAt: LocalDateTime</div>
+        <div class="divider"></div>
+        <div class="field method">+ isOverdue(): boolean</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">BookReservation</div>
+        <div class="field">- reservationId: String</div>
+        <div class="field">- book: Book</div>
+        <div class="field">- member: Member</div>
+        <div class="field">- reservedAt: LocalDateTime</div>
+        <div class="field">- status: ReservationStatus</div>
+      </div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px">Accounts + Services</p>
+    <div class="diagram-wrap" style="margin-bottom:20px">
+      <div class="class-box">
+        <div class="class-name abstract">Account (abstract)</div>
+        <div class="field">- accountId: String</div>
+        <div class="field">- name, email: String</div>
+        <div class="field">- status: AccountStatus</div>
+        <div class="field" style="font-size:11px;color:var(--g500);font-style:italic;padding:4px 12px">↳ Member, Librarian</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Member</div>
+        <div class="field" style="font-size:11px;color:var(--g500);font-style:italic;padding:4px 12px">extends Account</div>
+        <div class="field">- booksCheckedOut: int</div>
+        <div class="divider"></div>
+        <div class="field method">+ canBorrow(): boolean</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name interface">«interface» FineCalculator</div>
+        <div class="divider"></div>
+        <div class="field method">+ calculateFine(lending): double</div>
+        <div class="field" style="font-size:11px;color:var(--g500);font-style:italic;padding:4px 12px">↳ DailyFineCalculator</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Catalog (Singleton)</div>
+        <div class="field">- index: Map&lt;String, List&lt;Book&gt;&gt;</div>
+        <div class="divider"></div>
+        <div class="field method">+ findByISBN(isbn): Book</div>
+        <div class="field method">+ search(query): List&lt;Book&gt;</div>
+        <div class="field method">+ addBook(book): void</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Library (Singleton)</div>
+        <div class="field">- catalog: Catalog</div>
+        <div class="field">- lendings: List&lt;BookLending&gt;</div>
+        <div class="field">- reservations: List&lt;BookReservation&gt;</div>
+        <div class="field">- fineCalc: FineCalculator</div>
+        <div class="divider"></div>
+        <div class="field method">+ borrowBook(memberId, ISBN)</div>
+        <div class="field method">+ returnBook(barcode): double</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section id="relations">
+  <div class="sec-head"><span class="idx">04</span><h2>Relationships</h2></div>
+  <p class="sec-intro">How entities connect.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>From</th><th>To</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Library</td><td>Catalog</td><td><span class="badge has">HAS</span></td><td>Composition — Library owns the Catalog</td></tr>
+        <tr><td>Catalog</td><td>Book</td><td><span class="badge has">HAS</span></td><td>Aggregation — Catalog indexes many Books</td></tr>
+        <tr><td>Book</td><td>BookItem</td><td><span class="badge has">HAS</span></td><td>Composition — 1 book title → N physical copies</td></tr>
+        <tr><td>BookLending</td><td>Member + BookItem</td><td><span class="badge has">LINKS</span></td><td>Association class — records a single borrowing event</td></tr>
+        <tr><td>BookReservation</td><td>Member + Book</td><td><span class="badge has">LINKS</span></td><td>Association class — queues a member for a book title</td></tr>
+        <tr><td>Member / Librarian</td><td>Account</td><td><span class="badge impl">EXTENDS</span></td><td>Inheritance — Librarian has elevated permissions</td></tr>
+        <tr><td>Library</td><td>FineCalculator</td><td><span class="badge uses">USES</span></td><td>Strategy — swap DailyFine / TieredFine / Waived</td></tr>
+        <tr><td>Library</td><td>NotificationService</td><td><span class="badge uses">USES</span></td><td>Observer — notify member on overdue or reservation ready</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 05 -->
+<section id="flows">
+  <div class="sec-head"><span class="idx">05</span><h2>Key Flows</h2></div>
+  <p class="sec-intro">Walk both borrow and return flows in the interview — the return flow with reservation notification is what interviewers listen for.</p>
+  <div class="content-block">
+    <div class="two-col">
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px">Borrow Flow</p>
+        <div class="flow">
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Validate member</div><div class="flow-step-desc">Not banned. booksCheckedOut &lt; maxLimit. No overdue items.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Lookup book in catalog</div><div class="flow-step-desc">catalog.findByISBN(isbn). Throw BookNotFoundException if absent.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Find available copy</div><div class="flow-step-desc">book.getItems().stream().filter(isAvailable).findFirst()</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">If available: create lending</div><div class="flow-step-desc">item.setStatus(BORROWED). item.setDueDate(now+14d). Create BookLending. member.booksCheckedOut++.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot gray"></div></div><div class="flow-content"><div class="flow-step-title">If not available: reserve</div><div class="flow-step-desc">Create BookReservation(WAITING). Notify member "reserved — we'll alert you".</div></div></div>
+        </div>
+      </div>
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px">Return Flow</p>
+        <div class="flow">
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Lookup active lending</div><div class="flow-step-desc">Find BookLending by barcode where returnedAt is null.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Set returnedAt, calc fine</div><div class="flow-step-desc">lending.returnedAt = now. fine = fineCalculator.calculateFine(lending). Notify if fine &gt; 0.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">member.booksCheckedOut--</div><div class="flow-step-desc">Decrement the count so member can borrow again.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Check waiting reservation (FIFO)</div><div class="flow-step-desc">Find oldest WAITING reservation for this book. If found: item.status = RESERVED, reservation.status = COMPLETED, notify waiting member.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div></div><div class="flow-content"><div class="flow-step-title">If no reservation: item = AVAILABLE</div><div class="flow-step-desc">Free the copy for walk-in borrows.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">Focus on the two core library operations and the fine calculator.</p>
+  <div class="content-block">
+
+    <div style="margin-bottom:24px">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px">Models</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'lms-book')">Book + BookItem</button>
+        <button class="tab-btn" onclick="switchTab(this,'lms-fine')">FineCalculator</button>
+      </div>
+      <div class="tab-pane active" id="lms-book">
+<pre><span class="kw">class</span> <span class="cn">Book</span> {
+    <span class="kw">private final</span> String ISBN, title, author, category;
+    <span class="kw">private final</span> List&lt;<span class="cn">BookItem</span>&gt; items = <span class="kw">new</span> ArrayList&lt;&gt;();
+
+    <span class="kw">public</span> Optional&lt;<span class="cn">BookItem</span>&gt; <span class="fn">findAvailableItem</span>() {
+        <span class="kw">return</span> items.<span class="fn">stream</span>().filter(<span class="cn">BookItem</span>::isAvailable).<span class="fn">findFirst</span>();
+    }
+}
+
+<span class="kw">class</span> <span class="cn">BookItem</span> {
+    <span class="kw">private final</span> String barcode;
+    <span class="kw">private</span> <span class="cn">Book</span> book;
+    <span class="kw">private</span> <span class="cn">BookStatus</span> status;
+    <span class="kw">private</span> LocalDate dueDate;
+
+    <span class="kw">public boolean</span> <span class="fn">isAvailable</span>() { <span class="kw">return</span> status == <span class="cn">BookStatus</span>.AVAILABLE; }
+
+    <span class="cm">// synchronized: prevents two threads from borrowing the same copy</span>
+    <span class="kw">public synchronized boolean</span> <span class="fn">tryReserve</span>() {
+        <span class="kw">if</span> (!<span class="fn">isAvailable</span>()) <span class="kw">return false</span>;
+        status = <span class="cn">BookStatus</span>.BORROWED;
+        <span class="kw">return true</span>;
+    }
+}</pre>
+      </div>
+      <div class="tab-pane" id="lms-fine">
+<pre><span class="kw">interface</span> <span class="cn">FineCalculator</span> {
+    <span class="kw">double</span> <span class="fn">calculateFine</span>(<span class="cn">BookLending</span> lending);
+}
+
+<span class="kw">class</span> <span class="cn">DailyFineCalculator</span> <span class="kw">implements</span> <span class="cn">FineCalculator</span> {
+    <span class="kw">private static final double</span> RATE = <span class="nm">5.0</span>; <span class="cm">// ₹5 per day</span>
+
+    <span class="kw">public double</span> <span class="fn">calculateFine</span>(<span class="cn">BookLending</span> lending) {
+        <span class="kw">if</span> (lending.<span class="fn">getReturnedAt</span>() == <span class="kw">null</span>) <span class="kw">return</span> <span class="nm">0</span>;
+        <span class="kw">long</span> days = <span class="cn">ChronoUnit</span>.DAYS.<span class="fn">between</span>(
+            lending.<span class="fn">getDueDate</span>(),
+            lending.<span class="fn">getReturnedAt</span>().<span class="fn">toLocalDate</span>()
+        );
+        <span class="kw">return</span> Math.<span class="fn">max</span>(<span class="nm">0</span>, days) * RATE;
+    }
+}</pre>
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px">Library — borrowBook + returnBook</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'lib-borrow')">borrowBook</button>
+        <button class="tab-btn" onclick="switchTab(this,'lib-return')">returnBook</button>
+        <button class="tab-btn" onclick="switchTab(this,'lib-validate')">validateMember</button>
+      </div>
+      <div class="tab-pane active" id="lib-borrow">
+<pre><span class="kw">public</span> <span class="cn">BookLending</span> <span class="fn">borrowBook</span>(String memberId, String ISBN) {
+    <span class="cn">Member</span> member = <span class="fn">findMember</span>(memberId);
+    <span class="fn">validateMember</span>(member);
+
+    <span class="cn">Book</span> book = catalog.<span class="fn">findByISBN</span>(ISBN);
+    <span class="kw">if</span> (book == <span class="kw">null</span>) <span class="kw">throw new</span> <span class="cn">BookNotFoundException</span>(ISBN);
+
+    <span class="cm">// tryReserve() is synchronized on the BookItem</span>
+    Optional&lt;<span class="cn">BookItem</span>&gt; available = book.<span class="fn">getItems</span>().stream()
+        .filter(item -&gt; item.<span class="fn">tryReserve</span>())   <span class="cm">// atomic check+set</span>
+        .<span class="fn">findFirst</span>();
+
+    <span class="kw">if</span> (available.<span class="fn">isEmpty</span>()) {
+        reservations.<span class="fn">add</span>(<span class="kw">new</span> <span class="cn">BookReservation</span>(book, member, LocalDateTime.<span class="fn">now</span>()));
+        notificationService.<span class="fn">notify</span>(member, <span class="st">"Reserved. You'll be notified when available."</span>);
+        <span class="kw">throw new</span> <span class="cn">NoBookItemAvailableException</span>(book.<span class="fn">getTitle</span>());
+    }
+
+    <span class="cn">BookItem</span> item = available.<span class="fn">get</span>();
+    item.<span class="fn">setDueDate</span>(LocalDate.<span class="fn">now</span>().<span class="fn">plusDays</span>(<span class="nm">14</span>));
+
+    <span class="cn">BookLending</span> lending = <span class="kw">new</span> <span class="cn">BookLending</span>(item, member, LocalDateTime.<span class="fn">now</span>());
+    member.<span class="fn">incrementCheckedOut</span>();
+    lendings.<span class="fn">add</span>(lending);
+    <span class="kw">return</span> lending;
+}</pre>
+      </div>
+      <div class="tab-pane" id="lib-return">
+<pre><span class="kw">public double</span> <span class="fn">returnBook</span>(String barcode) {
+    <span class="cn">BookItem</span> item = <span class="fn">findItemByBarcode</span>(barcode);
+    <span class="cn">BookLending</span> lending = <span class="fn">findActiveLending</span>(item);
+
+    lending.<span class="fn">setReturnedAt</span>(LocalDateTime.<span class="fn">now</span>());
+    <span class="kw">double</span> fine = fineCalculator.<span class="fn">calculateFine</span>(lending);
+    <span class="kw">if</span> (fine &gt; <span class="nm">0</span>) notificationService.<span class="fn">notify</span>(lending.<span class="fn">getMember</span>(), <span class="st">"Fine due: ₹"</span> + fine);
+
+    lending.<span class="fn">getMember</span>().<span class="fn">decrementCheckedOut</span>();
+
+    <span class="cm">// Check for waiting reservations — FIFO by reservedAt</span>
+    Optional&lt;<span class="cn">BookReservation</span>&gt; waiting = reservations.<span class="fn">stream</span>()
+        .filter(r -&gt; r.<span class="fn">getBook</span>().equals(item.<span class="fn">getBook</span>())
+               && r.<span class="fn">getStatus</span>() == <span class="cn">ReservationStatus</span>.WAITING)
+        .min(Comparator.<span class="fn">comparing</span>(<span class="cn">BookReservation</span>::getReservedAt));
+
+    <span class="kw">if</span> (waiting.<span class="fn">isPresent</span>()) {
+        item.<span class="fn">setStatus</span>(<span class="cn">BookStatus</span>.RESERVED);
+        waiting.<span class="fn">get</span>().<span class="fn">setStatus</span>(<span class="cn">ReservationStatus</span>.COMPLETED);
+        notificationService.<span class="fn">notify</span>(waiting.<span class="fn">get</span>().<span class="fn">getMember</span>(), <span class="st">"Your reserved book is ready!"</span>);
+    } <span class="kw">else</span> {
+        item.<span class="fn">setStatus</span>(<span class="cn">BookStatus</span>.AVAILABLE);
+    }
+    <span class="kw">return</span> fine;
+}</pre>
+      </div>
+      <div class="tab-pane" id="lib-validate">
+<pre><span class="kw">private void</span> <span class="fn">validateMember</span>(<span class="cn">Member</span> member) {
+    <span class="kw">if</span> (member.<span class="fn">getStatus</span>() == <span class="cn">AccountStatus</span>.BANNED)
+        <span class="kw">throw new</span> <span class="cn">MemberBannedException</span>(member.<span class="fn">getId</span>());
+
+    <span class="kw">if</span> (member.<span class="fn">getBooksCheckedOut</span>() >= MAX_BOOKS_LIMIT)
+        <span class="kw">throw new</span> <span class="cn">BorrowLimitExceededException</span>(<span class="st">"Limit: "</span> + MAX_BOOKS_LIMIT);
+
+    <span class="cm">// Check for overdue items — member must clear fines first</span>
+    <span class="kw">boolean</span> hasOverdue = lendings.<span class="fn">stream</span>()
+        .anyMatch(l -&gt; l.<span class="fn">getMember</span>().equals(member)
+               && l.<span class="fn">getReturnedAt</span>() == <span class="kw">null</span>
+               && l.<span class="fn">getDueDate</span>().<span class="fn">isBefore</span>(LocalDate.<span class="fn">now</span>()));
+
+    <span class="kw">if</span> (hasOverdue) <span class="kw">throw new</span> <span class="cn">OverdueItemsException</span>(<span class="st">"Return overdue books first"</span>);
+}
+
+<span class="cm">// SDE II note: move this into a MemberValidationService for SRP</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section id="patterns">
+  <div class="sec-head"><span class="idx">07</span><h2>Design Patterns</h2></div>
+  <p class="sec-intro">Name these in the interview.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name">Creational</div><div class="p-title">Singleton</div><div class="p-desc">Library and Catalog are single global instances managing shared state. Use double-checked locking.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Strategy</div><div class="p-desc">FineCalculator interface: DailyFineCalculator, TieredFineCalculator, WaivedFineCalculator — swappable without touching Library.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Observer</div><div class="p-desc">NotificationService notifies members on overdue and reservation-ready events — decouples delivery channel from library logic.</div></div>
+      <div class="pattern-card"><div class="p-name">Structural</div><div class="p-title">Composite</div><div class="p-desc">Library → LibraryFloor → Rack → BookItem forms a physical hierarchy. Query availability at any level.</div></div>
+      <div class="pattern-card"><div class="p-name">Structural</div><div class="p-title">Facade</div><div class="p-desc">Library.borrowBook() hides catalog lookup, member validation, item reservation, and lending creation behind one call.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section id="concurrency">
+  <div class="sec-head"><span class="idx">08</span><h2>Concurrency</h2></div>
+  <p class="sec-intro">The last-copy race condition is the critical point here.</p>
+  <div class="content-block">
+    <div class="highlight-box"><strong>Core race condition:</strong> Two members request the last available copy simultaneously. Both see it as AVAILABLE. Both create a BookLending. One copy, two borrowers — double booking.</div>
+    <table class="thread-table" style="margin-top:16px;margin-bottom:16px">
+      <thead><tr><th>Risk</th><th>Location</th><th>Severity</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Double-borrow last copy</td><td>BookItem.status check+set</td><td class="risk-high">HIGH</td><td>synchronized tryReserve() on BookItem — atomic check+set</td></tr>
+        <tr><td>Concurrent lending list writes</td><td>Library.lendings</td><td class="risk-med">MED</td><td>CopyOnWriteArrayList or Collections.synchronizedList</td></tr>
+        <tr><td>Reservation queue race</td><td>Library.reservations</td><td class="risk-med">MED</td><td>ConcurrentLinkedQueue for lock-free FIFO</td></tr>
+        <tr><td>Member booksCheckedOut counter</td><td>Member</td><td class="risk-med">MED</td><td>AtomicInteger or synchronized increment/decrement</td></tr>
+        <tr><td>Catalog index concurrent reads</td><td>Catalog</td><td class="risk-low">LOW</td><td>ConcurrentHashMap — reads are lock-free</td></tr>
+      </tbody>
+    </table>
+    <p class="small-note">Advanced: use optimistic locking with a version field on BookItem — compare-and-swap status. Avoids blocking threads while a transaction rolls back.</p>
+  </div>
+</section>
+
+<!-- 09 -->
+<section id="tips">
+  <div class="sec-head"><span class="idx">09</span><h2>Interview Tips</h2></div>
+  <p class="sec-intro">What separates an SDE I answer from an SDE II answer.</p>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>Book vs BookItem is the key insight.</strong> Every senior interviewer asks for this. Book = title. BookItem = physical copy. Don't conflate them — it shows you've modelled the real domain.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>Validation is a service, not a method on Member.</strong> validateMember() should be in a MemberValidationService, not in Library. Single Responsibility — Member manages its own state; a service enforces business rules.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>Reservation is FIFO — order by reservedAt.</strong> When a book is returned, pick the oldest WAITING reservation. If you use a PriorityQueue ordered by time, this is O(log n) per lookup.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>The return flow with reservation notification is what interviewers listen for.</strong> Most candidates stop after "set status = AVAILABLE". Walk through: check waiting reservation → set RESERVED → notify waiting member → don't omit this.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Fine can be 0 even when overdue if there's a grace period.</strong> Ask the interviewer. "Is there a grace period?" shows you think about edge cases, not just happy paths.</div></div>
+    <div class="tip"><div class="tip-icon">6</div><div class="tip-text"><strong>Librarian extends Account, not Member.</strong> Librarian has addBook/removeBook/banMember capabilities. Member has borrowBook/returnBook. Both extend Account (shared: id, name, status). Role-based capabilities via inheritance.</div></div>
+  </div>
+</section>
+
+<footer>
+  <span class="k">Library Management System — Low Level Design</span>
+  <span>Software Engineering Interview Prep</span>
+</footer>
+</div>
+<script>
+function switchTab(btn, id) {
+  const container = btn.closest('div[style*="margin-bottom"]') || btn.closest('section');
+  container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  const t = document.getElementById(id);
+  if (t) t.classList.add('active');
+}
+</script>
+</body>
+</html>

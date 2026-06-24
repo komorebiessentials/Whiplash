@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Google Drive — HLD Interview Prep</title>
+<style>
+:root {
+  --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+  --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+  --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+  --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 28px 100px}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--g500);text-decoration:none;padding:28px 0 0;letter-spacing:.01em}
+.back:hover{color:var(--clay)}
+header{padding:40px 0 48px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,54px);line-height:1.08;letter-spacing:-.022em;margin-bottom:12px}
+.sub{font-size:16px;color:var(--g700);max-width:600px;line-height:1.6}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+nav.toc a{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;padding:5px 12px;border-radius:20px;background:var(--g100);color:var(--g700);text-decoration:none;transition:background .15s}
+nav.toc a:hover{background:var(--oat);color:var(--slate)}
+section{margin-top:56px}
+h2{font-family:var(--serif);font-weight:500;font-size:26px;letter-spacing:-.015em;margin-bottom:6px}
+.section-rule{width:40px;height:2px;background:var(--clay);margin-bottom:20px}
+p{color:var(--g700);line-height:1.65;margin-bottom:12px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{padding:16px 20px;border-radius:12px;border:1.5px solid var(--g300)}
+.req-item.func{background:var(--paper);border-color:var(--olive)}
+.req-item.nfunc{background:var(--g100);border-color:var(--g300)}
+.req-label{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.req-item.func .req-label{color:var(--olive)}
+.req-item.nfunc .req-label{color:var(--g500)}
+.req-item ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.req-item li{font-size:13.5px;color:var(--g700);padding-left:14px;position:relative}
+.req-item li::before{content:"•";position:absolute;left:0;color:var(--clay)}
+.est-table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13.5px}
+.est-table th{background:var(--slate);color:var(--paper);padding:10px 14px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:500}
+.est-table td{padding:10px 14px;border-bottom:1px solid var(--g200);color:var(--g700)}
+.est-table tr:last-child td{border-bottom:none}
+.est-table tr:nth-child(even) td{background:var(--g100)}
+.est-table td:first-child{font-weight:500;color:var(--slate);font-family:var(--mono);font-size:12px}
+.arch-box{background:var(--paper);border:1.5px solid var(--g300);border-radius:16px;padding:28px;margin-top:16px;overflow-x:auto}
+pre{background:var(--slate);color:#E8E6DF;font-family:var(--mono);font-size:12.5px;line-height:1.65;padding:22px 24px;border-radius:12px;overflow-x:auto;margin-top:16px}
+pre .kw{color:#7EB8D4}
+pre .cn{color:#A8CC8C}
+pre .cm{color:#6B6B66;font-style:italic}
+pre .st{color:#D97757}
+pre .nm{color:#B39DDB}
+.api-block{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;overflow:hidden;margin-top:12px}
+.api-row{display:grid;grid-template-columns:80px 1fr;border-bottom:1px solid var(--g200)}
+.api-row:last-child{border-bottom:none}
+.api-method{padding:12px 14px;font-family:var(--mono);font-size:11px;font-weight:700;display:flex;align-items:center}
+.api-method.get{color:#788C5D;background:#F0F4EA}
+.api-method.post{color:#4A6FA5;background:#EEF2F8}
+.api-method.put{color:#9C6B0E;background:#FDF4E3}
+.api-path{padding:12px 14px;font-family:var(--mono);font-size:12px;color:var(--slate);display:flex;flex-direction:column;gap:4px}
+.api-desc{font-family:var(--sans);font-size:12px;color:var(--g500)}
+.schema-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.schema-table th{background:var(--g100);color:var(--g700);padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:500;border-bottom:1.5px solid var(--g300)}
+.schema-table td{padding:8px 12px;border-bottom:1px solid var(--g200);color:var(--g700)}
+.schema-table td:first-child{font-family:var(--mono);font-size:11.5px;color:var(--slate);font-weight:500}
+.schema-table td:nth-child(2){color:var(--clay);font-family:var(--mono);font-size:11px}
+.db-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;padding:20px;margin-top:12px}
+.db-card h4{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--clay);margin-bottom:12px}
+.dive-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:640px){.dive-grid{grid-template-columns:1fr}}
+.dive-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;padding:20px}
+.dive-card h4{font-family:var(--serif);font-size:16px;font-weight:500;margin-bottom:10px;color:var(--slate)}
+.dive-card p,.dive-card li{font-size:13.5px;color:var(--g700);line-height:1.6}
+.dive-card ul{list-style:none;display:flex;flex-direction:column;gap:5px;padding-left:0}
+.dive-card li{padding-left:14px;position:relative}
+.dive-card li::before{content:"→";position:absolute;left:0;color:var(--clay);font-size:11px;top:2px}
+.scale-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:16px}
+.scale-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;padding:18px}
+.scale-icon{font-size:20px;margin-bottom:8px}
+.scale-card h4{font-size:13.5px;font-weight:600;color:var(--slate);margin-bottom:6px}
+.scale-card p{font-size:12.5px;color:var(--g500);line-height:1.5}
+.tip-list{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.tip{display:flex;gap:14px;background:var(--paper);border:1.5px solid var(--oat);border-radius:12px;padding:16px 18px}
+.tip-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.tip-text{font-size:13.5px;color:var(--g700);line-height:1.6}
+.tip-text strong{color:var(--slate)}
+footer{margin-top:64px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--g500)}
+footer a{color:var(--g500);text-decoration:none}
+footer a:hover{color:var(--clay)}
+
+/* === Interactive arch === */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:700px){.arch-wrap{grid-template-columns:1fr}}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px;color:var(--slate)}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px}
+.ap-empty{color:var(--g500);font-size:13px;text-align:center;padding-top:40px}
+
+/* === Flow stepper === */
+.flow-pills{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:16px}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);font-size:14px;margin:0 2px}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin:16px 0;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px;color:var(--slate)}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.65;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:12px;margin-top:8px}
+.fnav-btn{padding:7px 18px;border-radius:7px;border:1.5px solid var(--g300);font-size:13px;font-weight:500;background:var(--g100);cursor:pointer;transition:all .15s;color:var(--slate)}
+.fnav-btn:hover:not(:disabled){background:var(--clay);border-color:var(--clay);color:white}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:12px;color:var(--g500)}
+.flow-dots{display:flex;gap:6px;margin-left:auto}
+.fdot{width:8px;height:8px;border-radius:50%;background:var(--g300);cursor:pointer;transition:background .15s}
+.fdot.on{background:var(--clay)}
+
+/* === Self-check === */
+.sc-list{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+
+/* === Playground === */
+.playground{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin-top:20px}
+.playground h3{font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:16px}
+.pg-inputs{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:20px}
+.pg-field{display:flex;flex-direction:column;gap:6px}
+.pg-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500)}
+.pg-input{padding:8px 12px;border-radius:7px;border:1.5px solid var(--g300);font-size:14px;background:var(--g100);color:var(--slate);font-family:var(--mono);width:160px}
+.pg-input:focus{outline:none;border-color:var(--clay)}
+.pg-slider{width:200px;accent-color:var(--clay)}
+.pg-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.pg-metric{background:var(--g100);border-radius:10px;padding:14px 16px}
+.pg-val{font-family:var(--serif);font-size:26px;font-weight:500;color:var(--slate);line-height:1}
+.pg-val.highlight{color:var(--clay)}
+.pg-lbl{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--g500);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← Home</a>
+
+<header>
+  <div class="eyebrow">High Level Design</div>
+  <h1>Design a Cloud<br>File Storage</h1>
+  <p class="sub">Google Drive at scale — chunked uploads, block-level deduplication, and cross-device sync for 1 billion users.</p>
+  <nav class="toc">
+    <a href="#overview">Requirements</a>
+    <a href="#estimation">Scale</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#flow">Request Flow</a>
+    <a href="#api">API</a>
+    <a href="#database">Database</a>
+    <a href="#deep-dive">Deep Dive</a>
+    <a href="#scaling">Scaling</a>
+    <a href="#self-check">Self-Check</a>
+    <a href="#playground">Calculator</a>
+  </nav>
+</header>
+
+<!-- 1. Requirements -->
+<section id="overview">
+  <h2>Requirements</h2>
+  <div class="section-rule"></div>
+  <div class="req-grid">
+    <div class="req-item func">
+      <div class="req-label">Functional</div>
+      <ul>
+        <li>Upload and download files (up to 5 GB each)</li>
+        <li>Organize files in folders</li>
+        <li>Share files/folders with view or edit permissions</li>
+        <li>Sync changes across multiple devices</li>
+        <li>Version history — restore previous versions</li>
+        <li>Collaborate on documents in real-time</li>
+        <li>Search files by name and content</li>
+      </ul>
+    </div>
+    <div class="req-item nfunc">
+      <div class="req-label">Non-Functional</div>
+      <ul>
+        <li>1 billion users worldwide</li>
+        <li>99.999% durability (11 nines for stored data)</li>
+        <li>Sync latency &lt; 1s for small files</li>
+        <li>Resumable uploads for large files</li>
+        <li>Block-level deduplication to save storage</li>
+        <li>Strong consistency for permission changes</li>
+        <li>Data encrypted at rest and in transit</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Scale Estimation -->
+<section id="estimation">
+  <h2>Scale Estimation</h2>
+  <div class="section-rule"></div>
+  <table class="est-table">
+    <thead>
+      <tr><th>Metric</th><th>Calculation</th><th>Result</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Total storage (raw)</td><td>1B users × 15 GB free tier average</td><td>15 EB raw</td></tr>
+      <tr><td>Storage with replication</td><td>15 EB × 3 replicas</td><td>45 EB total</td></tr>
+      <tr><td>Upload QPS</td><td>1B users × 1 file/day ÷ 86,400</td><td>~11,500 uploads/sec</td></tr>
+      <tr><td>Download QPS</td><td>10× upload ratio (more reads than writes)</td><td>~115,000 downloads/sec</td></tr>
+      <tr><td>Metadata records</td><td>1B users × 1000 files average</td><td>1 trillion file records</td></tr>
+      <tr><td>Daily storage growth</td><td>11,500 uploads/sec × 1 MB avg × 86,400</td><td>~1 PB/day new data</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 3. Architecture -->
+<section id="architecture">
+  <h2>High-Level Architecture</h2>
+  <div class="section-rule"></div>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:12px">Click any component to learn about it.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 860 360" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+        <!-- Client -->
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="10" y="140" width="100" height="70" rx="8" fill="#EEF2F8" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="60" y="172" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A6FA5" font-weight="600">Client</text>
+          <text x="60" y="186" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Sync Agent</text>
+          <text x="60" y="200" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Web / Desktop</text>
+        </g>
+
+        <!-- Arrow to LB -->
+        <line x1="110" y1="175" x2="155" y2="175" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- API Gateway / LB -->
+        <g class="arch-node" data-id="api-gateway" onclick="showNode('api-gateway')">
+          <rect x="155" y="155" width="75" height="44" rx="6" fill="#E6E3DA" stroke="#87867F" stroke-width="1.5"/>
+          <text x="193" y="175" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">API</text>
+          <text x="193" y="189" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A">Gateway</text>
+        </g>
+
+        <line x1="230" y1="177" x2="270" y2="177" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- Services column -->
+        <line x1="270" y1="177" x2="310" y2="177" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="310" y1="50" x2="310" y2="310" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="310" y1="50" x2="350" y2="50" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="310" y1="120" x2="350" y2="120" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="310" y1="177" x2="350" y2="177" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="310" y1="240" x2="350" y2="240" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="310" y1="310" x2="350" y2="310" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- Upload Service -->
+        <g class="arch-node" data-id="upload" onclick="showNode('upload')">
+          <rect x="350" y="28" width="120" height="44" rx="6" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="410" y="48" text-anchor="middle" font-family="system-ui" font-size="10" fill="#D97757" font-weight="600">Upload Service</text>
+          <text x="410" y="62" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Chunked / resumable</text>
+        </g>
+
+        <!-- Download Service -->
+        <g class="arch-node" data-id="download" onclick="showNode('download')">
+          <rect x="350" y="98" width="120" height="44" rx="6" fill="#EEF2F8" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="410" y="118" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A6FA5" font-weight="600">Download Service</text>
+          <text x="410" y="132" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Redirect to CDN</text>
+        </g>
+
+        <!-- Metadata Service -->
+        <g class="arch-node" data-id="metadata" onclick="showNode('metadata')">
+          <rect x="350" y="155" width="120" height="44" rx="6" fill="#EFF5EA" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="410" y="175" text-anchor="middle" font-family="system-ui" font-size="10" fill="#788C5D" font-weight="600">Metadata Service</text>
+          <text x="410" y="189" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Files · folders · ACL</text>
+        </g>
+
+        <!-- Share Service -->
+        <g class="arch-node" data-id="share" onclick="showNode('share')">
+          <rect x="350" y="218" width="120" height="44" rx="6" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="410" y="238" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Share Service</text>
+          <text x="410" y="252" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Permissions · links</text>
+        </g>
+
+        <!-- Sync Service -->
+        <g class="arch-node" data-id="sync" onclick="showNode('sync')">
+          <rect x="350" y="288" width="120" height="44" rx="6" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="410" y="308" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Sync Service</text>
+          <text x="410" y="322" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Delta detection</text>
+        </g>
+
+        <!-- Data store arrows -->
+        <line x1="470" y1="50" x2="530" y2="50" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="470" y1="177" x2="530" y2="140" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="470" y1="177" x2="530" y2="220" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="470" y1="310" x2="530" y2="295" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- Block Storage S3 -->
+        <g class="arch-node" data-id="storage" onclick="showNode('storage')">
+          <rect x="530" y="28" width="140" height="46" rx="6" fill="#E6E3DA" stroke="#87867F" stroke-width="1.5"/>
+          <text x="600" y="49" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Block Storage</text>
+          <text x="600" y="64" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">S3 / GCS — 4MB chunks</text>
+        </g>
+
+        <!-- Metadata DB -->
+        <g class="arch-node" data-id="metadata-db" onclick="showNode('metadata-db')">
+          <rect x="530" y="115" width="140" height="46" rx="6" fill="#EFF5EA" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="600" y="136" text-anchor="middle" font-family="system-ui" font-size="10" fill="#788C5D" font-weight="600">Spanner / PostgreSQL</text>
+          <text x="600" y="151" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Files · permissions</text>
+        </g>
+
+        <!-- Redis -->
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="530" y="197" width="140" height="46" rx="6" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="600" y="218" text-anchor="middle" font-family="system-ui" font-size="10" fill="#D97757" font-weight="600">Redis</text>
+          <text x="600" y="233" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Session · dedup cache</text>
+        </g>
+
+        <!-- Kafka -->
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="530" y="272" width="140" height="46" rx="6" fill="#141413" stroke="#141413" stroke-width="1.5"/>
+          <text x="600" y="293" text-anchor="middle" font-family="system-ui" font-size="11" fill="#D97757" font-weight="700">Kafka</text>
+          <text x="600" y="308" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Sync events · notifications</text>
+        </g>
+
+        <!-- CDN -->
+        <g class="arch-node" data-id="cdn" onclick="showNode('cdn')">
+          <rect x="700" y="28" width="130" height="46" rx="6" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="765" y="49" text-anchor="middle" font-family="system-ui" font-size="11" fill="#D97757" font-weight="600">CDN</text>
+          <text x="765" y="64" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Download edge cache</text>
+        </g>
+        <line x1="670" y1="50" x2="700" y2="50" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#D1CFC5"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <div id="arch-panel" class="arch-panel">
+      <p class="ap-empty">Click any component to learn about it</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Request Flow -->
+<section id="flow">
+  <h2>Request Flow</h2>
+  <div class="section-rule"></div>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:4px">Step through a file save → cross-device sync.</p>
+  <div class="flow-pills">
+    <span id="fn-client" class="fn">Client</span>
+    <span class="farr">→</span>
+    <span id="fn-api-gateway" class="fn">API Gateway</span>
+    <span class="farr">→</span>
+    <span id="fn-upload" class="fn">Upload Svc</span>
+    <span class="farr">→</span>
+    <span id="fn-storage" class="fn">S3</span>
+    <span class="farr">→</span>
+    <span id="fn-metadata-db" class="fn">MySQL</span>
+    <span class="farr">→</span>
+    <span id="fn-sync" class="fn">Sync Svc</span>
+  </div>
+  <div id="flow-card" class="flow-card">
+    <div class="fc-title">Loading…</div>
+  </div>
+  <div class="flow-nav">
+    <button class="fnav-btn" onclick="prevStep()" id="flow-prev">← Prev</button>
+    <span class="fnav-counter" id="flow-counter">1 / 6</span>
+    <button class="fnav-btn" onclick="nextStep()" id="flow-next">Next →</button>
+    <div class="flow-dots" id="flow-dots"></div>
+  </div>
+</section>
+
+<!-- 5. API Design -->
+<section id="api">
+  <h2>API Design</h2>
+  <div class="section-rule"></div>
+  <div class="api-block">
+    <div class="api-row">
+      <div class="api-method post">POST</div>
+      <div class="api-path">/api/v1/files/upload/init<span class="api-desc">Body: {filename, size, mimeType, checksum} → {uploadId, chunkUrls[], presignedS3Urls[]}</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method put">PUT</div>
+      <div class="api-path">/upload/{uploadId}/chunks/{n}<span class="api-desc">Upload individual 4MB chunk directly to S3 presigned URL. Returns chunk checksum.</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method post">POST</div>
+      <div class="api-path">/api/v1/files/upload/complete<span class="api-desc">Body: {uploadId, chunkChecksums[]} → {fileId, url} — triggers dedup check + metadata write</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method get">GET</div>
+      <div class="api-path">/api/v1/files/{id}/download<span class="api-desc">Returns 302 redirect to CDN URL (or presigned S3 URL for private files)</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method post">POST</div>
+      <div class="api-path">/api/v1/files/{id}/share<span class="api-desc">Body: {userId?, email?, permission: view|edit, expiresAt?} → {shareLink}</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method get">GET</div>
+      <div class="api-path">/api/v1/files/{id}/versions<span class="api-desc">Returns version history with timestamps, size, and restore links</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Database Design -->
+<section id="database">
+  <h2>Database Design</h2>
+  <div class="section-rule"></div>
+
+  <div class="db-card">
+    <h4>files (Spanner / PostgreSQL — strong consistency for permissions)</h4>
+    <table class="schema-table">
+      <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>file_id</td><td>UUID</td><td>Primary key</td></tr>
+        <tr><td>owner_id</td><td>BIGINT FK</td><td>References users table</td></tr>
+        <tr><td>parent_folder_id</td><td>UUID</td><td>NULL for root; enables folder hierarchy</td></tr>
+        <tr><td>name</td><td>TEXT</td><td>Indexed for search</td></tr>
+        <tr><td>size</td><td>BIGINT</td><td>File size in bytes</td></tr>
+        <tr><td>mime_type</td><td>TEXT</td><td>Content type</td></tr>
+        <tr><td>checksum</td><td>CHAR(64)</td><td>SHA-256 of entire file for integrity</td></tr>
+        <tr><td>current_version</td><td>INT</td><td>FK to versions table</td></tr>
+        <tr><td>created_at</td><td>TIMESTAMP</td><td></td></tr>
+        <tr><td>modified_at</td><td>TIMESTAMP</td><td>Indexed for sync queries</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="db-card" style="margin-top:12px">
+    <h4>file_blocks (Cassandra — block-level dedup store)</h4>
+    <table class="schema-table">
+      <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>block_hash</td><td>CHAR(64)</td><td>SHA-256 of 4MB block — PK for dedup lookup</td></tr>
+        <tr><td>storage_path</td><td>TEXT</td><td>S3 object key where this block lives</td></tr>
+        <tr><td>size</td><td>INT</td><td>Block size (may be &lt; 4MB for last block)</td></tr>
+        <tr><td>ref_count</td><td>INT</td><td>How many file versions reference this block</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:12.5px;color:var(--g700);margin-top:10px">Same content block shared across any files that contain it. A 100MB ISO may be 95% identical to a previous version — only new blocks are uploaded.</p>
+  </div>
+
+  <div class="db-card" style="margin-top:12px">
+    <h4>permissions (PostgreSQL — ACL)</h4>
+    <table class="schema-table">
+      <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>resource_id</td><td>UUID</td><td>file_id or folder_id</td></tr>
+        <tr><td>resource_type</td><td>ENUM</td><td>FILE | FOLDER</td></tr>
+        <tr><td>grantee_id</td><td>BIGINT</td><td>User or group granted access</td></tr>
+        <tr><td>permission</td><td>ENUM</td><td>VIEW | COMMENT | EDIT | OWNER</td></tr>
+        <tr><td>inherited_from</td><td>UUID</td><td>NULL if direct; parent folder_id if inherited</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 7. Deep Dive -->
+<section id="deep-dive">
+  <h2>Key Design Decisions</h2>
+  <div class="section-rule"></div>
+  <div class="dive-grid">
+    <div class="dive-card">
+      <h4>Chunked Upload &amp; Dedup</h4>
+      <ul>
+        <li>Split file into 4MB blocks; compute SHA-256 per block</li>
+        <li>Before uploading, check: does block_hash exist in Cassandra?</li>
+        <li>If yes → skip upload; just record block reference (massive savings)</li>
+        <li>If no → presigned S3 URL → client uploads directly to S3</li>
+        <li>Last block can be &lt; 4MB (variable); stored with actual size</li>
+        <li>Result: a 1GB OS update shared by millions users → stored once</li>
+      </ul>
+    </div>
+    <div class="dive-card">
+      <h4>Sync Algorithm</h4>
+      <ul>
+        <li>Client maintains local manifest: {path → (size, modified_at, checksum)}</li>
+        <li>On file change (inotify/FSEvents): compute block hashes of changed regions</li>
+        <li>Query server for which blocks already exist → upload only new ones</li>
+        <li>Server sends sync events via Kafka → other devices pull delta</li>
+        <li>Polling fallback: GET /sync/delta?since=timestamp returns changed files</li>
+        <li>Conflict: both client and server changed same file → create conflict copy</li>
+      </ul>
+    </div>
+    <div class="dive-card">
+      <h4>Version History</h4>
+      <ul>
+        <li>Each upload creates new version record (not copy of blocks)</li>
+        <li>Version stores ordered list of block_hashes (the file's block manifest)</li>
+        <li>Restore: update current_version pointer → instant, no data copy</li>
+        <li>Storage cost of versions: only new/changed blocks stored</li>
+        <li>Retention policy: keep last 100 versions or 30 days, whichever is more</li>
+      </ul>
+    </div>
+    <div class="dive-card">
+      <h4>Permission Inheritance</h4>
+      <ul>
+        <li>Files inherit permissions from parent folder recursively</li>
+        <li>Explicit file permission overrides inherited folder permission</li>
+        <li>Permission check: traverse up folder tree until permission found</li>
+        <li>Optimization: cache resolved permissions in Redis with short TTL</li>
+        <li>Share link: generates token → stored with permission level + expiry</li>
+        <li>Strong consistency: permission grant must be visible immediately (Spanner)</li>
+      </ul>
+    </div>
+  </div>
+  <pre><span class="cm">// Client-side sync dedup logic (pseudocode)</span>
+<span class="kw">public</span> <span class="cn">List</span>&lt;<span class="cn">BlockHash</span>&gt; <span class="fn">computeFileBlocks</span>(<span class="cn">File</span> file) {
+    <span class="cn">List</span>&lt;<span class="cn">BlockHash</span>&gt; blocks = <span class="kw">new</span> <span class="cn">ArrayList</span>&lt;&gt;();
+    <span class="kw">int</span> CHUNK_SIZE = <span class="nm">4</span> * <span class="nm">1024</span> * <span class="nm">1024</span>; <span class="cm">// 4MB</span>
+    <span class="kw">try</span> (<span class="cn">InputStream</span> is = <span class="kw">new</span> <span class="cn">FileInputStream</span>(file)) {
+        <span class="kw">byte</span>[] buf = <span class="kw">new</span> <span class="kw">byte</span>[CHUNK_SIZE];
+        <span class="kw">int</span> read;
+        <span class="kw">while</span> ((read = is.<span class="fn">read</span>(buf)) != -<span class="nm">1</span>) {
+            blocks.<span class="fn">add</span>(<span class="cn">SHA256</span>.<span class="fn">hash</span>(buf, <span class="nm">0</span>, read));
+        }
+    }
+    <span class="kw">return</span> blocks;
+}
+
+<span class="kw">public void</span> <span class="fn">uploadFile</span>(<span class="cn">File</span> file) {
+    <span class="cn">List</span>&lt;<span class="cn">BlockHash</span>&gt; blocks = <span class="fn">computeFileBlocks</span>(file);
+    <span class="cm">// Ask server which blocks are missing</span>
+    <span class="cn">Set</span>&lt;<span class="cn">BlockHash</span>&gt; missing = api.<span class="fn">checkBlocks</span>(blocks);
+    <span class="cm">// Upload only missing blocks via presigned S3 URLs</span>
+    missing.<span class="fn">forEach</span>(hash -> s3.<span class="fn">upload</span>(hash, api.<span class="fn">getPresignedUrl</span>(hash)));
+    api.<span class="fn">completeUpload</span>(file.name, blocks); <span class="cm">// register file manifest</span>
+}</pre>
+</section>
+
+<!-- 8. Scaling -->
+<section id="scaling">
+  <h2>Scaling &amp; Bottlenecks</h2>
+  <div class="section-rule"></div>
+  <div class="scale-grid">
+    <div class="scale-card">
+      <div class="scale-icon">🌐</div>
+      <h4>CDN for Downloads</h4>
+      <p>File blocks cached at CDN edge. Download redirects to CDN URL. Popular shared files served at edge — zero origin load.</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">📤</div>
+      <h4>Presigned S3 Upload</h4>
+      <p>Client uploads chunks directly to S3 using presigned URLs — bypasses app servers entirely. Scales to 11,500 uploads/sec without bottleneck.</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">🗜️</div>
+      <h4>Block Deduplication</h4>
+      <p>Same 4MB block stored once globally. Popular files (OS updates, office templates) shared by millions — stored as one block. Estimated 40% storage savings.</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">🌍</div>
+      <h4>Spanner for Global ACL</h4>
+      <p>Permission changes must be globally consistent. Google Spanner provides distributed ACID transactions with external consistency — permission visible in &lt;10ms globally.</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">📊</div>
+      <h4>Kafka for Sync Events</h4>
+      <p>File change → Kafka → sync events to all user's devices. Each device maintains a consumer offset → picks up changes from last sync point.</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">🔍</div>
+      <h4>Elasticsearch for Search</h4>
+      <p>File name and content indexed in Elasticsearch. On upload completion, Kafka event → indexer. Search returns within 100ms across 1 trillion file records.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Self-Check -->
+<section id="self-check">
+  <h2>Self-Check</h2>
+  <div class="section-rule"></div>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:4px">Test your understanding. Click to reveal answers.</p>
+  <div class="sc-list">
+    <div class="sc-item" id="sc-1">
+      <div class="sc-q" onclick="toggleSC('sc-1')">
+        <span>Why chunk files instead of uploading them whole? <span class="sc-tag">Core Design</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Three reasons: (1) <strong>Resumability</strong> — if a 1GB upload fails at 95%, resume from the last successful chunk rather than restarting from zero. (2) <strong>Delta sync</strong> — only changed chunks need uploading on subsequent saves. A small edit to a 200MB file uploads 4-8MB, not 200MB. (3) <strong>Deduplication</strong> — chunks are content-addressed by SHA-256. If 1000 users share the same PDF, only one copy of each chunk is stored in S3. This reduces storage by 30-50% across the fleet. Chunk size tradeoff: too small (1KB) = too many metadata records and HTTP round-trips; too large (100MB) = coarse-grained delta sync, long resume windows. 4MB is the standard sweet spot.</p></div>
+    </div>
+    <div class="sc-item" id="sc-2">
+      <div class="sc-q" onclick="toggleSC('sc-2')">
+        <span>How does conflict resolution work when two users edit offline? <span class="sc-tag">Conflict Resolution</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Google Drive uses last-write-wins for file metadata but creates a 'conflict copy' when it detects a fork. Detection: each file version has a monotonic version number. If two clients independently edit version 5 and both try to push version 6, the second push sees that version 6 already exists. Drive creates <em>'filename (Joe's conflicting copy 2024-01-15).'</em> Both versions exist; user must manually merge. Google Docs avoids this entirely with Operational Transformation (OT) — every keystroke is a delta operation that can be merged algorithmically. CRDTs (Conflict-free Replicated Data Types) are a modern alternative that enables automatic merge without coordination.</p></div>
+    </div>
+    <div class="sc-item" id="sc-3">
+      <div class="sc-q" onclick="toggleSC('sc-3')">
+        <span>How does sharing/permissions work at scale? <span class="sc-tag">Permissions</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Files have an ACL (Access Control List) in MySQL: (file_id, principal_id, permission_level). Folder permissions inherit to children. Permission check on file access: (1) Is requester the owner? (2) Direct ACL entry for this file? (3) Walk up folder tree for inherited permission. Tree walking is expensive for deep nesting. Optimization: cache effective permissions in Redis with 5-min TTL. 'Share with link': generates a share token stored in DB; anyone with the token gets access. Permission checks are on the critical read path — keep them sub-10ms.</p></div>
+    </div>
+    <div class="sc-item" id="sc-4">
+      <div class="sc-q" onclick="toggleSC('sc-4')">
+        <span>What happens when a popular shared file is downloaded by 10,000 people simultaneously? <span class="sc-tag">Scale</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Without CDN: 10,000 S3 GETs × 4MB chunks = 40GB egress from one region — expensive and slow. With CDN: first request fetches from S3 and caches at edge. Remaining 9,999 requests served from CDN edge at ~10ms. For truly viral files (company-wide announcements), Drive can proactively push to CDN before the flood. CDN cache TTL: short (5 min) for actively edited files; longer for stable files. Cache invalidation: on file update, purge CDN cache for that file's chunk URLs (or use content-addressed URLs that auto-invalidate because the chunk hash changes).</p></div>
+    </div>
+    <div class="sc-item" id="sc-5">
+      <div class="sc-q" onclick="toggleSC('sc-5')">
+        <span>How do you estimate Google Drive's storage at scale? <span class="sc-tag">Scale Estimation</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>~1 billion users × 15GB free tier = 15 exabytes raw. After ~30% deduplication: ~10.5EB. After 3× replication for durability: ~31EB. Storage cost at $0.023/GB/year: 31 × 10⁹ GB × $0.023 = ~$713M/year just for storage. This is cross-subsidized by paid Workspace plans. Per-user breakdown: 1B users, ~20% are monthly active uploaders, average 2GB uploaded/month = 2 exabytes new data per month. At 4MB chunks: 500 billion chunk writes per month. S3 can handle this with sharding across regions.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 10. Interview Tips -->
+<section id="tips">
+  <h2>Interview Tips</h2>
+  <div class="section-rule"></div>
+  <div class="tip-list">
+    <div class="tip">
+      <div class="tip-icon">🧱</div>
+      <div class="tip-text"><strong>Chunking + dedup is the hero concept.</strong> A 100MB file split into 4MB blocks where most blocks already exist = only 20MB uploaded. This drives both upload speed and storage savings. Walk through the algorithm clearly: hash → check → upload missing → register manifest.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">🔒</div>
+      <div class="tip-text"><strong>Permission consistency is non-negotiable.</strong> If you share a file with someone, they must see it immediately. Use Spanner (or a strongly consistent DB) for the ACL table. Caching permissions in Redis is fine with a short TTL, but the source of truth must be strongly consistent.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">🔄</div>
+      <div class="tip-text"><strong>Sync vs backup are different problems.</strong> Sync = bidirectional, real-time, conflict resolution needed. Backup = one-way, periodic, no conflicts. Google Drive is sync + backup. Draw the sync algorithm clearly: local change detection (inotify) → block diff → upload deltas → propagate to other devices.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">📂</div>
+      <div class="tip-text"><strong>Folder hierarchy needs a design decision.</strong> Option 1: adjacency list (parent_folder_id FK) — simple but recursive queries are slow. Option 2: materialized path (store /a/b/c as string) — fast prefix queries. Option 3: closure table. For Google Drive scale, adjacency list + caching works fine.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">📐</div>
+      <div class="tip-text"><strong>Scale anchor.</strong> 1B users × 15 GB = 15 EB. At $0.023/GB/month (S3), that's $345B/year — why Google charges for storage above 15 GB. Dedup saves ~40%, so effective storage is ~9 EB. CDN shifts 80% of download traffic away from origin. These numbers justify the architecture choices.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 11. Playground -->
+<section id="playground">
+  <h2>Interactive</h2>
+  <div class="section-rule"></div>
+  <div class="playground">
+    <h3>Delta Sync Savings Calculator</h3>
+    <p style="font-size:13px;color:var(--g500);margin-bottom:16px">See how much bandwidth delta sync saves vs uploading the full file every time.</p>
+    <div class="pg-inputs">
+      <div class="pg-field">
+        <label class="pg-label" for="pg-size">File Size (MB)</label>
+        <input class="pg-input" type="number" id="pg-size" value="200" min="1" max="5000" oninput="calcSavings()">
+      </div>
+      <div class="pg-field">
+        <label class="pg-label" for="pg-pct">% Changed: <span id="pg-pct-val">10</span>%</label>
+        <input class="pg-slider" type="range" id="pg-pct" value="10" min="1" max="100" oninput="document.getElementById('pg-pct-val').textContent=this.value;calcSavings()">
+      </div>
+    </div>
+    <div class="pg-results" id="pg-results">
+      <div class="pg-metric"><div class="pg-val" id="r-total">50</div><div class="pg-lbl">Total Chunks (4MB)</div></div>
+      <div class="pg-metric"><div class="pg-val" id="r-upload">5</div><div class="pg-lbl">Chunks to Upload</div></div>
+      <div class="pg-metric"><div class="pg-val" id="r-without">200 MB</div><div class="pg-lbl">Without Delta</div></div>
+      <div class="pg-metric"><div class="pg-val" id="r-with">20 MB</div><div class="pg-lbl">With Delta Sync</div></div>
+      <div class="pg-metric"><div class="pg-val highlight" id="r-saved">180 MB</div><div class="pg-lbl">Bandwidth Saved</div></div>
+      <div class="pg-metric"><div class="pg-val highlight" id="r-pct">90%</div><div class="pg-lbl">Savings %</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="hld-index.html">← All HLD Problems</a>
+  <span>High Level Design — SDE Interview Prep</span>
+</footer>
+</div>
+
+<script>
+const NODE_INFO = {
+  client: {
+    title: "Client (Desktop/Mobile/Web)",
+    body: "Monitors local file system for changes using OS watchers (inotify on Linux, FSEvents on macOS). On change: chunks the file into 4MB pieces, computes SHA-256 hash per chunk, sends only new/changed chunks to the server. Delta sync: a small edit to a 200MB file uploads only 1-2 chunks (4-8MB).",
+    stats: ["Local file watcher", "4MB chunk size", "SHA-256 per chunk", "Delta sync — uploads only changes"],
+    warn: null
+  },
+  'api-gateway': {
+    title: "API Gateway",
+    body: "Routes requests by type: upload → Upload Service, metadata queries → Metadata DB, share requests → Permission Service. Handles authentication token validation and rate limiting.",
+    stats: ["Request routing", "Auth validation", "SSL termination"],
+    warn: null
+  },
+  upload: {
+    title: "Upload Service",
+    body: "Client sends chunk hash list first (before any data). Upload Service checks which hashes already exist in S3. Only missing chunks need uploading. This content-based deduplication can save 80%+ bandwidth. Manages resumable upload sessions — a network interruption resumes from the last chunk.",
+    stats: ["Check-before-upload dedup", "Resumable upload sessions", "Parallel chunk upload (4 concurrent)", "Batch pre-signed S3 URLs"],
+    warn: null
+  },
+  download: {
+    title: "Download Service",
+    body: "Handles file download requests. For public or CDN-eligible files: returns a 302 redirect to the CDN URL. For private files: generates a short-lived pre-signed S3 URL. Never streams file data through app servers.",
+    stats: ["302 redirect to CDN", "Pre-signed S3 for private files", "Zero app server bandwidth"],
+    warn: null
+  },
+  metadata: {
+    title: "Metadata Service",
+    body: "Manages the file tree: create, rename, move, delete operations on files and folders. Reads/writes to the Spanner/PostgreSQL metadata DB. All folder hierarchy operations are strongly consistent.",
+    stats: ["File tree CRUD", "Folder hierarchy", "Strong consistency via Spanner"],
+    warn: null
+  },
+  share: {
+    title: "Share Service",
+    body: "Handles sharing and permissions. Creates share links (tokens). Writes ACL entries to the permissions table. Permission changes are strongly consistent (visible immediately to recipients).",
+    stats: ["Share link generation", "ACL management", "Permission inheritance logic"],
+    warn: null
+  },
+  sync: {
+    title: "Sync Service",
+    body: "Pushes file change notifications to user's other devices. When a file is uploaded from your laptop, Sync Service notifies your phone via WebSocket to download the delta. Offline devices fetch changes on reconnect. Delta push: only changed chunk hashes, not the full file.",
+    stats: ["WebSocket for online devices", "Pull on reconnect for offline", "Push delta (changed chunks only)", "Per-user device registry"],
+    warn: null
+  },
+  'metadata-db': {
+    title: "Metadata DB (MySQL / Spanner)",
+    body: "Stores file metadata (name, path, owner, size, created_at), chunk manifests (ordered list of SHA-256 hashes that compose a file version), sharing permissions (ACL), and version history. Relational model because of complex joins — permission inheritance through folder hierarchy, multiple version records per file.",
+    stats: ["File metadata + version history", "Chunk manifests per version", "Sharing ACL (file_id, principal, permission)", "Read replicas for queries"],
+    warn: null
+  },
+  storage: {
+    title: "Block Storage (S3)",
+    body: "Stores file chunks addressed by their SHA-256 content hash. Content-addressed means identical chunks are stored once globally. Two users uploading the same 4MB PDF will share the same S3 object. S3 handles any file size, provides 11 nines durability, and cross-region replication.",
+    stats: ["Content-addressed: hash → object key", "Global dedup across all users", "99.999999999% durability", "$0.023/GB/month"],
+    warn: null
+  },
+  redis: {
+    title: "Redis (Cache)",
+    body: "Caches: resolved permission ACLs (5-min TTL — avoids repeated folder tree walks), upload session state, deduplication check results. Session cache dramatically reduces DB load on the permission check hot path.",
+    stats: ["Permission cache: 5-min TTL", "Upload session state", "Dedup check results cache"],
+    warn: null
+  },
+  kafka: {
+    title: "Kafka (Sync Events)",
+    body: "File change → Kafka → sync events to all user's devices. Each device maintains a Kafka consumer offset → picks up changes from last sync point. Also drives: search indexer (Elasticsearch), notification service, analytics pipeline.",
+    stats: ["File change events", "Per-device consumer offsets", "Search indexer consumer", "7-day retention"],
+    warn: null
+  },
+  cdn: {
+    title: "CDN (Read Acceleration)",
+    body: "Caches frequently accessed file chunks near users. A shared presentation opened by 1000 colleagues simultaneously: CDN edge serves it after the first hit. Reduces S3 read latency from ~100ms to ~10ms for popular content.",
+    stats: ["Edge caching for reads", "Popular/shared file acceleration", "CloudFront or Fastly", "Reduces S3 egress cost"],
+    warn: null
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  const el = document.querySelector(`.arch-node[data-id="${id}"]`);
+  if (el) el.classList.add('sel');
+  const info = NODE_INFO[id];
+  const panel = document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  if (!info) { panel.innerHTML = '<p class="ap-empty">No info for this component</p>'; return; }
+  panel.innerHTML = `
+    <div class="ap-title">${info.title}</div>
+    <div class="ap-body">${info.body}</div>
+    <div>${info.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>
+    ${info.warn ? `<div class="ap-warn">${info.warn}</div>` : ''}
+  `;
+}
+
+const STEPS = [
+  {
+    nodes: ['fn-client'],
+    title: "Client detects file save",
+    desc: "User saves a 200MB Keynote presentation. OS file watcher fires. Client chunks the file into 50 × 4MB pieces and computes SHA-256 hash for each chunk.",
+    code: "// Client-side chunking\nconst CHUNK_SIZE = 4 * 1024 * 1024; // 4MB\nconst chunks = splitFile(file, CHUNK_SIZE); // 50 chunks\nconst hashes = chunks.map(c => sha256(c));\n// hashes = ['a1b2c3...', 'd4e5f6...', ...]"
+  },
+  {
+    nodes: ['fn-client','fn-api-gateway','fn-upload'],
+    title: "Check which chunks already exist",
+    desc: "Client sends all 50 chunk hashes to Upload Service (no data yet). Upload Service queries S3/DB for each hash. 42 of 50 chunks haven't changed since last save — they already exist in S3. Only 8 hashes are missing.",
+    code: "POST /upload/check\n{ fileId, version: 3, chunkHashes: ['a1b2...', 'd4e5...', ...50 hashes] }\n\n// Upload Service responds:\n{ needed: ['d4e5f6...', 'g7h8i9...'] } // only 8 of 50 missing"
+  },
+  {
+    nodes: ['fn-client','fn-upload','fn-storage'],
+    title: "Upload only missing chunks",
+    desc: "Client uploads only the 8 new/changed chunks in parallel (4 concurrent uploads). Each chunk goes to S3 via pre-signed URL. 32MB uploaded instead of 200MB — 84% bandwidth saved.",
+    code: "// Upload missing chunks in parallel\nawait Promise.all(missingChunks.map(chunk =>\n  uploadChunk(sessionId, chunk.index, chunk.data)\n));\n// 8 chunks × 4MB = 32MB uploaded\n// vs 200MB for full re-upload → 84% saved"
+  },
+  {
+    nodes: ['fn-upload','fn-metadata-db'],
+    title: "Write new version to Metadata DB",
+    desc: "Upload Service creates a new version record in MySQL: file_id, version=3, chunk_manifest=['a1b2...','d4e5...',...all 50 hashes in order], size, modified_at. The old version is retained for version history.",
+    code: "INSERT INTO file_versions\n  (file_id, version, chunk_manifest, size, modified_at, user_id)\n  VALUES (?, 3, '[\"a1b2...\",\"d4e5...\"]', 209715200, NOW(), ?);\n-- Previous versions (1, 2) retained in version history"
+  },
+  {
+    nodes: ['fn-upload','fn-sync'],
+    title: "Sync Service notifies other devices",
+    desc: "Upload Service publishes a FileUpdatedEvent. Sync Service checks which of the user's other devices are online (WebSocket connections). Pushes the delta to online devices: only the 8 changed chunk hashes.",
+    code: "syncService.push(userId, {\n  type: 'FILE_UPDATED',\n  fileId, version: 3,\n  changedChunks: ['d4e5f6...', 'g7h8i9...'], // only 8 new chunks\n  timestamp\n});\n// Online devices: download delta immediately\n// Offline devices: pull on next connect"
+  },
+  {
+    nodes: ['fn-client'],
+    title: "Other device applies delta",
+    desc: "User's phone receives the delta notification. Downloads only the 8 changed chunks from S3/CDN and reconstructs the updated file. If a conflict occurred (user edited on two offline devices), Drive creates a conflict copy and prompts resolution.",
+    code: "// Phone client receives delta\nonDelta({ changedChunks: ['d4e5f6...', ...] }) => {\n  const newChunks = await downloadChunks(changedChunks);\n  file.applyDelta(newChunks);\n  // File updated — only 32MB downloaded vs 200MB\n}"
+  }
+];
+
+const FN_IDS = ['fn-client','fn-api-gateway','fn-upload','fn-storage','fn-metadata-db','fn-sync'];
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  FN_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'fn';
+    if (s.nodes.includes(id)) el.classList.add('act');
+    else {
+      const idx = FN_IDS.indexOf(id);
+      const firstActiveIdx = Math.min(...s.nodes.map(n => FN_IDS.indexOf(n)));
+      if (idx < firstActiveIdx) el.classList.add('done');
+    }
+  });
+  document.getElementById('flow-card').innerHTML = `
+    <div class="fc-title">${s.title}</div>
+    <div class="fc-desc">${s.desc}</div>
+    <div class="fc-code">${s.code}</div>
+  `;
+  document.getElementById('flow-counter').textContent = `${curStep+1} / ${STEPS.length}`;
+  document.getElementById('flow-prev').disabled = curStep === 0;
+  document.getElementById('flow-next').disabled = curStep === STEPS.length - 1;
+  document.querySelectorAll('.fdot').forEach((d,i) => d.classList.toggle('on', i===curStep));
+}
+
+function nextStep() { if (curStep < STEPS.length-1) { curStep++; renderStep(); } }
+function prevStep() { if (curStep > 0) { curStep--; renderStep(); } }
+function goStep(n) { curStep = n; renderStep(); }
+function toggleSC(id) { document.getElementById(id).classList.toggle('open'); }
+
+function calcSavings() {
+  const size = Math.max(1, parseInt(document.getElementById('pg-size').value) || 200);
+  const pct = Math.max(1, parseInt(document.getElementById('pg-pct').value) || 10);
+  const totalChunks = Math.ceil(size / 4);
+  const uploadChunks = Math.max(1, Math.ceil(totalChunks * pct / 100));
+  const withDelta = uploadChunks * 4;
+  const saved = Math.max(0, size - withDelta);
+  const savedPct = Math.round(saved / size * 100);
+  document.getElementById('r-total').textContent = totalChunks;
+  document.getElementById('r-upload').textContent = uploadChunks;
+  document.getElementById('r-without').textContent = size + ' MB';
+  document.getElementById('r-with').textContent = withDelta + ' MB';
+  document.getElementById('r-saved').textContent = saved + ' MB';
+  document.getElementById('r-pct').textContent = savedPct + '%';
+}
+
+// Init
+(function() {
+  const dots = document.getElementById('flow-dots');
+  STEPS.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 'fdot';
+    d.onclick = () => goStep(i);
+    dots.appendChild(d);
+  });
+  renderStep();
+  calcSavings();
+})();
+</script>
+</body>
+</html>

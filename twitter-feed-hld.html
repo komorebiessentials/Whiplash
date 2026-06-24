@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Twitter Feed — HLD</title>
+<style>
+:root {
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 100px}
+.top-bar{display:flex;align-items:center;gap:16px;padding:24px 0 0}
+.back{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none}
+.back:hover{color:var(--clay)}
+header{padding:48px 0 40px;border-bottom:1.5px solid var(--g300);margin-bottom:48px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:20px;height:1.5px;background:var(--clay)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,52px);line-height:1.08;letter-spacing:-.022em}
+h1 em{font-style:italic;color:var(--clay)}
+.sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:540px;line-height:1.65}
+.difficulty{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:4px;background:var(--g200);color:var(--g700)}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:48px}
+.toc a{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;padding:4px 12px;border-radius:20px;background:var(--paper);border:1.5px solid var(--g300);color:var(--g700);text-decoration:none;transition:border-color .15s,color .15s}
+.toc a:hover{border-color:var(--clay);color:var(--clay)}
+section{margin-bottom:56px;scroll-margin-top:24px}
+.section-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--clay);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-label::before{content:"";width:16px;height:1.5px;background:var(--clay)}
+h2{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:-.015em;margin-bottom:8px}
+.hint{font-size:13px;color:var(--g500);font-family:var(--mono);margin-bottom:20px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{padding:14px 18px;border-radius:10px;border-left:3px solid;font-size:14px;line-height:1.5}
+.req-item.func{background:rgba(120,140,93,.08);border-color:var(--olive)}
+.req-item.nfunc{background:rgba(217,119,87,.08);border-color:var(--clay)}
+.req-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.req-item.func .req-label{color:var(--olive)}
+.req-item.nfunc .req-label{color:var(--clay)}
+.est-table{width:100%;border-collapse:collapse;font-size:14px}
+.est-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300)}
+.est-table td{padding:10px 12px;border-bottom:1px solid var(--g200)}
+.est-table tr:last-child td{border-bottom:none}
+.est-table td:first-child{font-weight:500}
+.est-table td code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.highlight-row td{background:rgba(217,119,87,.06)}
+/* Interactive Architecture */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:720px){.arch-wrap{grid-template-columns:1fr}}
+.arch-box{background:var(--paper);border:1.5px solid var(--g300);border-radius:16px;padding:20px;overflow:auto}
+.arch-box svg{width:100%;height:auto;display:block}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px;transition:border-color .2s}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px 2px 2px 0;color:var(--g700)}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px;color:var(--g700);line-height:1.5}
+.ap-empty{color:var(--g500);font-size:13px;display:flex;height:120px;align-items:center;justify-content:center;text-align:center;line-height:1.6}
+/* Flow Stepper */
+.flow-diagram{display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:14px 18px;background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;margin-bottom:16px;overflow-x:auto}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);padding:0 5px;font-size:13px;flex-shrink:0}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin-bottom:14px;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:10px}
+.fnav-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:7px 16px;border-radius:6px;border:1.5px solid var(--g300);background:var(--paper);color:var(--g700);cursor:pointer;transition:all .15s}
+.fnav-btn:hover:not(:disabled){border-color:var(--clay);color:var(--clay)}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:11px;color:var(--g500);flex:1;text-align:center}
+.flow-dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+.fdot{width:7px;height:7px;border-radius:50%;background:var(--g200);cursor:pointer;transition:background .2s}
+.fdot.act{background:var(--clay)}
+.fdot.done{background:var(--g500);opacity:.5}
+/* API */
+.api-block{margin-bottom:20px}
+.api-block .endpoint{font-family:var(--mono);font-size:13px;padding:10px 16px;background:var(--slate);color:var(--oat);border-radius:8px 8px 0 0;display:flex;gap:12px;align-items:center}
+.method{font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px}
+.method.get{background:var(--olive);color:#fff}
+.method.post{background:var(--clay);color:#fff}
+.api-body{background:var(--g100);border:1.5px solid var(--g300);border-top:none;border-radius:0 0 8px 8px;padding:14px 16px}
+.api-body pre{font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--g700);white-space:pre-wrap}
+/* DB */
+.schema-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+.schema-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300);background:var(--g100)}
+.schema-table td{padding:8px 12px;border-bottom:1px solid var(--g200);font-family:var(--mono);font-size:12px}
+.schema-table td:first-child{color:var(--slate);font-weight:600}
+.schema-table td:nth-child(2){color:var(--clay)}
+.pk{font-size:9px;background:var(--clay);color:white;padding:1px 5px;border-radius:3px;margin-left:6px}
+.db-note{font-size:13px;color:var(--g700);padding:12px 16px;background:rgba(120,140,93,.07);border-left:3px solid var(--olive);border-radius:0 8px 8px 0;margin-top:8px}
+/* Tabs */
+.tabs{margin-bottom:4px;display:flex;gap:4px;flex-wrap:wrap}
+.tab-btn{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:5px 12px;border-radius:6px 6px 0 0;border:1.5px solid var(--g300);border-bottom:none;background:var(--g100);color:var(--g500);cursor:pointer}
+.tab-btn.active{background:var(--slate);color:var(--oat);border-color:var(--slate)}
+.tab-pane{display:none;background:var(--slate);border-radius:0 8px 8px 8px;padding:20px;overflow-x:auto}
+.tab-pane.active{display:block}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.65;color:#cdd6f4}
+.kw{color:#89b4fa}.cn{color:#a6e3a1}.cm{color:#6c7086;font-style:italic}
+.st{color:#fab387}.nm{color:#cba6f7}.fn{color:#89dceb}
+/* Fan-out cards */
+.fanout-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
+@media(max-width:700px){.fanout-grid{grid-template-columns:1fr}}
+.fanout-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;padding:18px}
+.fanout-card.recommended{border-color:var(--olive);background:rgba(120,140,93,.05)}
+.fanout-card .ftitle{font-weight:600;font-size:14px;margin-bottom:6px}
+.fanout-card .fbadge{font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--g500);margin-bottom:6px}
+.fanout-card.recommended .fbadge{color:var(--olive)}
+.fanout-card .fdesc{font-size:13px;color:var(--g700);line-height:1.55}
+.fanout-card .fpro{color:var(--olive);font-size:12px;margin-top:8px}
+.fanout-card .fcon{color:var(--clay);font-size:12px}
+/* Fan-out calculator */
+.calc-box{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin:28px 0}
+.calc-box h3{font-family:var(--serif);font-size:19px;font-weight:500;margin-bottom:6px}
+.calc-sub{font-size:13px;color:var(--g500);margin-bottom:16px}
+.calc-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.calc-label{font-size:13px;font-weight:500;min-width:100px}
+.calc-input{font-family:var(--mono);font-size:14px;padding:8px 12px;border:1.5px solid var(--g300);border-radius:8px;background:var(--ivory);width:160px;outline:none}
+.calc-input:focus{border-color:var(--clay)}
+.calc-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.calc-stat{background:var(--g100);border-radius:10px;padding:12px 16px}
+.calc-stat-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:4px}
+.calc-stat-val{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--slate)}
+.calc-verdict{padding:12px 16px;border-radius:8px;font-size:13.5px;font-weight:500}
+.calc-verdict.ok{background:rgba(120,140,93,.1);color:var(--olive);border:1.5px solid var(--olive)}
+.calc-verdict.warn{background:rgba(217,119,87,.1);color:var(--clay);border:1.5px solid var(--clay)}
+/* Scale */
+.scale-list{display:grid;gap:10px}
+.scale-item{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;background:var(--paper);border:1.5px solid var(--g300);border-radius:10px}
+.si-icon{font-size:18px;flex-shrink:0;margin-top:2px}
+.si-title{font-weight:600;font-size:14px;margin-bottom:3px}
+.si-desc{font-size:13px;color:var(--g700);line-height:1.5}
+/* Self Check */
+.sc-list{display:flex;flex-direction:column;gap:8px}
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-q:hover{background:var(--g100)}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s;font-family:var(--mono)}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-a p{margin-top:10px}
+.sc-a code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+/* Tips */
+.tip{display:flex;gap:14px;align-items:flex-start;padding:16px 20px;background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;margin-bottom:10px}
+.tip-icon{font-size:20px;flex-shrink:0}
+.tip-text{font-size:14px;line-height:1.6;color:var(--g700)}
+.tip-text strong{color:var(--slate)}
+footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--g500)}
+footer a{color:var(--g500);text-decoration:none}
+footer a:hover{color:var(--clay)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top-bar">
+  <a class="back" href="index.html">← Home</a>
+  <span style="color:var(--g300)">|</span>
+  <a class="back" href="hld-index.html">HLD Problems</a>
+</div>
+<header>
+  <div class="eyebrow">High Level Design</div>
+  <h1>Design a <em>Social Media Feed</em></h1>
+  <p class="sub">Build Twitter's core infrastructure — tweet posting, follower graph, and home timeline generation at 300M DAU and 600K reads/sec.</p>
+  <span class="difficulty">Difficulty: SDE II · Fan-out Problem</span>
+</header>
+<nav class="toc">
+  <a href="#overview">Requirements</a>
+  <a href="#estimation">Estimation</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Request Flow</a>
+  <a href="#api">API Design</a>
+  <a href="#database">Database</a>
+  <a href="#deep-dive">Fan-out Deep Dive</a>
+  <a href="#scaling">Scaling</a>
+  <a href="#self-check">Self Check</a>
+</nav>
+
+<!-- 1. Requirements -->
+<section id="overview">
+  <div class="section-label">01</div>
+  <h2>What We're Building</h2>
+  <div class="req-grid">
+    <div class="req-item func"><div class="req-label">Functional</div>Post tweets (text up to 280 chars, optional media)</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Follow / unfollow users; follower graph</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Home timeline — aggregated feed from followed users</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Like, retweet, reply on tweets</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Notifications — mentions, likes, new followers</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>300M DAU, 6,000 tweets/sec peak write rate</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Timeline read latency &lt;200ms p99</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Eventual consistency is acceptable for feeds</div>
+  </div>
+</section>
+
+<!-- 2. Estimation -->
+<section id="estimation">
+  <div class="section-label">02</div>
+  <h2>Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>DAU</td><td>Given</td><td><code>300M users</code></td></tr>
+      <tr class="highlight-row"><td>Tweet Write QPS</td><td>300M × 3 tweets/day / 86,400</td><td><code>~6,000 tweets/sec</code></td></tr>
+      <tr class="highlight-row"><td>Timeline Read QPS</td><td>6,000 × 100 (read:write)</td><td><code>~600,000 reads/sec</code></td></tr>
+      <tr><td>Tweet Storage</td><td>6,000 × 86,400 × 140 bytes</td><td><code>~125 GB/day text</code></td></tr>
+      <tr><td>Media Storage</td><td>10% tweets × 5MB × 86,400 × 6,000</td><td><code>~150 TB/day (CDN + S3)</code></td></tr>
+      <tr><td>Timeline Cache</td><td>300M users × 800 tweet IDs × 8 bytes</td><td><code>~1.9 TB Redis</code></td></tr>
+      <tr><td>Avg Followers</td><td>Most users: &lt;1000; Celebrities: &gt;10M</td><td><code>Highly skewed</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 3. Architecture — INTERACTIVE -->
+<section id="architecture">
+  <div class="section-label">03</div>
+  <h2>High-Level Architecture</h2>
+  <p class="hint">Click any component to learn why it's here and what happens if it fails.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 820 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="10" y="170" width="80" height="44" rx="7" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="50" y="188" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">Client</text>
+          <text x="50" y="204" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Web/iOS</text>
+        </g>
+        <g class="arch-node" data-id="media-cdn" onclick="showNode('media-cdn')">
+          <rect x="100" y="20" width="90" height="40" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="145" y="36" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">CDN</text>
+          <text x="145" y="51" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Media/Static</text>
+        </g>
+        <g class="arch-node" data-id="lb" onclick="showNode('lb')">
+          <rect x="110" y="170" width="90" height="44" rx="7" fill="#FAF9F5" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="155" y="188" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">Load Balancer</text>
+          <text x="155" y="204" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">L7</text>
+        </g>
+        <g class="arch-node" data-id="feed-api" onclick="showNode('feed-api')">
+          <rect x="240" y="50" width="110" height="40" rx="7" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="295" y="66" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#FAF9F5">Tweet Service</text>
+          <text x="295" y="80" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Post / Read</text>
+        </g>
+        <g class="arch-node" data-id="fanout" onclick="showNode('fanout')">
+          <rect x="240" y="120" width="110" height="40" rx="7" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="295" y="136" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#FAF9F5">Timeline Svc</text>
+          <text x="295" y="150" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Fan-out Logic</text>
+        </g>
+        <g class="arch-node" data-id="user-svc" onclick="showNode('user-svc')">
+          <rect x="240" y="190" width="110" height="40" rx="7" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="295" y="206" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#FAF9F5">User Service</text>
+          <text x="295" y="220" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Profile / Follows</text>
+        </g>
+        <g class="arch-node" data-id="notif-svc" onclick="showNode('notif-svc')">
+          <rect x="240" y="260" width="110" height="40" rx="7" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="295" y="276" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#FAF9F5">Notif Service</text>
+          <text x="295" y="290" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Push / Email</text>
+        </g>
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="390" y="170" width="100" height="40" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="440" y="186" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">Kafka</text>
+          <text x="440" y="200" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757">Event Bus</text>
+        </g>
+        <g class="arch-node" data-id="cassandra" onclick="showNode('cassandra')">
+          <rect x="530" y="40" width="110" height="44" rx="7" fill="#FAF9F5" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="585" y="58" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">Cassandra</text>
+          <text x="585" y="73" text-anchor="middle" font-family="monospace" font-size="8" fill="#4A6FA5">Tweets (time-series)</text>
+        </g>
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="530" y="115" width="110" height="44" rx="7" fill="#FAF9F5" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="585" y="133" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">Redis</text>
+          <text x="585" y="148" text-anchor="middle" font-family="monospace" font-size="8" fill="#788C5D">Timeline sorted sets</text>
+        </g>
+        <g class="arch-node" data-id="postgres" onclick="showNode('postgres')">
+          <rect x="530" y="190" width="110" height="44" rx="7" fill="#FAF9F5" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="585" y="208" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">PostgreSQL</text>
+          <text x="585" y="223" text-anchor="middle" font-family="monospace" font-size="8" fill="#4A6FA5">Users, Follows</text>
+        </g>
+        <g class="arch-node" data-id="s3" onclick="showNode('s3')">
+          <rect x="530" y="265" width="110" height="44" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="585" y="283" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">S3 / CDN</text>
+          <text x="585" y="298" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757">Media Objects</text>
+        </g>
+        <!-- Arrows -->
+        <line x1="90" y1="192" x2="108" y2="192" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="200" y1="192" x2="238" y2="192" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="155" y1="170" x2="270" y2="95" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="155" y1="170" x2="248" y2="140" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="155" y1="214" x2="248" y2="260" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="350" y1="70" x2="528" y2="62" stroke="#4A6FA5" stroke-width="1.5" marker-end="url(#arrb)"/>
+        <line x1="350" y1="140" x2="528" y2="137" stroke="#788C5D" stroke-width="1.5" marker-end="url(#arrog)"/>
+        <line x1="350" y1="210" x2="528" y2="212" stroke="#4A6FA5" stroke-width="1.5" marker-end="url(#arrb)"/>
+        <line x1="350" y1="272" x2="528" y2="282" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrc)"/>
+        <line x1="350" y1="160" x2="388" y2="185" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrc)"/>
+        <line x1="490" y1="190" x2="528" y2="137" stroke="#D97757" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrc)"/>
+        <line x1="50" y1="170" x2="125" y2="60" stroke="#D97757" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="55" y="105" font-family="monospace" font-size="8" fill="#D97757">media</text>
+        <defs>
+          <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#D1CFC5"/></marker>
+          <marker id="arrc" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#D97757"/></marker>
+          <marker id="arrog" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#788C5D"/></marker>
+          <marker id="arrb" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#4A6FA5"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <div class="arch-panel" id="arch-panel">
+      <div class="ap-empty">Click any component<br>to learn why it's there</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Request Flow Stepper -->
+<section id="flow">
+  <div class="section-label">04</div>
+  <h2>Walk Through a Request</h2>
+  <p class="hint">Step through reading the home timeline — from app open to rendered feed.</p>
+  <div class="flow-diagram">
+    <div class="fn act" id="fn-client">Client</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-lb">Load Balancer</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-feed-api">Feed API</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-redis">Redis</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-cassandra">Cassandra</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-client2">Client</div>
+  </div>
+  <div class="flow-card" id="flow-card"></div>
+  <div class="flow-nav">
+    <button class="fnav-btn" id="btn-prev" onclick="prevStep()" disabled>← Prev</button>
+    <span class="fnav-counter" id="fnav-counter">Step 1 of 6</span>
+    <button class="fnav-btn" id="btn-next" onclick="nextStep()">Next →</button>
+  </div>
+  <div class="flow-dots" id="flow-dots"></div>
+</section>
+
+<!-- 5. API -->
+<section id="api">
+  <div class="section-label">05</div>
+  <h2>API Design</h2>
+  <div class="api-block">
+    <div class="endpoint"><span class="method post">POST</span><span>/api/v1/tweets</span></div>
+    <div class="api-body"><pre>// Request (auth required)
+{ "text": "Hello world!", "mediaIds": ["m1", "m2"] }
+// Response 201
+{ "tweetId": "1234567890", "createdAt": "2025-01-15T10:30:00Z" }</pre></div>
+  </div>
+  <div class="api-block">
+    <div class="endpoint"><span class="method get">GET</span><span>/api/v1/timeline?userId=123&amp;cursor=&lt;base64&gt;&amp;limit=20</span></div>
+    <div class="api-body"><pre>// Response 200
+{
+  "tweets": [
+    { "tweetId": "...", "authorId": "...", "text": "...", "likeCount": 42, "createdAt": "..." }
+  ],
+  "nextCursor": "eyJ0aWQiOiIxMjMifQ==",
+  "hasMore": true
+}</pre></div>
+  </div>
+  <div class="api-block">
+    <div class="endpoint"><span class="method post">POST</span><span>/api/v1/users/{userId}/follow</span></div>
+    <div class="api-body"><pre>// Response 200 { "following": true }
+// Triggers async fan-out subscription update</pre></div>
+  </div>
+</section>
+
+<!-- 6. Database -->
+<section id="database">
+  <div class="section-label">06</div>
+  <h2>Database Design</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:12px;"><strong>tweets</strong> — Cassandra (write-heavy, time-series queries)</p>
+  <table class="schema-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>tweet_id<span class="pk">PK</span></td><td>BIGINT</td><td>Snowflake ID (time-ordered, globally unique)</td></tr>
+      <tr><td>user_id</td><td>BIGINT</td><td>Partition key — all tweets by a user on same node</td></tr>
+      <tr><td>content</td><td>TEXT</td><td>Up to 280 chars</td></tr>
+      <tr><td>media_urls</td><td>LIST&lt;TEXT&gt;</td><td>S3 object keys</td></tr>
+      <tr><td>created_at</td><td>TIMESTAMP</td><td>Clustering key — sorted descending</td></tr>
+      <tr><td>like_count</td><td>COUNTER</td><td>Cassandra counter type; or use Redis + async flush</td></tr>
+    </tbody>
+  </table>
+  <div class="db-note"><strong>Timeline cache in Redis:</strong> Sorted set per user — <code>ZADD timeline:{userId} {tweetId} {timestamp}</code>. Keep only last 800 entries. On timeline read: <code>ZREVRANGE timeline:{userId} 0 19</code> → 20 tweet IDs → batch fetch tweet details from Cassandra.</div>
+</section>
+
+<!-- 7. Deep Dive — Fan-out -->
+<section id="deep-dive">
+  <div class="section-label">07</div>
+  <h2>The Fan-out Problem</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:20px;">When a user posts a tweet, how do we get it into 300M+ followers' home timelines efficiently? This is the core design challenge.</p>
+
+  <div class="fanout-grid">
+    <div class="fanout-card">
+      <div class="fbadge">Strategy A</div>
+      <div class="ftitle">Fan-out on Write (Push)</div>
+      <div class="fdesc">On tweet creation, push tweet_id to every follower's Redis sorted set via Kafka consumers.</div>
+      <div class="fpro">✓ Fast timeline reads (O(1) Redis lookup)</div>
+      <div class="fcon">✗ Celebrity problem: 10M followers = 10M Redis writes per tweet</div>
+    </div>
+    <div class="fanout-card">
+      <div class="fbadge">Strategy B</div>
+      <div class="ftitle">Fan-out on Read (Pull)</div>
+      <div class="fdesc">On timeline request, fetch recent tweets from all followed users, merge sort by timestamp.</div>
+      <div class="fpro">✓ No write amplification; celebrity tweets handled naturally</div>
+      <div class="fcon">✗ Slow reads if following 5000 users; N DB queries per request</div>
+    </div>
+    <div class="fanout-card recommended">
+      <div class="fbadge" style="color:var(--olive)">Strategy C — Recommended</div>
+      <div class="ftitle">Hybrid Approach</div>
+      <div class="fdesc">Push for normal users (&lt;10K followers). Pull for celebrities (&gt;10K followers). Merge both sets on timeline read.</div>
+      <div class="fpro">✓ Best of both: fast reads, controlled write amplification</div>
+      <div class="fcon">✗ Complexity: need to identify celebrities, merge at read time</div>
+    </div>
+  </div>
+
+  <!-- Fan-out Calculator -->
+  <div class="calc-box">
+    <h3>Fan-out Write Amplification Calculator</h3>
+    <p class="calc-sub">See why fan-out on write breaks for celebrities. Enter follower count to see the write cost.</p>
+    <div class="calc-row">
+      <span class="calc-label">Followers</span>
+      <input class="calc-input" type="number" id="calc-followers" value="1000" min="1" oninput="calcFanout()">
+    </div>
+    <div class="calc-results" id="calc-results"></div>
+    <div id="calc-verdict"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-group="fanout" onclick="switchTab('fanout','push')">Push Fan-out (Kafka)</button>
+    <button class="tab-btn" data-group="fanout" onclick="switchTab('fanout','read')">Timeline Read</button>
+    <button class="tab-btn" data-group="fanout" onclick="switchTab('fanout','hybrid')">Hybrid Merge</button>
+  </div>
+  <div class="tab-pane active" data-tab="fanout-push">
+    <pre><span class="cm">// Kafka consumer: fans out tweet to all followers' timelines</span>
+<span class="kw">class</span> <span class="cn">FanOutWorker</span> <span class="kw">implements</span> <span class="cn">KafkaConsumer</span> {
+    <span class="kw">void</span> <span class="fn">process</span>(<span class="cn">TweetEvent</span> event) {
+        <span class="cn">Long</span> authorId = event.<span class="fn">getAuthorId</span>();
+        <span class="cm">// Only push if author is not a celebrity</span>
+        <span class="kw">if</span> (userService.<span class="fn">getFollowerCount</span>(authorId) &lt; <span class="nm">10_000</span>) {
+            <span class="cn">List</span>&lt;<span class="cn">Long</span>&gt; followers = followService.<span class="fn">getFollowerIds</span>(authorId);
+            <span class="kw">for</span> (<span class="cn">Long</span> followerId : followers) {
+                redis.<span class="fn">zadd</span>(<span class="st">"timeline:"</span> + followerId, score, tweetId);
+                redis.<span class="fn">zremrangeByRank</span>(<span class="st">"timeline:"</span> + followerId, <span class="nm">0</span>, <span class="nm">-801</span>);
+            }
+        }
+    }
+}</pre>
+  </div>
+  <div class="tab-pane" data-tab="fanout-read">
+    <pre><span class="cn">List</span>&lt;<span class="cn">Tweet</span>&gt; <span class="fn">getTimeline</span>(<span class="kw">long</span> userId) {
+    <span class="cn">Set</span>&lt;<span class="cn">Long</span>&gt; tweetIds = redis.<span class="fn">zrevrange</span>(<span class="st">"timeline:"</span> + userId, <span class="nm">0</span>, <span class="nm">19</span>);
+    <span class="kw">return</span> tweetDao.<span class="fn">batchGet</span>(tweetIds);
+}</pre>
+  </div>
+  <div class="tab-pane" data-tab="fanout-hybrid">
+    <pre><span class="cn">List</span>&lt;<span class="cn">Tweet</span>&gt; <span class="fn">getHybridTimeline</span>(<span class="kw">long</span> userId) {
+    <span class="cn">List</span>&lt;<span class="cn">Tweet</span>&gt; pushed = <span class="fn">getTimeline</span>(userId);
+    <span class="cn">List</span>&lt;<span class="cn">Long</span>&gt; celebIds = followService.<span class="fn">getCelebFollowees</span>(userId);
+    <span class="cn">List</span>&lt;<span class="cn">Tweet</span>&gt; pulled = tweetDao.<span class="fn">getRecentTweets</span>(celebIds, <span class="nm">20</span>);
+    <span class="kw">return</span> <span class="fn">mergeSorted</span>(pushed, pulled).<span class="fn">stream</span>().<span class="fn">limit</span>(<span class="nm">20</span>).<span class="fn">collect</span>(...);
+}</pre>
+  </div>
+</section>
+
+<!-- 8. Scaling -->
+<section id="scaling">
+  <div class="section-label">08</div>
+  <h2>Scaling &amp; Bottlenecks</h2>
+  <div class="scale-list">
+    <div class="scale-item"><div class="si-icon">🎯</div><div><div class="si-title">Kafka for Async Fan-out</div><div class="si-desc">Tweet creation publishes to Kafka. Multiple consumer groups fan out asynchronously — timeline workers, notification workers, analytics workers. Decouples tweet write from side effects.</div></div></div>
+    <div class="scale-item"><div class="si-icon">⚡</div><div><div class="si-title">Redis Sorted Sets — Timeline Cache</div><div class="si-desc">1.9 TB of timeline data across Redis cluster. ZREVRANGE is O(log N + M). Keep only 800 entries per user. Evict LRU users (inactive for 30 days) from cache.</div></div></div>
+    <div class="scale-item"><div class="si-icon">🗄️</div><div><div class="si-title">Cassandra for Tweets</div><div class="si-desc">Partition by user_id, cluster by tweet_id desc. All tweets by one user on same partition — fast range scans. Replication factor 3 for HA.</div></div></div>
+    <div class="scale-item"><div class="si-icon">🌐</div><div><div class="si-title">CDN + S3 for Media</div><div class="si-desc">150 TB/day of media. Store originals in S3. Transcode to multiple resolutions. Serve via CloudFront CDN. Client uploads directly to S3 presigned URL.</div></div></div>
+  </div>
+</section>
+
+<!-- 9. Self Check -->
+<section id="self-check">
+  <div class="section-label">09</div>
+  <h2>Self Check</h2>
+  <p class="hint">Answer before revealing. These are real interview questions.</p>
+  <div class="sc-list">
+    <div class="sc-item" id="sc1">
+      <div class="sc-q" onclick="toggleSC('sc1')"><span>What is fan-out on write vs fan-out on read? Which does Twitter use?<span class="sc-tag">Core Design</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Fan-out on write: when a user posts, immediately push tweet ID to all followers' timeline caches. Pro: O(1) read (just ZRANGE). Con: O(followers) write cost — 150M follower account = 150M Redis writes per tweet.</p><p>Fan-out on read: don't pre-compute; at read time, fetch tweets from each followee and merge. Pro: O(1) write. Con: O(followees) read cost — following 1000 accounts = 1000 Cassandra reads per timeline load.</p><p>Twitter uses hybrid: fan-out on write for regular users (&lt;1M followers), fan-out on read for celebrities. At read time, merge celebrity tweets in. This balances write amplification vs read latency.</p></div>
+    </div>
+    <div class="sc-item" id="sc2">
+      <div class="sc-q" onclick="toggleSC('sc2')"><span>How do you handle the 'celebrity problem' at 150M followers?<span class="sc-tag">Scale Challenge</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Pure fan-out on write is infeasible: a single Beyonce tweet triggers 150M Redis ZADD operations. Memory: each timeline entry is ~48 bytes × 150M = 7.2 GB per celebrity tweet just for fan-out. Time: even at 1M ops/sec, 150M operations = 150 seconds.</p><p>Solution: Celebrity threshold (~1M followers). Above threshold: skip write fan-out. Instead, each celebrity's recent tweets are cached separately. At read time, the Feed API fetches the last N tweets from each celebrity you follow and merges into your timeline. This is called "pull on demand" or "lazy fan-out."</p></div>
+    </div>
+    <div class="sc-item" id="sc3">
+      <div class="sc-q" onclick="toggleSC('sc3')"><span>What does the Redis timeline store — tweets or tweet IDs?<span class="sc-tag">Data Model</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Tweet IDs only. Storing full tweet objects in every follower's Redis list would use enormous memory (a tweet can be 500 bytes × 500M users = 250 GB just for Redis). Instead, store only the tweet_id (8 bytes) in a sorted set (score = timestamp). Then hydrate by multi-fetching tweet content from Cassandra at read time.</p><p>This is the "tweet ID fan-out" pattern. Cassandra lookup by tweet_id is a primary key lookup — extremely fast and parallelizable.</p></div>
+    </div>
+    <div class="sc-item" id="sc4">
+      <div class="sc-q" onclick="toggleSC('sc4')"><span>A user posts a tweet. Walk through the complete write path.<span class="sc-tag">Write Path</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>(1) POST /tweet → API server validates, creates tweet object, assigns Snowflake ID. (2) Write tweet to Cassandra (user_id partition). (3) Publish TweetCreatedEvent to Kafka. (4) Fan-out workers consume from Kafka: for each follower (fetched from User Graph Service), <code>ZADD timeline:{followerId} {tweetId} {score=timestamp}</code>. (5) Trim old entries: <code>ZREMRANGEBYRANK timeline:{followerId} 0 -801</code> (keep last 800). (6) Push real-time notification via WebSocket if follower is online. Celebrity accounts skip steps 4-5.</p></div>
+    </div>
+    <div class="sc-item" id="sc5">
+      <div class="sc-q" onclick="toggleSC('sc5')"><span>How does the Trending Topics feature work?<span class="sc-tag">Feature Design</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Trending requires counting hashtag frequency in near-real-time. Naive: <code>SELECT hashtag, COUNT(*) GROUP BY hashtag WHERE created_at > NOW()-1h</code> — too slow on 500M tweets/day.</p><p>Production: (1) All tweets published to Kafka. (2) A Flink/Spark Streaming job counts hashtag occurrences in tumbling 1-minute windows with a 1-hour lookback. (3) Top-K hashtags computed using a min-heap (keep top 50). (4) Results written to Redis with 1-minute TTL. (5) API reads from Redis. This gives trending updated every minute with sub-second reads.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="hld-index.html">All HLD Problems</a></span>
+  <span>SDE Interview Prep</span>
+</footer>
+</div>
+
+<script>
+/* Architecture nodes */
+const NODE_INFO = {
+  client:{title:"Client (Web/Mobile)",body:"Users view their home timeline, post tweets, follow accounts. The read path (timeline) is served from cache; writes (new tweets) trigger async fan-out via Kafka. Media requests go directly to CDN — the API server never handles media bytes.",stats:["~300M DAU","Read-heavy: 100:1 ratio","Timeline renders in <100ms"],warn:null},
+  'media-cdn':{title:"CDN (Media/Static)",body:"Images and videos in tweets are stored in S3 and served via CDN edge nodes (CloudFront). Media URLs in tweets point to CDN. Offloads ~80% of tweet data by bytes from origin servers. Client uploads media directly to S3 via pre-signed URL — API server never touches the bytes.",stats:["S3 origin","Global edge nodes","~80% of tweet bandwidth"],warn:null},
+  lb:{title:"Load Balancer",body:"Distributes read and write traffic. Write traffic (new tweets) routes to Tweet Service; read traffic (GET /timeline) routes to Timeline Service. Stateless routing — any API server handles any request. Health checks and automatic failover.",stats:["Layer 7 routing","SSL termination","Health checks"],warn:null},
+  'feed-api':{title:"Tweet Service",body:"Handles tweet creation: validate content, assign Snowflake ID, write to Cassandra, publish TweetCreatedEvent to Kafka. Also handles tweet reads (GET /tweet/{id}). Stateless — horizontally scalable. Does NOT handle timeline aggregation (that's Timeline Service).",stats:["Stateless x N","Writes to Cassandra","Publishes to Kafka"],warn:null},
+  fanout:{title:"Timeline Service (Fan-out Logic)",body:"Serves GET /timeline requests. Reads tweet IDs from Redis sorted set (ZREVRANGE), then batch-fetches tweet content from Cassandra (hydration). For celebrities, performs read-merge at request time. Also coordinates the fan-out workers that push tweet IDs to follower timelines.",stats:["Fan-out on write","Async via Kafka","Celebrity threshold: 1M followers"],warn:"Celebrity problem: pushing a tweet from a 150M-follower account to 150M Redis lists would take too long and exhaust memory. Use hybrid fan-out: write fan-out for regular users, read-merge for celebrities."},
+  'user-svc':{title:"User Service",body:"Manages user profiles, follow/unfollow relationships. PostgreSQL stores the follower graph (relational data with ACID guarantees). Follower counts are denormalized for fast reads. The User Graph (who follows whom) is cached in Redis for fan-out workers.",stats:["PostgreSQL for relationships","Cached follow graph","ACID guarantees"],warn:null},
+  'notif-svc':{title:"Notification Service",body:"Consumes events from Kafka (TweetCreated, Like, Follow, Mention). Sends push notifications via APNs/FCM, and email notifications. Rate-limited per user to prevent notification spam. Stores notification history in Cassandra.",stats:["APNs + FCM push","Email via SES","Kafka consumer"],warn:null},
+  kafka:{title:"Kafka — Event Bus",body:"Decouples tweet creation from all downstream side-effects. A new tweet event is published; multiple consumer groups process it independently: fan-out workers, notification service, search indexer, analytics pipeline. Durable and replayable — if a consumer crashes, it resumes from last offset.",stats:["Decoupled fan-out","Multiple consumers","Durable, replayable"],warn:null},
+  cassandra:{title:"Cassandra (Tweets DB)",body:"Stores all tweets. Partition key: user_id (all tweets by a user on the same node). Clustering key: tweet_id DESC (time-ordered). Cassandra's append-only writes make it ideal for immutable tweet storage. Wide rows per user_id for efficient timeline reconstruction on cache miss.",stats:["Partition key: user_id","500M tweets/day","Wide rows per user","Tunable consistency"],warn:null},
+  redis:{title:"Redis Timeline Cache",body:"Stores the last 800 tweet IDs per user as a Redis sorted set (score = timestamp). O(log N) insert, O(1) range read. Serves 99% of timeline reads. 1.9 TB total across the cluster. Inactive users (30+ days) are evicted to save memory.",stats:["800 tweet IDs per user","Sorted set (ZRANGE)","~0.5ms lookup","1.9 TB total"],warn:null},
+  postgres:{title:"PostgreSQL (Users + Follows)",body:"Stores user profiles and the follower graph. ACID guarantees ensure follow/unfollow operations are consistent. Follower counts are denormalized counters. The follows table (follower_id, followee_id) has composite indexes for both directions (who do I follow? who follows me?).",stats:["User profiles","Follower graph","ACID guarantees","Composite indexes"],warn:null},
+  s3:{title:"S3 / Media Storage",body:"Stores original media files (images, videos, GIFs). Transcoded into multiple resolutions by a transcoding pipeline (Lambda or dedicated workers). Served via CDN. Client uploads directly to S3 via pre-signed URL — API server returns the URL, client sends media directly.",stats:["Object storage","Transcoding pipeline","Pre-signed upload URLs"],warn:null}
+};
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g=>g.classList.remove('sel'));
+  const el=document.querySelector(`.arch-node[data-id="${id}"]`);
+  if(el) el.classList.add('sel');
+  const info=NODE_INFO[id];
+  const panel=document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  panel.innerHTML=`<div class="ap-title">${info.title}</div><div class="ap-body">${info.body}</div><div>${info.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>${info.warn?`<div class="ap-warn">${info.warn}</div>`:''}`;
+}
+
+/* Flow Stepper */
+const STEPS=[
+  {nodes:['fn-client'],title:"User opens the app",desc:"The user opens Twitter/X and the app requests their home timeline: GET /v2/timeline/home. The client sends the request to the nearest load balancer. Most logged-in timeline requests aren't cached at CDN edge (personalized data), so this hits origin.",code:"GET /v2/timeline/home\nAuthorization: Bearer <token>\nHost: api.twitter.com"},
+  {nodes:['fn-lb','fn-feed-api'],title:"Feed API receives request",desc:"Load balancer routes to a stateless Feed API (Timeline Service) instance. The server validates the auth token, extracts user_id, and prepares to fetch the timeline from cache.",code:"// Timeline Service handler\nString userId = authService.validate(token);\nreturn timelineService.getTimeline(userId, cursor, limit);"},
+  {nodes:['fn-feed-api','fn-redis'],title:"Check Redis timeline cache",desc:"Query Redis for the user's pre-computed timeline: ZREVRANGE timeline:{userId} 0 99. Returns up to 100 tweet IDs in reverse chronological order in ~0.5ms. This is a cache HIT for ~95% of active users — the timeline was pre-populated when followees posted.",code:'// Redis sorted set lookup (~0.5ms)\nList<String> tweetIds = redis.zrevrange(\n  "timeline:" + userId, 0, 99\n);\n// tweetIds = ["tweet:123", "tweet:456", ...]'},
+  {nodes:['fn-feed-api','fn-cassandra'],title:"Hydrate tweet IDs → tweet content",desc:"The tweet IDs from Redis are just 8-byte integers. Fetch full tweet content (text, author, media, like counts) from Cassandra in a batch multi-get by primary key. This is extremely fast — Cassandra is designed for this pattern.",code:"// Parallel hydration from Cassandra\nList<Tweet> tweets = cassandra.multiGet(\n  tweetIds, ConsistencyLevel.ONE\n);\n// Returns: text, authorId, mediaUrls, likeCount, createdAt"},
+  {nodes:['fn-feed-api','fn-redis'],title:"Merge celebrity tweets at read time",desc:"For users following celebrities (>1M followers), their tweets were NOT fan-out'd (too expensive). At read time, fetch recent tweets from each celebrity you follow from Cassandra and merge into the timeline by timestamp.",code:"// Celebrity read-merge\nfor (String celebId : getCelebrityFollowees(userId)) {\n  List<Tweet> celebTweets = cassandra\n    .getRecent(celebId, 100);\n  timeline = mergeSortByTime(timeline, celebTweets);\n}"},
+  {nodes:['fn-feed-api','fn-client2'],title:"Return ranked timeline",desc:"Apply ML ranking (engagement prediction) to re-order tweets from pure chronological to 'best for you' order. Return the top 20 tweets with full hydrated data to the client. The client renders the feed.",code:"HTTP/1.1 200 OK\nContent-Type: application/json\n\n{\n  \"tweets\": [{...}, {...}],\n  \"nextCursor\": \"1234567890\",\n  \"hasMore\": true\n}"}
+];
+const FN_IDS=['fn-client','fn-lb','fn-feed-api','fn-redis','fn-cassandra','fn-client2'];
+let curStep=0;
+function renderStep(){
+  const s=STEPS[curStep];
+  FN_IDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const activeSet=new Set(s.nodes);
+    const idx=FN_IDS.indexOf(id);
+    const firstActive=FN_IDS.indexOf(s.nodes[0]);
+    el.className='fn'+(activeSet.has(id)?' act':(idx<firstActive?' done':''));
+  });
+  document.getElementById('flow-card').innerHTML=`<div class="fc-title">${s.title}</div><div class="fc-desc">${s.desc}</div>${s.code?`<pre class="fc-code">${s.code}</pre>`:''}`;
+  document.getElementById('fnav-counter').textContent=`Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('btn-prev').disabled=curStep===0;
+  document.getElementById('btn-next').disabled=curStep===STEPS.length-1;
+  document.querySelectorAll('.fdot').forEach((d,i)=>{d.className='fdot'+(i===curStep?' act':(i<curStep?' done':''));});
+}
+function nextStep(){if(curStep<STEPS.length-1){curStep++;renderStep();}}
+function prevStep(){if(curStep>0){curStep--;renderStep();}}
+function goStep(n){curStep=n;renderStep();}
+const dotsEl=document.getElementById('flow-dots');
+STEPS.forEach((_,i)=>{const d=document.createElement('div');d.className='fdot'+(i===0?' act':'');d.onclick=()=>goStep(i);dotsEl.appendChild(d);});
+renderStep();
+
+/* Fan-out Calculator */
+function calcFanout(){
+  const f=parseInt(document.getElementById('calc-followers').value)||0;
+  if(f<1) return;
+  const writes=f;
+  const storageMB=(f*48/1e6).toFixed(2);
+  const timeSec=(f/1e6).toFixed(2);
+  document.getElementById('calc-results').innerHTML=`
+    <div class="calc-stat"><div class="calc-stat-label">Redis Writes</div><div class="calc-stat-val">${writes.toLocaleString()}</div></div>
+    <div class="calc-stat"><div class="calc-stat-label">Memory Used</div><div class="calc-stat-val">${storageMB} MB</div></div>
+    <div class="calc-stat"><div class="calc-stat-label">Time @ 1M ops/s</div><div class="calc-stat-val">${timeSec}s</div></div>`;
+  const v=document.getElementById('calc-verdict');
+  if(f<=1000000){
+    v.innerHTML=`<div class="calc-verdict ok">Fan-out on write is feasible — ${timeSec}s at 1M ops/sec is acceptable.</div>`;
+  } else {
+    v.innerHTML=`<div class="calc-verdict warn">Celebrity path needed — ${timeSec}s fan-out would block timelines. Use read-merge instead.</div>`;
+  }
+}
+calcFanout();
+
+/* Tab switcher */
+function switchTab(group,id){
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el=>el.classList.add('active'));
+}
+
+/* Self Check */
+function toggleSC(id){document.getElementById(id).classList.toggle('open');}
+</script>
+</body>
+</html>

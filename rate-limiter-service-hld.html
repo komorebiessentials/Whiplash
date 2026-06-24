@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rate Limiter Service — HLD — SDE Interview Prep</title>
+<style>
+  :root {
+    --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+    --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+    --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+    --blue: #7eb8f7; --blue-bg: #1a1f2e;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 32px 100px; }
+  .back { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); text-decoration: none; padding: 32px 0 0; }
+  .back:hover { color: var(--slate); }
+  header { padding: 40px 0 56px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--g500); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--blue); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(36px, 5vw, 58px); line-height: 1.06; letter-spacing: -.022em; }
+  h1 em { font-style: italic; color: var(--blue); }
+  .sub { font-size: 17px; color: var(--g700); margin-top: 16px; max-width: 560px; line-height: 1.6; }
+  section { margin-bottom: 64px; }
+  h2 { font-family: var(--serif); font-size: 28px; font-weight: 500; letter-spacing: -.014em; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1.5px solid var(--g200); }
+  h3 { font-family: var(--serif); font-size: 18px; font-weight: 500; margin: 28px 0 12px; }
+  p { color: var(--g700); line-height: 1.7; margin-bottom: 14px; }
+
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 56px; padding: 16px 20px; background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; }
+  nav.toc a { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); text-decoration: none; padding: 4px 10px; border-radius: 5px; transition: all .15s; }
+  nav.toc a:hover { background: var(--g100); color: var(--slate); }
+
+  .req-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+  @media (max-width: 600px) { .req-cols { grid-template-columns: 1fr; } }
+  .req-box { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 20px; }
+  .req-box h3 { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--blue); margin-bottom: 12px; }
+  .req-box ul { padding-left: 16px; }
+  .req-box li { font-size: 13.5px; color: var(--g700); margin-bottom: 7px; line-height: 1.55; }
+
+  .scale-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 16px; }
+  .scale-card { background: var(--blue-bg); border-radius: 12px; padding: 18px; }
+  .scale-num { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--blue); margin-bottom: 4px; }
+  .scale-label { font-size: 12px; color: rgba(255,255,255,.5); line-height: 1.4; }
+
+  /* Arch interactive */
+  .arch-wrap { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+  @media (max-width: 700px) { .arch-wrap { grid-template-columns: 1fr; } }
+  .arch-box { background: var(--blue-bg); border-radius: 16px; padding: 24px; display: flex; align-items: center; justify-content: center; }
+  .arch-box svg { max-width: 100%; height: auto; }
+  .arch-node { cursor: pointer; }
+  .arch-node rect { transition: stroke-width .15s, stroke .15s; }
+  .arch-node:hover rect { stroke-width: 2.5 !important; }
+  .arch-node.sel rect { stroke-width: 3 !important; stroke: var(--clay) !important; }
+  .arch-panel { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 14px; padding: 20px; min-height: 200px; }
+  .arch-panel.lit { border-color: var(--clay); }
+  .ap-title { font-family: var(--serif); font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+  .ap-body { font-size: 13px; color: var(--g700); line-height: 1.6; margin-bottom: 12px; }
+  .ap-stat { font-family: var(--mono); font-size: 10px; background: var(--g100); padding: 3px 9px; border-radius: 4px; display: inline-block; margin: 2px; }
+  .ap-warn { font-size: 12px; background: rgba(217,119,87,.08); border-left: 3px solid var(--clay); padding: 8px 12px; border-radius: 0 6px 6px 0; margin-top: 10px; }
+  .ap-empty { color: var(--g500); font-size: 13px; text-align: center; padding-top: 50px; }
+
+  /* Flow stepper */
+  .flow-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 16px; }
+  .fn { padding: 6px 12px; border-radius: 6px; border: 1.5px solid var(--g300); font-size: 12px; font-weight: 500; background: var(--g100); white-space: nowrap; transition: all .2s; color: var(--g700); }
+  .fn.act { background: var(--clay); border-color: var(--clay); color: white; transform: scale(1.06); }
+  .fn.done { background: var(--g500); border-color: var(--g500); color: white; opacity: .6; }
+  .farr { color: var(--g400); font-size: 14px; margin: 0 2px; }
+  .flow-card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 20px 24px; margin: 16px 0; min-height: 110px; }
+  .fc-title { font-family: var(--serif); font-size: 18px; font-weight: 500; margin-bottom: 8px; }
+  .fc-desc { font-size: 13.5px; color: var(--g700); line-height: 1.65; margin-bottom: 12px; }
+  .fc-code { font-family: var(--mono); font-size: 11.5px; background: var(--slate); color: #cdd6f4; padding: 12px 16px; border-radius: 8px; line-height: 1.65; white-space: pre; overflow-x: auto; }
+  .flow-nav { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+  .fnav-btn { padding: 7px 18px; border-radius: 7px; border: 1.5px solid var(--g300); font-size: 13px; font-weight: 500; background: var(--g100); cursor: pointer; transition: all .15s; }
+  .fnav-btn:hover:not(:disabled) { background: var(--clay); border-color: var(--clay); color: white; }
+  .fnav-btn:disabled { opacity: .35; cursor: default; }
+  .fnav-counter { font-family: var(--mono); font-size: 12px; color: var(--g500); }
+  .flow-dots { display: flex; gap: 6px; margin-left: auto; }
+  .fdot { width: 8px; height: 8px; border-radius: 50%; background: var(--g300); cursor: pointer; transition: background .15s; }
+  .fdot.on { background: var(--clay); }
+
+  /* Self-check */
+  .sc-item { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+  .sc-q { padding: 14px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; color: var(--slate); user-select: none; }
+  .sc-plus { font-size: 18px; color: var(--clay); flex-shrink: 0; transition: transform .2s; }
+  .sc-item.open .sc-plus { transform: rotate(45deg); }
+  .sc-a { display: none; padding: 2px 20px 16px; font-size: 13.5px; color: var(--g700); line-height: 1.65; border-top: 1px solid var(--g200); }
+  .sc-item.open .sc-a { display: block; }
+  .sc-tag { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 4px; background: rgba(217,119,87,.1); color: var(--clay); margin-left: 8px; vertical-align: middle; }
+
+  /* Algorithm table */
+  .algo-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; cursor: pointer; }
+  .algo-table th { text-align: left; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); padding: 10px 14px; border-bottom: 1.5px solid var(--g300); }
+  .algo-table td { padding: 11px 14px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .algo-table tr:last-child td { border-bottom: none; }
+  .algo-table td:first-child { font-weight: 600; color: var(--slate); font-size: 13.5px; }
+  .algo-table tr.sel-row { background: rgba(217,119,87,.08); }
+  .algo-table tr.sel-row td:first-child { color: var(--clay); }
+  .algo-detail { background: var(--paper); border: 1.5px solid var(--clay); border-radius: 12px; padding: 20px 24px; margin-top: 16px; }
+  .algo-detail-name { font-family: var(--serif); font-size: 18px; font-weight: 500; color: var(--clay); margin-bottom: 8px; }
+  .algo-detail-desc { font-size: 13.5px; color: var(--g700); line-height: 1.65; margin-bottom: 14px; }
+  .algo-diagram { font-family: var(--mono); font-size: 12px; background: var(--slate); color: #cdd6f4; padding: 14px 18px; border-radius: 8px; white-space: pre; overflow-x: auto; line-height: 1.7; }
+
+  .component-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 16px; }
+  .component-card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 18px; }
+  .comp-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--blue); margin-bottom: 8px; }
+  .comp-desc { font-size: 13px; color: var(--g700); line-height: 1.6; }
+
+  .schema-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+  .schema-table th { text-align: left; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); padding: 10px 14px; border-bottom: 1.5px solid var(--g300); }
+  .schema-table td { padding: 10px 14px; border-bottom: 1px solid var(--g200); color: var(--g700); font-family: var(--mono); font-size: 12px; }
+  .schema-table tr:last-child td { border-bottom: none; }
+  .schema-table td:first-child { color: var(--slate); font-weight: 500; }
+  .pk { color: var(--clay) !important; }
+
+  .decision-grid { display: grid; gap: 16px; margin-top: 16px; }
+  .decision-card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 20px; }
+  .decision-title { font-family: var(--serif); font-size: 17px; font-weight: 500; margin-bottom: 10px; }
+  .decision-body { font-size: 13.5px; color: var(--g700); line-height: 1.65; }
+  .decision-body strong { color: var(--slate); }
+
+  .tip { display: flex; gap: 14px; align-items: flex-start; background: var(--paper); border: 1.5px solid var(--g200); border-left: 4px solid var(--blue); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+  .tip-icon { font-size: 20px; flex-shrink: 0; }
+  .tip-text { font-size: 14px; color: var(--g700); line-height: 1.6; }
+  .tip-text strong { color: var(--slate); }
+
+  pre { background: var(--slate); color: #e8e6e0; padding: 20px; border-radius: 10px; font-family: var(--mono); font-size: 12px; line-height: 1.65; overflow-x: auto; margin-top: 14px; }
+  .kw { color: #7DADE2; } .cn { color: #82E0AA; } .cm { color: #6e6e6b; font-style: italic; }
+  .st { color: #D97757; } .nm { color: #C39BD3; }
+
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 28px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--g500); }
+  footer a { color: var(--blue); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<a class="back" href="index.html">← Home</a>
+
+<header>
+  <div class="eyebrow">High Level Design · SDE I/II</div>
+  <h1>Rate Limiter<br><em>Service</em></h1>
+  <p class="sub">Design a distributed rate limiter — token bucket algorithm, Redis Lua scripts for atomicity, middleware placement, and multi-region sync.</p>
+</header>
+
+<nav class="toc">
+  <a href="#requirements">Requirements</a>
+  <a href="#scale">Scale</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Request Flow</a>
+  <a href="#components">Components</a>
+  <a href="#schema">Schema</a>
+  <a href="#decisions">Decisions</a>
+  <a href="#playground">Interactive</a>
+  <a href="#self-check">Self-Check</a>
+  <a href="#tips">Tips</a>
+</nav>
+
+<section id="requirements">
+  <h2>1. Requirements</h2>
+  <div class="req-cols">
+    <div class="req-box">
+      <h3>Functional</h3>
+      <ul>
+        <li>Limit requests per client (by user ID, IP, or API key)</li>
+        <li>Return HTTP 429 with Retry-After header when limit exceeded</li>
+        <li>Support different limits per endpoint and per plan tier</li>
+        <li>Rate limit rules configurable without restarting services</li>
+        <li>Expose metrics: current usage, violations, top abusers</li>
+      </ul>
+    </div>
+    <div class="req-box">
+      <h3>Non-Functional</h3>
+      <ul>
+        <li>Add &lt;1ms overhead to every request (p99)</li>
+        <li>99.999% availability — fail open if limiter is down</li>
+        <li>Support 1M+ concurrent clients, 100K QPS</li>
+        <li>Horizontally scalable — add nodes without reconfiguration</li>
+        <li>Consistent behavior across multiple API server instances</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="scale">
+  <h2>2. Scale Estimates</h2>
+  <div class="scale-grid">
+    <div class="scale-card"><div class="scale-num">100K</div><div class="scale-label">Requests/sec through rate limiter</div></div>
+    <div class="scale-card"><div class="scale-num">1M</div><div class="scale-label">Active client keys in Redis</div></div>
+    <div class="scale-card"><div class="scale-num">200K</div><div class="scale-label">Redis ops/sec (2 per request)</div></div>
+    <div class="scale-card"><div class="scale-num">&lt;1ms</div><div class="scale-label">Redis round-trip (same datacenter)</div></div>
+    <div class="scale-card"><div class="scale-num">~10 GB</div><div class="scale-label">Redis memory (100 bytes/key × 100M)</div></div>
+    <div class="scale-card"><div class="scale-num">&lt;0.1%</div><div class="scale-label">Expected violation rate (fair clients)</div></div>
+  </div>
+</section>
+
+<section id="architecture">
+  <h2>3. High-Level Architecture</h2>
+  <p>Click any component for details.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 640 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Client -->
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="10" y="100" width="70" height="40" rx="7" fill="rgba(126,184,247,.15)" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+          <text x="45" y="125" text-anchor="middle" font-family="monospace" font-size="10" fill="#7eb8f7">Client</text>
+        </g>
+
+        <!-- API Gateway + Middleware -->
+        <g class="arch-node" data-id="middleware" onclick="showNode('middleware')">
+          <rect x="110" y="90" width="90" height="60" rx="7" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+          <text x="155" y="116" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.7)">API</text>
+          <text x="155" y="130" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.7)">Gateway</text>
+          <rect x="116" y="136" width="78" height="18" rx="4" fill="rgba(217,119,87,.2)" stroke="rgba(217,119,87,.3)" stroke-width="1"/>
+          <text x="155" y="149" text-anchor="middle" font-family="monospace" font-size="7" fill="#D97757">Rate Limiter MW</text>
+        </g>
+
+        <!-- Redis Cluster -->
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="250" y="80" width="110" height="60" rx="7" fill="rgba(120,140,93,.2)" stroke="rgba(120,140,93,.5)" stroke-width="1.5"/>
+          <text x="305" y="106" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">Redis</text>
+          <text x="305" y="120" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">Cluster</text>
+          <text x="305" y="134" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(120,140,93,.6)">Lua atomic script</text>
+        </g>
+
+        <!-- Backend Service -->
+        <g class="arch-node" data-id="api" onclick="showNode('api')">
+          <rect x="420" y="90" width="90" height="60" rx="7" fill="rgba(126,184,247,.12)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+          <text x="465" y="116" text-anchor="middle" font-family="monospace" font-size="9" fill="#7eb8f7">Backend</text>
+          <text x="465" y="130" text-anchor="middle" font-family="monospace" font-size="9" fill="#7eb8f7">Service</text>
+        </g>
+
+        <!-- 429 Response (not clickable) -->
+        <rect x="420" y="180" width="90" height="40" rx="7" fill="rgba(217,87,87,.15)" stroke="rgba(217,87,87,.3)" stroke-width="1.5"/>
+        <text x="465" y="198" text-anchor="middle" font-family="monospace" font-size="9" fill="#e07070">429</text>
+        <text x="465" y="212" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(217,87,87,.6)">Too Many Req</text>
+
+        <!-- Rules Service -->
+        <g class="arch-node" data-id="config" onclick="showNode('config')">
+          <rect x="250" y="180" width="110" height="44" rx="7" fill="rgba(195,155,211,.12)" stroke="rgba(195,155,211,.3)" stroke-width="1.5"/>
+          <text x="305" y="200" text-anchor="middle" font-family="monospace" font-size="9" fill="#C39BD3">Rules Service</text>
+          <text x="305" y="215" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(195,155,211,.5)">config DB + cache</text>
+        </g>
+
+        <!-- Arrows -->
+        <line x1="80" y1="120" x2="110" y2="120" stroke="rgba(126,184,247,.5)" stroke-width="1.5"/>
+        <polygon points="110,120 102,116 102,124" fill="rgba(126,184,247,.5)"/>
+        <line x1="200" y1="145" x2="250" y2="115" stroke="rgba(120,140,93,.6)" stroke-width="1.5"/>
+        <polygon points="250,115 240,116 244,126" fill="rgba(120,140,93,.6)"/>
+        <text x="208" y="135" font-family="monospace" font-size="7" fill="rgba(120,140,93,.7)">check</text>
+        <line x1="360" y1="108" x2="420" y2="108" stroke="rgba(120,140,93,.5)" stroke-width="1.5"/>
+        <polygon points="420,108 412,104 412,112" fill="rgba(120,140,93,.5)"/>
+        <text x="370" y="104" font-family="monospace" font-size="7" fill="rgba(120,140,93,.7)">allow</text>
+        <line x1="360" y1="130" x2="420" y2="185" stroke="rgba(217,87,87,.5)" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <polygon points="420,185 410,182 415,192" fill="rgba(217,87,87,.5)"/>
+        <text x="370" y="165" font-family="monospace" font-size="7" fill="rgba(217,87,87,.7)">deny</text>
+        <line x1="305" y1="180" x2="305" y2="140" stroke="rgba(195,155,211,.4)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <polygon points="305,140 301,150 309,150" fill="rgba(195,155,211,.4)"/>
+        <rect x="540" y="170" width="90" height="40" rx="7" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.12)" stroke-width="1.5"/>
+        <text x="585" y="193" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,.4)">Violations Log</text>
+        <line x1="510" y1="200" x2="540" y2="190" stroke="rgba(255,255,255,.15)" stroke-width="1" stroke-dasharray="3,2"/>
+      </svg>
+    </div>
+    <div id="arch-panel" class="arch-panel">
+      <p class="ap-empty">Click any component to learn about it</p>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>4. Request Flow</h2>
+  <p>Step through a sliding window rate limit check for an API request.</p>
+  <div class="flow-pills">
+    <span id="fn-client" class="fn">Client</span>
+    <span class="farr">→</span>
+    <span id="fn-middleware" class="fn">Middleware</span>
+    <span class="farr">→</span>
+    <span id="fn-redis" class="fn">Redis</span>
+    <span class="farr">→</span>
+    <span id="fn-api" class="fn">API Server</span>
+  </div>
+  <div id="flow-card" class="flow-card">
+    <div class="fc-title">Click "Next" to begin</div>
+    <div class="fc-desc">Walk through how a client API request is processed by the rate limiter middleware using a sliding window log algorithm.</div>
+  </div>
+  <div class="flow-nav">
+    <button class="fnav-btn" onclick="prevStep()" id="btn-prev" disabled>← Prev</button>
+    <button class="fnav-btn" onclick="nextStep()" id="btn-next">Next →</button>
+    <span class="fnav-counter" id="step-counter">0 / 6</span>
+    <div class="flow-dots" id="flow-dots"></div>
+  </div>
+</section>
+
+<section id="components">
+  <h2>5. Core Components</h2>
+  <div class="component-grid">
+    <div class="component-card">
+      <div class="comp-name">Rate Limiter Middleware</div>
+      <div class="comp-desc">Runs inside API Gateway. For each request, calls Redis to check and increment the counter. Decision in &lt;1ms. If Redis is unreachable, fail open (let request through) and log the miss.</div>
+    </div>
+    <div class="component-card">
+      <div class="comp-name">Redis Cluster</div>
+      <div class="comp-desc">Stores counters per (clientId, endpoint, window). Cluster mode shards keys using consistent hashing. Master-replica pairs ensure HA. Lua scripts run atomically — no race conditions.</div>
+    </div>
+    <div class="component-card">
+      <div class="comp-name">Rules Service</div>
+      <div class="comp-desc">CRUD API for rate limit rules (plan tier → endpoint → limit). Rules stored in PostgreSQL, cached in Redis with 30s TTL. Middleware polls Redis for rules — hot reload without restart.</div>
+    </div>
+    <div class="component-card">
+      <div class="comp-name">Local Cache (In-Process)</div>
+      <div class="comp-desc">Each API Gateway node maintains a small in-memory cache of recent decisions (last 100ms window). Reduces Redis calls by ~60% for repeated requests from same client.</div>
+    </div>
+    <div class="component-card">
+      <div class="comp-name">Violations Log</div>
+      <div class="comp-desc">Async log of 429 events to Kafka → ClickHouse. Powers dashboards: top abusers by IP/user, violation trends, per-endpoint violation rates. Used for alerting and abuse detection.</div>
+    </div>
+  </div>
+</section>
+
+<section id="schema">
+  <h2>6. Database Schema</h2>
+  <p>Rules stored in PostgreSQL; counters live only in Redis (with TTL, never persisted to disk DB).</p>
+  <table class="schema-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="pk">id</td><td>serial PK</td><td>Auto-increment</td></tr>
+      <tr><td>plan_tier</td><td>enum</td><td>FREE, STARTER, PRO, ENTERPRISE</td></tr>
+      <tr><td>endpoint_pattern</td><td>varchar(256)</td><td>e.g., "/api/v1/search*" (glob match)</td></tr>
+      <tr><td>requests_per_window</td><td>integer</td><td>Max allowed in window</td></tr>
+      <tr><td>window_seconds</td><td>integer</td><td>60 = per-minute, 3600 = per-hour</td></tr>
+      <tr><td>algorithm</td><td>enum</td><td>TOKEN_BUCKET, SLIDING_WINDOW, FIXED_WINDOW</td></tr>
+      <tr><td>is_active</td><td>boolean</td><td>Can disable a rule without deleting</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:16px;">Redis key structure: <code>rl:{userId}:{endpoint_hash}:{window_ts}</code></p>
+  <pre><span class="cm">-- Redis key examples:</span>
+<span class="cm">-- Token bucket:     rl:user:1234:tokens         → "95" (tokens remaining)</span>
+<span class="cm">-- Sliding window:   rl:user:1234:search:202506  → "47" (count this minute)</span>
+<span class="cm">-- Expiry set automatically: EXPIRE key window_seconds</span></pre>
+</section>
+
+<section id="decisions">
+  <h2>7. Key Design Decisions</h2>
+  <div class="decision-grid">
+    <div class="decision-card">
+      <div class="decision-title">Algorithm Choice: Sliding Window Counter</div>
+      <div class="decision-body">Token bucket allows bursts (good), but state is harder to shard. <strong>Sliding window counter</strong> (prev_count × overlap_ratio + curr_count) is chosen: O(1) memory, no boundary burst, easily distributable. Two Redis keys per client per window. For burst-tolerant APIs, use token bucket per endpoint via algorithm config field.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Atomic Check-and-Increment via Lua</div>
+      <div class="decision-body">Without atomicity, two concurrent requests could both read count=99 (limit=100), both increment to 100, and both be allowed — double-counting. Redis Lua script runs atomically on the server: GET → compare → INCR → EXPIRE, all in one operation. No race condition possible.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Placement: Gateway vs. Sidecar vs. Service</div>
+      <div class="decision-body"><strong>API Gateway:</strong> single enforcement point, easy to update, possible single point of failure. <strong>Sidecar per service:</strong> resilient but N×Redis calls for same client hitting different services. <strong>Dedicated service:</strong> adds network hop. Recommendation: API Gateway with Redis HA — best latency/simplicity tradeoff.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-title">Fail Open vs. Fail Closed</div>
+      <div class="decision-body">If Redis cluster goes down: <strong>Fail closed</strong> (deny all) = 100% outage. <strong>Fail open</strong> (allow all) = temporarily unprotected but functional. Choose fail open with immediate alerting. Log every fail-open event. Accept slight over-serving during Redis downtime rather than a customer-visible outage.</div>
+    </div>
+  </div>
+</section>
+
+<section id="playground">
+  <h2>8. Algorithm Comparison</h2>
+  <p>Click any algorithm row to see how it works and a timing diagram.</p>
+  <table class="algo-table" id="algo-table">
+    <thead>
+      <tr>
+        <th>Algorithm</th>
+        <th>Memory</th>
+        <th>Burst?</th>
+        <th>Accuracy</th>
+        <th>Best for</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr onclick="selectAlgo(0)">
+        <td>Fixed Window</td>
+        <td>O(1)</td>
+        <td>At boundary</td>
+        <td>~85%</td>
+        <td>Simplest cases</td>
+      </tr>
+      <tr onclick="selectAlgo(1)">
+        <td>Sliding Window Log</td>
+        <td>O(requests)</td>
+        <td>No</td>
+        <td>Exact</td>
+        <td>Strict accuracy</td>
+      </tr>
+      <tr onclick="selectAlgo(2)">
+        <td>Sliding Window Counter</td>
+        <td>O(1)</td>
+        <td>Partial</td>
+        <td>~95%</td>
+        <td>Production balance</td>
+      </tr>
+      <tr onclick="selectAlgo(3)" class="sel-row">
+        <td>Token Bucket</td>
+        <td>O(1)</td>
+        <td>Yes (bucket)</td>
+        <td>~98%</td>
+        <td>APIs with bursts</td>
+      </tr>
+      <tr onclick="selectAlgo(4)">
+        <td>Leaky Bucket</td>
+        <td>O(1)</td>
+        <td>No</td>
+        <td>Exact rate</td>
+        <td>Smooth output rate</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="algo-detail" id="algo-detail">
+    <div class="algo-detail-name" id="algo-name">Token Bucket</div>
+    <div class="algo-detail-desc" id="algo-desc">A bucket holds tokens that refill at a steady rate (e.g., 10/sec, max capacity 100). Each request consumes 1 token. If the bucket is empty, the request is denied. Allows short bursts up to bucket capacity, then throttles to the refill rate. Perfect for APIs where brief traffic spikes are acceptable — burst capacity is configurable independently of the sustained rate.</div>
+    <div class="algo-diagram" id="algo-diagram">Time:   0s──────────10s──────────20s──────────30s
+Tokens: [████████████] → [██████░░░░░░] → [░░░░░░░░░░░░] → refills
+Req/s:  steady 8/s       burst 15/s!       throttled        back to normal
+Result: ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓   ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✗ ✗   ✗ ✗ ✗ ✗ ✗ ✗</div>
+  </div>
+</section>
+
+<section id="self-check">
+  <h2>9. Self-Check</h2>
+
+  <div class="sc-item" id="sc-1">
+    <div class="sc-q" onclick="toggleSC('sc-1')">
+      <span>Fixed window vs sliding window vs token bucket — when to use each? <span class="sc-tag">Algorithms</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Fixed window: divide time into fixed buckets (1-min windows). Counter resets at :00. Simplest. Problem: burst at boundary — 100 requests at :59 + 100 at :01 = 200 in 2 seconds while both windows are 'valid'. Use when simplicity &gt; accuracy.</p><p>Token bucket: bucket fills at a steady rate (10 tokens/sec, max 100). Each request consumes 1 token. Empty bucket = deny. Allows bursting up to capacity, then throttles to fill rate. Best for: APIs where short bursts are permitted.</p><p>Sliding window log: every request timestamp stored in a sorted set. Count in last N seconds — exact. Memory: O(requests) per client. Best for strict accuracy. Sliding window counter: approximation using two fixed windows weighted by position. O(1) memory, ~95% accurate. Best production balance.</p></div>
+  </div>
+
+  <div class="sc-item" id="sc-2">
+    <div class="sc-q" onclick="toggleSC('sc-2')">
+      <span>How do you rate limit across multiple API server instances? <span class="sc-tag">Distributed</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Local counters: fast (in-memory) but with 10 servers a user gets 10× the limit. Fails for distributed deployment. Centralized Redis: all instances share one Redis. Atomic Lua scripts prevent race conditions. Single source of truth. +0.5-1ms latency per request. This is the standard approach.</p><p>Redis Cluster: shard rate limit keys across multiple Redis nodes for horizontal scale. All keys for one client hash to one shard — Lua scripts run on the correct shard via CLUSTER KEYSLOT. Cell-based limiting: each server maintains a local token bucket, periodically syncs with Redis to reconcile. Reduces Redis traffic; allows small bounded over-limit. Acceptable for non-security-critical APIs.</p></div>
+  </div>
+
+  <div class="sc-item" id="sc-3">
+    <div class="sc-q" onclick="toggleSC('sc-3')">
+      <span>A DDoS sends 1M req/sec. How does the rate limiter cope? <span class="sc-tag">Scale</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>At 1M req/sec with sliding window: 1M ZADD operations/second to Redis sorted sets. Redis handles ~100K ops/sec per instance — this is the bottleneck. Mitigations: (1) Fixed window with INCR (O(1), Redis handles 1M+ INCR/sec) instead of sorted set. Sacrifice accuracy for scale. (2) Local token bucket in application memory — zero Redis calls for most requests, sync every 100ms. Bounded over-limit.</p><p>(3) WAF/CDN-level blocking (AWS WAF, Cloudflare) before the rate limiter — blocks known bad IPs and bot patterns at the network edge, never reaches your API. For true DDoS, network-level mitigation (Cloudflare Magic Transit, AWS Shield) is required — no application-layer rate limiter sustains 1M req/sec.</p></div>
+  </div>
+
+  <div class="sc-item" id="sc-4">
+    <div class="sc-q" onclick="toggleSC('sc-4')">
+      <span>How do you implement different rate limits per tier (free/pro/enterprise)? <span class="sc-tag">Multi-tier</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Store rules in Config Service per (clientTier, endpoint): free = 100/hour for /search, pro = 10K/hour, enterprise = custom. API key carries a tier claim (or middleware looks it up). Same algorithm, different parameters.</p><p>Rule evaluation: fetch (api_key_tier, endpoint) rule from Config cache (30s TTL). Update rules: write to Config DB → propagates to middleware cache within 30s. No restart needed. Multi-level: some systems implement both per-endpoint AND total-per-client limits simultaneously — a user might have 100 req/hour for /search and 500 req/hour total. Check both counters per request.</p></div>
+  </div>
+
+  <div class="sc-item" id="sc-5">
+    <div class="sc-q" onclick="toggleSC('sc-5')">
+      <span>Redis is down. Should you fail open or fail closed? <span class="sc-tag">Resilience</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>For most production APIs: fail open (allow requests). Rationale: a rate limiter outage should not take down your entire API — the harm from allowing extra requests during an outage is less than a full API outage visible to all users. Implementation: try Redis with 50ms timeout. On timeout/error: allow the request, log the error, increment a metric. Alert on-call if error rate &gt; 1%.</p><p>Circuit breaker: if Redis errors exceed threshold, open the circuit — allow all requests directly without trying Redis. Close when Redis recovers. Fallback local limiting: on Redis failure, use in-process counter per instance. Allows up to N×limit but bounds damage. For security-critical limits (login brute force, password reset): fail closed — return 503 rather than allowing unlimited attempts.</p></div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2>10. Interview Tips</h2>
+  <div class="tip">
+    <div class="tip-icon">🎯</div>
+    <div class="tip-text"><strong>Clarify: per-user or per-IP?</strong> Per-user is better for authenticated APIs (prevents sharing). Per-IP is needed for unauthenticated endpoints. Mention both dimensions and ask which to prioritize.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">⚛️</div>
+    <div class="tip-text"><strong>Lua script atomicity is the key insight</strong> — without it, concurrent requests race on the counter. Mention this explicitly: "I'd use a Redis Lua script to atomically check and increment — Lua runs as a single atomic operation on Redis."</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">🔓</div>
+    <div class="tip-text"><strong>Always address fail-open</strong> — if you don't mention it, the interviewer will ask. Justify: a brief window of unprotected traffic is better than customer-visible 429s caused by your rate limiter itself being down.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">📡</div>
+    <div class="tip-text"><strong>Return the right headers:</strong> <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code>, <code>X-RateLimit-Reset</code>, and on 429: <code>Retry-After</code>. This shows product thinking — good clients will back off instead of hammering.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">🌐</div>
+    <div class="tip-text"><strong>Multi-region is a follow-up trap</strong> — interviewers often push "what if you have 3 regions?" Answer: regional limits (simple) vs. centralized Redis with replication (accurate but latency + single point). Most production systems use regional limits.</div>
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="hld-index.html">All HLD Problems</a></span>
+  <span>SDE Interview Prep</span>
+</footer>
+
+</div>
+
+<script>
+const NODE_INFO = {
+  client: {
+    title: 'Client Application',
+    body: 'Every API request passes through the rate limiter. The rate limiter sits as middleware in front of all API handlers — clients never talk directly to backend services. Any client type: browser, mobile app, server-to-server call, third-party integration.',
+    stats: ['All API traffic passes through', 'Any client type', 'Sends API key in Authorization header', 'Should respect Retry-After header'],
+    warn: null
+  },
+  middleware: {
+    title: 'Rate Limiter Middleware',
+    body: 'Intercepts every request at the API Gateway level. Extracts the rate limit key (API key, user ID, or IP). Looks up the current counter in Redis. Increments atomically via Lua script. If count > limit: return 429 immediately (API server never sees this request). Total overhead: <1ms.',
+    stats: ['Sub-ms overhead requirement', 'Key extraction + counter lookup', 'Atomic INCR or Lua eval', 'Returns 429 on exceeded limit'],
+    warn: null
+  },
+  redis: {
+    title: 'Redis (Distributed Counters)',
+    body: 'Stores rate limit counters shared across all API Gateway instances. For sliding window: sorted set per client with timestamps as scores. For fixed window: simple INCR+EXPIRE key. Lua scripts make multi-step operations atomic — no race conditions possible.',
+    stats: ['Atomic Lua scripts', 'INCR for fixed window', 'ZADD/ZCARD for sliding window', 'Sub-ms reads/writes', '~10GB for 100M keys'],
+    warn: 'Redis is a single point of failure. Use Redis Cluster or Sentinel for HA. If Redis is unreachable: fail open (allow requests) rather than blocking all traffic. A rate limiter outage must never take down your entire API.'
+  },
+  api: {
+    title: 'Backend API Servers',
+    body: 'Only receive requests that passed the rate limiter check. No rate limiting logic in the API servers themselves — it\'s handled upstream at the Gateway. Standard API handlers that process business logic. They trust that the Gateway has already enforced limits.',
+    stats: ['Only receives allowed requests', 'Standard API handlers', 'No rate limit code needed', 'Can scale independently'],
+    warn: null
+  },
+  config: {
+    title: 'Rate Limit Config Service',
+    body: 'Stores per-client and per-endpoint rate limit rules: {endpoint, clientTier, limit, window, algorithm}. Rules are updatable in real-time without deployment. Middleware caches rules in memory with 30s TTL — rules propagate within 30 seconds of change.',
+    stats: ['Per-endpoint, per-tier rules', 'Real-time rule updates', '30s cache in middleware', 'No restart for changes', 'Config DB: PostgreSQL'],
+    warn: null
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  const el = document.querySelector(`.arch-node[data-id="${id}"]`);
+  if (el) el.classList.add('sel');
+  const info = NODE_INFO[id];
+  if (!info) return;
+  const panel = document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  const statsHtml = (info.stats || []).map(s => `<span class="ap-stat">${s}</span>`).join('');
+  const warnHtml = info.warn ? `<div class="ap-warn">${info.warn}</div>` : '';
+  panel.innerHTML = `<div class="ap-title">${info.title}</div><div class="ap-body">${info.body}</div><div>${statsHtml}</div>${warnHtml}`;
+}
+
+const STEPS = [
+  {
+    nodes: ['fn-client'],
+    title: 'Client sends API request',
+    desc: 'Client sends GET /api/search with Authorization: Bearer ak_live_abc123. The API key is the rate limit key — per-key limits, not per-IP (multiple users may share an IP via NAT).',
+    code: 'GET /api/search?q=python HTTP/1.1\nAuthorization: Bearer ak_live_abc123\nHost: api.example.com'
+  },
+  {
+    nodes: ['fn-client', 'fn-middleware'],
+    title: 'Middleware extracts key and fetches rule',
+    desc: 'Rate limiter middleware intercepts the request. Extracts API key "ak_live_abc123". Looks up rule from Config cache: {limit: 100, window: 3600s}. Algorithm: sliding window log.',
+    code: 'String key = extractApiKey(request); // \'ak_live_abc123\'\nRateRule rule = configCache.get(key); // {limit:100, window:3600}\nString redisKey = \'rl:sw:\' + key;'
+  },
+  {
+    nodes: ['fn-middleware', 'fn-redis'],
+    title: 'Sliding window: atomic check-and-increment',
+    desc: 'Lua script runs atomically on Redis: (1) Remove timestamps older than now-3600s from the sorted set. (2) Count remaining. (3) If >= 100: deny. (4) Else: add current timestamp. Returns: {allowed: true, count: 47}.',
+    code: '-- Redis Lua script (runs atomically)\nlocal now = tonumber(ARGV[1]) -- ms\nlocal window = tonumber(ARGV[2]) -- 3600000ms\nlocal limit = tonumber(ARGV[3]) -- 100\nredis.call(\'ZREMRANGEBYSCORE\',KEYS[1],0,now-window)\nlocal n = redis.call(\'ZCARD\',KEYS[1])\nif n >= limit then return {0,n} end\nredis.call(\'ZADD\',KEYS[1],now,now)\nreturn {1,n+1}'
+  },
+  {
+    nodes: ['fn-middleware', 'fn-client'],
+    title: 'Request denied — 429 Too Many Requests',
+    desc: 'count >= 100: middleware returns 429 immediately. Sets headers: X-RateLimit-Limit: 100, X-RateLimit-Remaining: 0, Retry-After: 847. The API server never sees this request. Violation event logged to Kafka asynchronously.',
+    code: 'HTTP/1.1 429 Too Many Requests\nX-RateLimit-Limit: 100\nX-RateLimit-Remaining: 0\nX-RateLimit-Reset: 1704067200\nRetry-After: 847\n\n{"error":"rate_limit_exceeded","retry_after":847}'
+  },
+  {
+    nodes: ['fn-middleware', 'fn-api'],
+    title: 'Request allowed — forward to API',
+    desc: 'count < 100: forward request with rate limit headers showing remaining quota. API processes normally. Total middleware overhead: ~0.5-1ms (Redis round-trip). Client sees response within normal latency.',
+    code: '// Add rate limit headers and forward\nrequest.setHeader(\'X-RateLimit-Limit\', \'100\');\nrequest.setHeader(\'X-RateLimit-Remaining\', \'52\');\nrequest.setHeader(\'X-RateLimit-Reset\', resetTimestamp);\napi.handle(request); // process normally'
+  },
+  {
+    nodes: ['fn-api', 'fn-client'],
+    title: 'API responds with quota headers',
+    desc: 'Client receives the API response plus rate limit headers showing remaining quota. A well-behaved client tracks X-RateLimit-Remaining and proactively slows down as it approaches 0, rather than hitting 429 reactively.',
+    code: 'HTTP/1.1 200 OK\nX-RateLimit-Limit: 100\nX-RateLimit-Remaining: 52\nX-RateLimit-Reset: 1704067200\n\n{ results: [...] }'
+  }
+];
+
+const ALL_FN = ['fn-client', 'fn-middleware', 'fn-redis', 'fn-api'];
+let curStep = 0;
+
+function renderStep() {
+  ALL_FN.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.className = 'fn';
+  });
+  if (curStep > 0) {
+    const step = STEPS[curStep - 1];
+    ALL_FN.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const stepIdx = STEPS.findIndex(s => s.nodes.includes(id));
+      if (step.nodes.includes(id)) el.className = 'fn act';
+      else if (stepIdx !== -1 && stepIdx < curStep - 1) el.className = 'fn done';
+    });
+    const card = document.getElementById('flow-card');
+    card.innerHTML = `<div class="fc-title">${step.title}</div><div class="fc-desc">${step.desc}</div><pre class="fc-code">${step.code}</pre>`;
+  } else {
+    document.getElementById('flow-card').innerHTML = `<div class="fc-title">Click "Next" to begin</div><div class="fc-desc">Walk through how a client API request is processed by the rate limiter middleware using a sliding window log algorithm.</div>`;
+  }
+  document.getElementById('btn-prev').disabled = curStep === 0;
+  document.getElementById('btn-next').disabled = curStep === STEPS.length;
+  document.getElementById('step-counter').textContent = `${curStep} / ${STEPS.length}`;
+  document.querySelectorAll('.fdot').forEach((d, i) => d.classList.toggle('on', i === curStep - 1));
+}
+
+function nextStep() { if (curStep < STEPS.length) { curStep++; renderStep(); } }
+function prevStep() { if (curStep > 0) { curStep--; renderStep(); } }
+function goStep(n) { curStep = n + 1; renderStep(); }
+
+(function initDots() {
+  const c = document.getElementById('flow-dots');
+  STEPS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'fdot';
+    d.onclick = () => goStep(i);
+    c.appendChild(d);
+  });
+  renderStep();
+})();
+
+const ALGO_DATA = [
+  {
+    name: 'Fixed Window',
+    desc: 'Divide time into fixed buckets (e.g., 1-minute windows). Counter resets at window boundary. Simplest to implement — just INCR and EXPIRE. Problem: boundary burst — 100 requests at :59 + 100 requests at :01 = 200 requests in 2 seconds, both windows valid.',
+    diagram: 'Window 1 (:00-:59)    Window 2 (1:00-1:59)\n[██████████] 100/100  [██████████] 100/100\n\n:59 ──100 req─→ OK   1:00 ──100 req─→ OK!\n                     ↑ 200 requests in 2 seconds = BOUNDARY BURST BUG'
+  },
+  {
+    name: 'Sliding Window Log',
+    desc: 'Store a timestamp for every request in a sorted set. To check: remove timestamps older than (now - window), count remaining. If under limit: add timestamp and allow. Exact accuracy. Memory cost: O(requests per client) — can be large for high-traffic clients.',
+    diagram: 'Sorted set for client X (window: 60s):\n[12:00:01, 12:00:05, 12:00:22, ..., 12:00:59] ← 47 timestamps\n\nNew request at 12:01:00:\n→ Remove timestamps < 12:00:00 (none)\n→ Count: 47 < 100 ✓ → add 12:01:00 → ALLOW'
+  },
+  {
+    name: 'Sliding Window Counter',
+    desc: 'Approximate sliding window using two fixed windows weighted by position. current_count + prev_count × (window - elapsed) / window. O(1) memory, ~95% accurate. The approximation error is bounded — never more than the limit × (1 - overlap). Best production balance.',
+    diagram: 'Prev window: 80 requests    Current window: 30 requests\n|────────────────────|────────────────────|\nElapsed in current: 40% of window\n\nApprox count = 30 + 80 × (1 - 0.4) = 30 + 48 = 78\n→ 78 < 100 ✓ → ALLOW  (exact would be ~75)'
+  },
+  {
+    name: 'Token Bucket',
+    desc: 'A bucket holds tokens that refill at a steady rate (e.g., 10/sec, max capacity 100). Each request consumes 1 token. If the bucket is empty, the request is denied. Allows short bursts up to bucket capacity, then throttles to the refill rate. Perfect for APIs where brief traffic spikes are acceptable.',
+    diagram: 'Time:   0s──────────10s──────────20s──────────30s\nTokens: [████████████] → [██████░░░░░░] → [░░░░░░░░░░░░] → refills\nReq/s:  steady 8/s       burst 15/s!       throttled        back to normal\nResult: ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓   ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✗ ✗   ✗ ✗ ✗ ✗ ✗ ✗'
+  },
+  {
+    name: 'Leaky Bucket',
+    desc: 'Requests enter a FIFO queue (the "bucket") and are processed at a fixed rate (the "leak"). If the queue is full: reject incoming requests. Guarantees a perfectly smooth output rate regardless of input bursts. Used for traffic shaping, not just limiting. The queue smooths spikes into a steady stream.',
+    diagram: 'Input (bursty):  ▐███████░░░██████░░░░░░███░░░░░░░░\nQueue (buffer):  [req1][req2][req3][req4][req5]...\nOutput (steady): req ──► req ──► req ──► req ──► req\n                 10ms    10ms    10ms    10ms\n→ Input bursts are absorbed; output is always 100 req/sec'
+  }
+];
+
+let selAlgo = 3;
+function selectAlgo(idx) {
+  selAlgo = idx;
+  const rows = document.querySelectorAll('#algo-table tbody tr');
+  rows.forEach((r, i) => r.classList.toggle('sel-row', i === idx));
+  document.getElementById('algo-name').textContent = ALGO_DATA[idx].name;
+  document.getElementById('algo-desc').textContent = ALGO_DATA[idx].desc;
+  document.getElementById('algo-diagram').textContent = ALGO_DATA[idx].diagram;
+}
+
+function toggleSC(id) { document.getElementById(id).classList.toggle('open'); }
+</script>
+</body>
+</html>

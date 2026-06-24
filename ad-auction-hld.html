@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ad Auction System — HLD</title>
+<style>
+:root {
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 100px}
+.back{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none;padding:28px 0 0}
+.back:hover{color:var(--clay)}
+header{padding:44px 0 40px;border-bottom:1.5px solid var(--g200);margin-bottom:48px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-bottom:16px}
+h1{font-family:var(--serif);font-size:clamp(30px,4.5vw,48px);font-weight:500;line-height:1.1;letter-spacing:-.02em;margin-bottom:12px}
+.sub{font-size:16px;color:var(--g700);line-height:1.6;max-width:600px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+nav.toc a{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;padding:5px 12px;border-radius:20px;background:var(--g100);color:var(--g700);text-decoration:none;transition:background .15s}
+nav.toc a:hover{background:var(--oat);color:var(--slate)}
+section{margin-bottom:60px}
+h2{font-family:var(--serif);font-size:26px;font-weight:500;letter-spacing:-.015em;margin-bottom:20px;padding-bottom:12px;border-bottom:1.5px solid var(--g200)}
+h3{font-size:14px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--g500);margin:24px 0 12px;font-family:var(--mono)}
+p{color:var(--g700);margin-bottom:14px;font-size:14.5px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:14px 16px;font-size:13.5px;color:var(--g700);line-height:1.5}
+.req-item.func{border-left:3px solid var(--clay)}
+.req-item.nfunc{border-left:3px solid var(--olive)}
+.req-label{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.req-item.func .req-label{color:var(--clay)}
+.req-item.nfunc .req-label{color:var(--olive)}
+.est-table{width:100%;border-collapse:collapse;font-size:14px}
+.est-table th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-align:left;padding:8px 12px;border-bottom:1.5px solid var(--g300);background:var(--g100)}
+.est-table td{padding:10px 12px;border-bottom:1px solid var(--g200);color:var(--g700);vertical-align:top}
+.est-table td:first-child{font-weight:500;color:var(--slate)}
+.est-table tr:last-child td{border-bottom:none}
+.arch-box{background:var(--paper);border:1.5px solid var(--g200);border-radius:16px;padding:24px;overflow-x:auto}
+pre{background:var(--slate);color:#e8e6e0;border-radius:10px;padding:20px;font-family:var(--mono);font-size:12.5px;line-height:1.7;overflow-x:auto;margin-bottom:16px}
+.kw{color:#7eb8f7}.cn{color:#a8d8a8}.cm{color:var(--g500);font-style:italic}.st{color:#f4b56a}.nm{color:#c9a9f5}
+.deep-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:22px 24px;margin-bottom:16px}
+.deep-card h4{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:10px;color:var(--slate)}
+.deep-card p{margin-bottom:8px;font-size:13.5px}
+.tip{display:flex;gap:14px;background:var(--g100);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+.tip-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.tip-text{font-size:13.5px;color:var(--g700);line-height:1.55}
+.tip-text strong{color:var(--slate);display:block;margin-bottom:3px}
+.scale-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.scale-grid{grid-template-columns:1fr}}
+.scale-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:18px}
+.scale-card h4{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--clay);margin-bottom:8px}
+.scale-card p{font-size:13px;color:var(--g700);margin:0}
+footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;font-size:12px;color:var(--g500);flex-wrap:wrap;gap:12px}
+footer a{color:var(--g500);text-decoration:none}
+footer a:hover{color:var(--slate)}
+
+/* === Interactive arch === */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:700px){.arch-wrap{grid-template-columns:1fr}}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px;color:var(--slate)}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px}
+.ap-empty{color:var(--g500);font-size:13px;text-align:center;padding-top:40px}
+
+/* === Flow stepper === */
+.flow-pills{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:16px}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);font-size:14px;margin:0 2px}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin:16px 0;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px;color:var(--slate)}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.65;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:12px;margin-top:8px}
+.fnav-btn{padding:7px 18px;border-radius:7px;border:1.5px solid var(--g300);font-size:13px;font-weight:500;background:var(--g100);cursor:pointer;transition:all .15s;color:var(--slate)}
+.fnav-btn:hover:not(:disabled){background:var(--clay);border-color:var(--clay);color:white}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:12px;color:var(--g500)}
+.flow-dots{display:flex;gap:6px;margin-left:auto}
+.fdot{width:8px;height:8px;border-radius:50%;background:var(--g300);cursor:pointer;transition:background .15s}
+.fdot.on{background:var(--clay)}
+
+/* === Self-check === */
+.sc-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+
+/* === Playground === */
+.playground{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin-top:16px}
+.playground h3{font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:8px}
+.pg-inputs{display:flex;flex-wrap:wrap;gap:20px;margin:16px 0 20px}
+.pg-field{display:flex;flex-direction:column;gap:6px}
+.pg-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500)}
+.pg-input-cpm{padding:8px 12px;border-radius:7px;border:1.5px solid var(--g300);font-size:16px;background:var(--g100);color:var(--slate);font-family:var(--mono);width:120px}
+.pg-input-cpm:focus{outline:none;border-color:var(--clay)}
+.bidder-name{font-family:var(--serif);font-size:15px;font-weight:500;margin-bottom:6px;color:var(--slate)}
+.auction-result{background:var(--g100);border-radius:12px;padding:20px 24px;margin-top:4px}
+.ar-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--g200);font-size:14px;color:var(--g700)}
+.ar-row:last-child{border-bottom:none}
+.ar-label{font-weight:500;color:var(--slate)}
+.ar-val{font-family:var(--mono);font-size:14px;color:var(--clay);font-weight:600}
+.ar-val.green{color:var(--olive)}
+.winner-badge{background:var(--clay);color:white;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;padding:2px 8px;border-radius:20px;margin-left:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← Home</a>
+
+<header>
+  <div class="eyebrow">High Level Design · Staff / SDE III</div>
+  <h1>Real-Time Ad Auction System</h1>
+  <p class="sub">Design an RTB ad exchange processing 1M ad requests/second with sub-100ms auction latency, budget pacing, fraud detection, and targeting across 10M campaigns.</p>
+  <nav class="toc">
+    <a href="#overview">Requirements</a>
+    <a href="#estimation">Scale</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#flow">Request Flow</a>
+    <a href="#api">API</a>
+    <a href="#database">Database</a>
+    <a href="#deep-dive">Deep Dive</a>
+    <a href="#scaling">Scaling</a>
+    <a href="#self-check">Self-Check</a>
+    <a href="#playground">Simulator</a>
+  </nav>
+</header>
+
+<section id="overview">
+  <h2>1. Requirements</h2>
+  <div class="req-grid">
+    <div class="req-item func"><div class="req-label">Functional</div>Publishers expose ad slots; advertisers bid in real-time; auction runs, winner's ad is served in &lt;100ms.</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>1M ad requests/sec; auction latency &lt;100ms end-to-end; 99.99% availability.</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Targeting by demographics, interests, geo, device, and retargeting (custom audiences).</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Daily budget enforcement with no overspend; fraud detection on invalid traffic.</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Billing: CPM (cost per 1000 impressions), CPC (per click), CPA (per conversion).</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Billions of bid logs/day for reporting; GDPR/CCPA compliance — no PII in bid requests.</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Frequency capping (max N impressions per user per day), budget pacing, A/B creative testing.</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>PII-safe: anonymized user IDs; cookie-free targeting for privacy compliance.</div>
+  </div>
+</section>
+
+<section id="estimation">
+  <h2>2. Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Ad request QPS</td><td>Given</td><td>1,000,000 req/sec</td></tr>
+      <tr><td>Campaigns evaluated per request</td><td>10M campaigns → inverted index → top-K</td><td>~100 candidates/auction</td></tr>
+      <tr><td>Bid log volume</td><td>1M req/sec × 50 bids avg × 200 bytes</td><td>10 GB/sec → S3 + ClickHouse</td></tr>
+      <tr><td>User profiles in Redis</td><td>500M users × 500 bytes (compressed)</td><td>~250 GB Redis cluster</td></tr>
+      <tr><td>Frequency cap keys (24h TTL)</td><td>500M users × 100 campaigns × 8 bytes</td><td>~400 GB Redis</td></tr>
+      <tr><td>Reporting storage (1 year)</td><td>10 GB/sec × 86,400 × 365 / 10 (compressed)</td><td>~3 PB/year compressed</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="architecture">
+  <h2>3. High-Level Architecture</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:12px">Click any component to learn about it.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 780 320" fill="none" style="max-width:100%;width:100%">
+        <!-- Publisher -->
+        <g class="arch-node" data-id="ad-request" onclick="showNode('ad-request')">
+          <rect x="10" y="130" width="100" height="50" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="60" y="152" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">Publisher</text>
+          <text x="60" y="166" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Ad Slot Request</text>
+          <text x="60" y="178" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757">&lt;100ms SLA</text>
+        </g>
+        <line x1="110" y1="155" x2="148" y2="155" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="148,155 141,151 141,159" fill="#D1CFC5"/>
+
+        <!-- Targeting Engine -->
+        <g class="arch-node" data-id="targeting" onclick="showNode('targeting')">
+          <rect x="148" y="60" width="110" height="40" rx="7" fill="#FAF9F5" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="203" y="78" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">Targeting Engine</text>
+          <text x="203" y="92" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">inverted index · Redis</text>
+        </g>
+
+        <!-- Freq Cap -->
+        <g class="arch-node" data-id="freq-cap" onclick="showNode('freq-cap')">
+          <rect x="148" y="120" width="110" height="40" rx="7" fill="#FAF9F5" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="203" y="138" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">Frequency Cap</text>
+          <text x="203" y="152" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Redis INCR · 24h TTL</text>
+        </g>
+
+        <!-- Budget Service -->
+        <g class="arch-node" data-id="budget" onclick="showNode('budget')">
+          <rect x="148" y="180" width="110" height="40" rx="7" fill="#FAF9F5" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="203" y="198" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D" font-weight="600">Budget Service</text>
+          <text x="203" y="212" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">token bucket pacing</text>
+        </g>
+
+        <!-- Vertical flow arrows from publisher -->
+        <line x1="155" y1="155" x2="155" y2="100" stroke="#D1CFC5" stroke-width="1" stroke-dasharray="3,2"/>
+        <polygon points="203,100 199,107 207,107" fill="#D1CFC5"/>
+        <line x1="203" y1="100" x2="203" y2="120" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="203,120 199,113 207,113" fill="#D1CFC5"/>
+        <line x1="203" y1="160" x2="203" y2="180" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="203,180 199,173 207,173" fill="#D1CFC5"/>
+
+        <!-- Auction Engine -->
+        <g class="arch-node" data-id="auction" onclick="showNode('auction')">
+          <rect x="310" y="130" width="110" height="60" rx="8" fill="#D97757"/>
+          <text x="365" y="157" text-anchor="middle" font-family="monospace" font-size="10" fill="white" font-weight="700">AUCTION</text>
+          <text x="365" y="172" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.85)">2nd-price · &lt;5ms</text>
+          <text x="365" y="184" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,.7)">bid × quality score</text>
+        </g>
+        <line x1="258" y1="140" x2="309" y2="150" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="258" y1="155" x2="309" y2="160" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="258" y1="200" x2="309" y2="175" stroke="#D1CFC5" stroke-width="1.5"/>
+
+        <!-- Ad Server -->
+        <g class="arch-node" data-id="ad-server" onclick="showNode('ad-server')">
+          <rect x="480" y="100" width="110" height="40" rx="7" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="535" y="118" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="600">Ad Server</text>
+          <text x="535" y="132" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">serve creative · CDN</text>
+        </g>
+        <line x1="420" y1="150" x2="479" y2="120" stroke="#D97757" stroke-width="1.5"/>
+        <polygon points="479,120 472,125 474,117" fill="#D97757"/>
+
+        <!-- Impression Logger -->
+        <g class="arch-node" data-id="impression-log" onclick="showNode('impression-log')">
+          <rect x="480" y="165" width="110" height="40" rx="7" fill="#EFF5EA" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="535" y="183" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D" font-weight="600">Impression Logger</text>
+          <text x="535" y="197" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Kafka → ClickHouse</text>
+        </g>
+        <line x1="420" y1="165" x2="479" y2="185" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="479,185 473,179 481,178" fill="#D1CFC5"/>
+
+        <!-- ClickHouse -->
+        <g class="arch-node" data-id="clickhouse" onclick="showNode('clickhouse')">
+          <rect x="650" y="165" width="110" height="40" rx="7" fill="#EEF2F8" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="705" y="183" text-anchor="middle" font-family="monospace" font-size="9" fill="#4A6FA5" font-weight="600">ClickHouse</text>
+          <text x="705" y="197" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">billing · reporting</text>
+        </g>
+        <line x1="590" y1="185" x2="649" y2="185" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="649,185 642,181 642,189" fill="#D1CFC5"/>
+
+        <!-- Time label -->
+        <rect x="148" y="260" width="272" height="28" rx="6" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1"/>
+        <text x="284" y="278" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Total auction budget: &lt;100ms</text>
+      </svg>
+    </div>
+    <div id="arch-panel" class="arch-panel">
+      <p class="ap-empty">Click any component to learn about it</p>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>4. Request Flow</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:4px">Trace a single ad request through the full auction pipeline.</p>
+  <div class="flow-pills">
+    <span id="fn-ad-request" class="fn">Publisher</span>
+    <span class="farr">→</span>
+    <span id="fn-targeting" class="fn">Targeting</span>
+    <span class="farr">→</span>
+    <span id="fn-freq-cap" class="fn">Freq Cap</span>
+    <span class="farr">→</span>
+    <span id="fn-budget" class="fn">Budget</span>
+    <span class="farr">→</span>
+    <span id="fn-auction" class="fn">Auction</span>
+    <span class="farr">→</span>
+    <span id="fn-ad-server" class="fn">Ad Server</span>
+    <span class="farr">→</span>
+    <span id="fn-impression-log" class="fn">Logger</span>
+  </div>
+  <div id="flow-card" class="flow-card"><div class="fc-title">Loading…</div></div>
+  <div class="flow-nav">
+    <button class="fnav-btn" onclick="prevStep()" id="flow-prev">← Prev</button>
+    <span class="fnav-counter" id="flow-counter">1 / 6</span>
+    <button class="fnav-btn" onclick="nextStep()" id="flow-next">Next →</button>
+    <div class="flow-dots" id="flow-dots"></div>
+  </div>
+</section>
+
+<section id="api">
+  <h2>5. API Design</h2>
+  <h3>OpenRTB Bid Request (Publisher → Exchange)</h3>
+  <pre><span class="cm">// POST /rtb/bid  — OpenRTB 2.x standard</span>
+{
+  <span class="st">"id"</span>: <span class="st">"auction-uuid-123"</span>,
+  <span class="st">"imp"</span>: [{ <span class="st">"id"</span>: <span class="st">"1"</span>, <span class="st">"banner"</span>: { <span class="st">"w"</span>: <span class="nm">300</span>, <span class="st">"h"</span>: <span class="nm">250</span> }, <span class="st">"bidfloor"</span>: <span class="nm">0.5</span> }],
+  <span class="st">"site"</span>: { <span class="st">"page"</span>: <span class="st">"https://publisher.com/article"</span>, <span class="st">"cat"</span>: [<span class="st">"IAB12"</span>] },
+  <span class="st">"user"</span>: { <span class="st">"buyeruid"</span>: <span class="st">"hashed-user-id"</span> },  <span class="cm">// anonymized</span>
+  <span class="st">"device"</span>: { <span class="st">"ua"</span>: <span class="st">"Mozilla/5.0..."</span>, <span class="st">"geo"</span>: { <span class="st">"country"</span>: <span class="st">"US"</span>, <span class="st">"city"</span>: <span class="st">"NYC"</span> } }
+}
+<span class="cm">// Response: winner ad creative</span>
+{ <span class="st">"id"</span>: <span class="st">"auction-uuid-123"</span>, <span class="st">"seatbid"</span>: [{ <span class="st">"bid"</span>: [{ <span class="st">"price"</span>: <span class="nm">2.15</span>, <span class="st">"adid"</span>: <span class="st">"ad-456"</span>, <span class="st">"adm"</span>: <span class="st">"&lt;img ...&gt;"</span> }] }] }
+
+<span class="cm">// Campaign management</span>
+POST /api/v1/campaigns
+{ <span class="st">"name"</span>: <span class="st">"Summer Sale"</span>, <span class="st">"budget_daily_usd"</span>: <span class="nm">10000</span>,
+  <span class="st">"targeting"</span>: { <span class="st">"geo"</span>: [<span class="st">"US"</span>], <span class="st">"age"</span>: [<span class="st">"25-34"</span>], <span class="st">"interests"</span>: [<span class="st">"sports"</span>] },
+  <span class="st">"bids"</span>: [{ <span class="st">"format"</span>: <span class="st">"banner_300x250"</span>, <span class="st">"cpm_usd"</span>: <span class="nm">3.50</span> }],
+  <span class="st">"frequency_cap"</span>: { <span class="st">"impressions"</span>: <span class="nm">5</span>, <span class="st">"window_hours"</span>: <span class="nm">24</span> } }</pre>
+</section>
+
+<section id="database">
+  <h2>6. Database Design</h2>
+  <pre><span class="cm">-- PostgreSQL: campaigns + creatives</span>
+<span class="kw">CREATE TABLE</span> campaigns (
+  campaign_id   UUID PRIMARY KEY,
+  daily_budget  NUMERIC(12,4),
+  targeting     JSONB,              <span class="cm">-- {geo:[], age:[], interests:[]}</span>
+  status        VARCHAR(20)         <span class="cm">-- active/paused/budget_exhausted</span>
+);
+
+<span class="cm">-- Redis: hot-path data structures</span>
+<span class="cm">-- Targeting inverted index (sorted set, score = max bid)</span>
+ZADD targeting:geo:US 3.50 campaign-uuid-1
+ZADD targeting:interest:sports 4.10 campaign-uuid-2
+
+<span class="cm">-- User profile (pre-computed offline by Spark, cached in Redis)</span>
+HSET user:hashed-uid interests "[sports,fitness]" age_bucket "25-34" geo "US"
+
+<span class="cm">-- Frequency cap (atomic counter with 24h TTL)</span>
+INCR  user:hashed-uid:ad:ad-uuid-1:count
+EXPIRE user:hashed-uid:ad:ad-uuid-1:count 86400
+
+<span class="cm">-- Budget token bucket (refilled every minute by background job)</span>
+DECRBY campaign:uuid-1:budget_tokens 1   <span class="cm">-- consume on each impression win</span></pre>
+</section>
+
+<section id="deep-dive">
+  <h2>7. Key Design Decisions</h2>
+
+  <div class="deep-card">
+    <h4>Auction Time Budget (&lt;100ms total)</h4>
+    <p>Every millisecond counts. Here's how the budget is allocated:</p>
+    <pre><span class="cm">Parse + validate request      :  2ms
+User profile lookup (Redis)   :  3ms
+Fraud / IVT scoring           :  8ms
+Targeting candidate retrieval : 12ms  (inverted index intersection)
+Frequency cap check (Redis)   :  3ms
+Budget check (Redis DECR)     :  2ms
+Auction ranking (in memory)   :  3ms
+Ad creative lookup + response :  7ms
+Kafka emit (async, fire+fgt)  :  0ms  (non-blocking)
+                              ------
+Total                         : ~40ms  (60ms headroom)</span></pre>
+    <p>All heavy I/O happens before the auction runs (targeting, user lookup). The auction itself is pure CPU — sorting 100 bids takes microseconds.</p>
+  </div>
+
+  <div class="deep-card">
+    <h4>Targeting with Inverted Index</h4>
+    <p>Evaluating all 10M campaigns per request is impossible at 1M req/sec. Instead: Redis sorted sets keyed by targeting dimension, scored by max bid. For a request with {geo:US, device:mobile, interest:sports}: ZREVRANGEBYSCORE on each dimension → intersect → top-100 candidates. This reduces 10M → 100 candidates in ~12ms. The union/intersection is done in Lua on Redis to avoid multiple round-trips.</p>
+  </div>
+
+  <div class="deep-card">
+    <h4>2nd-Price Auction</h4>
+    <p><strong>Winner pays 2nd-highest bid + $0.01.</strong> This is incentive-compatible: bidding your true value is the dominant strategy. Even if you overbid, you won't overpay (you pay what the next person was willing to pay). Encourages honest participation in the market. Google moved to 1st-price in 2019 — simpler for advertisers to understand, but requires bid-shading algorithms on the buy side to avoid overpaying.</p>
+    <p><strong>Quality Score:</strong> effective_CPM = bid × predicted_CTR × predicted_CVR. A $5 bid with 2% CTR beats a $8 bid with 0.5% CTR. The exchange shows more relevant ads and earns more revenue long-term.</p>
+  </div>
+
+  <div class="deep-card">
+    <h4>Budget Pacing with Token Bucket</h4>
+    <p>Naive approach: check spent_today &lt; daily_budget before each auction. Problem: 1M auctions/sec → budget exhausted in seconds at peak morning traffic. Token bucket solution: each campaign gets daily_budget/1440 tokens per minute (refilled by background job). Redis DECRBY is atomic — thread-safe across 100 auction servers. When tokens hit 0, campaign excluded until next refill. Smooth pacing: Grafana shows steady spend curve, not front-loaded spike.</p>
+  </div>
+</section>
+
+<section id="scaling">
+  <h2>8. Scaling &amp; Bottlenecks</h2>
+  <div class="scale-grid">
+    <div class="scale-card"><h4>Auction Servers</h4><p>Stateless — horizontally scalable. All per-request state in Redis. LB distributes evenly. Auto-scale on QPS metric.</p></div>
+    <div class="scale-card"><h4>Redis Cluster</h4><p>User profiles + targeting index sharded by key hash. 8-16 shards × 32GB each. Read replicas for user lookups (read-heavy, write-rare).</p></div>
+    <div class="scale-card"><h4>Kafka Async Logging</h4><p>Bid logs async (fire-and-forget from auction perspective). Kafka consumers write to S3 + ClickHouse without blocking auctions.</p></div>
+    <div class="scale-card"><h4>Hot Campaign Cache</h4><p>Top 1000 campaigns appear in 80% of auctions. Pre-fetch to local in-memory cache on auction servers (5-min TTL). Avoids Redis on critical path for these.</p></div>
+    <div class="scale-card"><h4>Global Deployment</h4><p>Deploy per-region: US-East, EU-West, Asia-Pacific. User profiles geo-replicated. Ad requests served from nearest region (&lt;10ms network). Cross-region only for reporting.</p></div>
+    <div class="scale-card"><h4>ClickHouse Reporting</h4><p>Pre-aggregate hourly rollups via Flink. Campaign dashboards query rollups (&lt;1s), not raw bid logs. Raw logs on S3 for audit.</p></div>
+  </div>
+</section>
+
+<section id="self-check">
+  <h2>9. Self-Check</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:16px">Test your understanding. Click to reveal answers.</p>
+  <div class="sc-list">
+    <div class="sc-item" id="sc-1">
+      <div class="sc-q" onclick="toggleSC('sc-1')">
+        <span>Why 2nd-price (Vickrey) instead of 1st-price auction? <span class="sc-tag">Auction Theory</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>In a 1st-price auction, the winner pays their own bid — this incentivizes advertisers to shade their bids downward (bid less than their true value), creating a complex game theory problem. You never know if bidding $4 when your true value is $5 is the right strategy, because it depends on what others are bidding. In a 2nd-price auction, the dominant strategy (optimal regardless of what others do) is to bid your true value: if you win, you pay the 2nd-highest bid + $0.01, not your own bid. This simplifies the market and leads to better price discovery. Note: Google moved to 1st-price in 2019 partly to unify their different auction types and increase transparency for buyers.</p></div>
+    </div>
+    <div class="sc-item" id="sc-2">
+      <div class="sc-q" onclick="toggleSC('sc-2')">
+        <span>How do you prevent an advertiser from spending their entire budget at 9am? <span class="sc-tag">Budget Pacing</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Token bucket pacing: divide daily budget into 1440 × 1-minute intervals. Each interval budget = daily_budget / 1440, adjusted by expected traffic patterns (more traffic at noon than 2am). Redis stores token count per campaign. Each impression win decrements the token count atomically (DECRBY). Background job refills tokens every minute. If tokens hit 0, campaign excluded from auctions that minute. Advanced: historical traffic curves used to distribute budget proportionally — 80% of traffic between 8am-8pm, so allocate 80% of budget there. Grafana dashboards show real-time spend rate vs budget curve.</p></div>
+    </div>
+    <div class="sc-item" id="sc-3">
+      <div class="sc-q" onclick="toggleSC('sc-3')">
+        <span>Targeting engine takes 200ms — we need to fit in 100ms total. What do you do? <span class="sc-tag">Latency</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Pre-compute user profiles offline (Spark job every 30 minutes) and cache in Redis. On ad request, it's a single Redis GET (&lt;2ms) not real-time ML inference. The inverted index (targeting:geo:US sorted set) is also in Redis — intersecting 3 dimensions takes &lt;10ms. Fallback: if Redis miss (new user), serve contextual ads based on page URL/category only (no user targeting). Cascade timeout: any Redis call taking &gt;20ms → use cached 'default' candidate list. Audit later. The auction must never fail to respond — showing a house ad is better than showing nothing.</p></div>
+    </div>
+    <div class="sc-item" id="sc-4">
+      <div class="sc-q" onclick="toggleSC('sc-4')">
+        <span>How does click fraud detection work? <span class="sc-tag">Fraud</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Multi-layer approach: (1) Real-time: Redis counter per (userId, adId, hour) — if clicks &gt; 3 in 1 hour, flag as suspicious; IP rate limits. (2) ML scoring: every click → Kafka → fraud model (features: click velocity, device fingerprint, time since impression, IP reputation, user agent). Score &lt;0.5 = fraudulent. (3) Retroactive: daily Spark job runs anomaly detection on click patterns (click farms show identical time intervals, coordinated IPs). Fraudulent clicks: not billed to advertiser, not counted in conversion reports. Publishers with high fraud rates: suspended from exchange. Industry: Google estimates 10-15% of ad clicks are fraudulent before filtering.</p></div>
+    </div>
+    <div class="sc-item" id="sc-5">
+      <div class="sc-q" onclick="toggleSC('sc-5')">
+        <span>How do you attribute a purchase to an ad impression? <span class="sc-tag">Attribution</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Attribution chain: impression logged (impressionId, userId, campaignId, timestamp) → if user purchases within conversion window (7 days by default) → look up their last N ad impressions in ClickHouse → apply attribution model. Models: (1) Last-click: attribute to the last ad the user clicked. Simple, favors bottom-of-funnel. (2) First-click: attribute to the first ad. Favors awareness campaigns. (3) Linear: split credit equally. (4) Data-driven: ML model weights impressions by their actual influence (trained on conversion data). Identity resolution: user may see ad on mobile, buy on desktop → probabilistic matching by email, device graph (hashed). Cross-device attribution reduces under-counting.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="playground">
+  <h2>10. Interactive</h2>
+  <div class="playground">
+    <h3>Vickrey Auction Simulator</h3>
+    <p style="font-size:13px;color:var(--g500)">Enter CPM bids for three advertisers. See who wins and what they pay under 2nd-price rules.</p>
+    <div class="pg-inputs">
+      <div class="pg-field">
+        <div class="bidder-name">Advertiser A</div>
+        <label class="pg-label">CPM Bid (USD)</label>
+        <input class="pg-input-cpm" type="number" id="bid-a" value="5.00" step="0.01" min="0" oninput="runAuction()">
+      </div>
+      <div class="pg-field">
+        <div class="bidder-name">Advertiser B</div>
+        <label class="pg-label">CPM Bid (USD)</label>
+        <input class="pg-input-cpm" type="number" id="bid-b" value="3.50" step="0.01" min="0" oninput="runAuction()">
+      </div>
+      <div class="pg-field">
+        <div class="bidder-name">Advertiser C</div>
+        <label class="pg-label">CPM Bid (USD)</label>
+        <input class="pg-input-cpm" type="number" id="bid-c" value="4.20" step="0.01" min="0" oninput="runAuction()">
+      </div>
+    </div>
+    <div class="auction-result" id="auction-result">
+      <div class="ar-row"><span class="ar-label" id="res-winner-label">Winner</span><span class="ar-val" id="res-winner">—</span></div>
+      <div class="ar-row"><span class="ar-label">Winner's Bid</span><span class="ar-val" id="res-win-bid">—</span></div>
+      <div class="ar-row"><span class="ar-label">Price Paid (2nd price + $0.01)</span><span class="ar-val" id="res-price">—</span></div>
+      <div class="ar-row"><span class="ar-label">1st-Price Would Have Cost</span><span class="ar-val" id="res-first">—</span></div>
+      <div class="ar-row"><span class="ar-label">Advertiser Savings vs 1st-Price</span><span class="ar-val green" id="res-savings">—</span></div>
+    </div>
+    <p style="font-size:12px;color:var(--g500);margin-top:12px">2nd-price = winner pays (2nd-highest bid + $0.01). Bidding your true value is the dominant strategy.</p>
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="hld-index.html">All HLD Problems</a></span>
+  <span>SDE Interview Prep · Staff / SDE III</span>
+</footer>
+</div>
+
+<script>
+const NODE_INFO = {
+  'ad-request': {
+    title: "Publisher / Ad Request",
+    body: "Browser or app sends an ad request when a page loads. The request includes the ad slot dimensions, page URL (for contextual targeting), anonymized user ID, and device info. This triggers the auction. SLA: the exchange must respond within 100ms or the publisher shows a default/house ad.",
+    stats: ["Ad slot: size + position", "Page URL for contextual targeting", "Hashed user ID (no PII)", "&lt;100ms SLA or fallback ad"],
+    warn: null
+  },
+  targeting: {
+    title: "Targeting Engine",
+    body: "Matches this request to eligible campaigns. Fetches pre-computed user profile from Redis (age, interests, geo — all offline computed). Intersects targeting inverted indexes (targeting:geo:US, targeting:interest:sports) to find campaigns eligible for this user. Returns top-100 candidates by max CPM bid.",
+    stats: ["Redis user profile lookup", "Inverted index intersection", "Top-100 candidates selected", "&lt;12ms on Redis"],
+    warn: null
+  },
+  'freq-cap': {
+    title: "Frequency Cap (Redis)",
+    body: "Prevents showing the same ad too many times to one user. Redis key: user:{userId}:ad:{adId}:count. INCR on each impression, TTL 24h. If count > cap (e.g., 5 per day) → remove that campaign from candidates. Critical for user experience — seeing the same shoe ad 50 times per day destroys brand perception.",
+    stats: ["INCR atomic counter per user+ad", "24h TTL auto-expires", "Configurable cap per campaign", "Removed from auction if exceeded"],
+    warn: null
+  },
+  budget: {
+    title: "Budget Service (Token Bucket)",
+    body: "Checks if winning campaigns have remaining daily budget. Token bucket per campaign: daily_budget/1440 tokens refilled each minute by a background job. Redis DECRBY is atomic across 100 auction servers — no race condition. If tokens depleted, campaign excluded from auctions that minute. Ensures no campaign overspends its daily budget.",
+    stats: ["Token bucket per campaign", "Minute-level refill", "Atomic Redis DECRBY", "Background refill job"],
+    warn: null
+  },
+  auction: {
+    title: "Auction Engine (2nd-Price)",
+    body: "Runs the Vickrey (2nd-price) auction. Sort all eligible campaign bids descending. Winner: highest bid. Price paid: 2nd-highest bid + $0.01. Effective CPM = bid × quality_score × predicted_CTR. Runs in &lt;5ms (pure CPU, no I/O). Winning campaign, clearing price, and impression ID are logged to Kafka asynchronously.",
+    stats: ["2nd-price Vickrey auction", "&lt;5ms pure CPU computation", "bid × quality score ranking", "Async Kafka log (non-blocking)"],
+    warn: null
+  },
+  'ad-server': {
+    title: "Ad Server",
+    body: "Serves the winning creative to the publisher. Retrieves creative (image/video/HTML) from CDN cache. Generates impression tracking URLs. Returns ad markup. CDN-cached for hot creatives — top 1000 ads cached at edge, served in &lt;5ms from any region.",
+    stats: ["Creative from CDN edge", "Impression tracking pixels", "CDN cache hit rate &gt;95%", "A/B test creative selection"],
+    warn: null
+  },
+  'impression-log': {
+    title: "Impression Logger",
+    body: "Every ad shown (impression) and every click logged asynchronously to Kafka. Kafka consumers: (1) ClickHouse writer for billing and reporting, (2) fraud detector, (3) attribution service for conversion tracking. Deduplication by impressionId prevents double-billing even if Kafka redelivers.",
+    stats: ["Async Kafka publish", "Dedup by impressionId", "ClickHouse for billing", "&lt;5 min lag for reporting"],
+    warn: null
+  },
+  clickhouse: {
+    title: "ClickHouse (Reporting)",
+    body: "Stores all impression, click, and conversion data for reporting. Columnar storage: campaign dashboard query (impressions, clicks, spend by day by campaign) scans only 4 columns, not all 20. Pre-aggregated hourly rollups reduce query time from 10s to 100ms. Advertisers view campaign performance with &lt;5 min data lag.",
+    stats: ["Columnar OLAP", "Pre-aggregated hourly rollups", "Billing source of truth", "&lt;5 min reporting lag"],
+    warn: null
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  const el = document.querySelector(`.arch-node[data-id="${id}"]`);
+  if (el) el.classList.add('sel');
+  const info = NODE_INFO[id];
+  const panel = document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  if (!info) { panel.innerHTML = '<p class="ap-empty">No info for this component</p>'; return; }
+  panel.innerHTML = `
+    <div class="ap-title">${info.title}</div>
+    <div class="ap-body">${info.body}</div>
+    <div>${info.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>
+    ${info.warn ? `<div class="ap-warn">${info.warn}</div>` : ''}
+  `;
+}
+
+const STEPS = [
+  {
+    nodes: ['fn-ad-request'],
+    title: "Browser requests an ad slot",
+    desc: "News page loads. JavaScript sends async POST to the ad exchange: {userId: 'hashed-uid-123', adSlot: 'right_column_300x250', pageUrl: 'https://news.com/tech', geo: 'US-NY', userAgent: '...'}. SLA: respond in <100ms or publisher shows a house ad.",
+    code: "POST /rtb/bid HTTP/1.1\n{\n  id: 'auction-uuid-abc',\n  imp: [{ banner: { w:300, h:250 }, bidfloor: 0.50 }],\n  site: { page: 'https://news.com/tech', cat: ['IAB12'] },\n  user: { buyeruid: 'hashed-uid-123' },  // no PII\n  device: { geo: { country:'US', city:'NYC' } }\n}"
+  },
+  {
+    nodes: ['fn-ad-request','fn-targeting','fn-freq-cap'],
+    title: "Targeting: find eligible campaigns",
+    desc: "Targeting Engine fetches user profile from Redis (interests: [tech, finance], age: 28-35, geo: US). Intersects inverted indexes: campaigns targeting US + tech + 28-35 → 120 eligible campaigns. Frequency Cap removes 8 campaigns already shown today. 112 campaigns enter budget check.",
+    code: "// Redis inverted index intersection (Lua script)\nlocal geo = redis.zrevrangebyscore('targeting:geo:US', '+inf', 0)\nlocal interest = redis.zrevrangebyscore('targeting:interest:tech', '+inf', 0)\nlocal eligible = intersect(geo, interest) // 120 campaigns\n// Filter frequency-capped\nfor c in eligible: if redis.get('fc:user123:' + c) >= cap: remove(c)"
+  },
+  {
+    nodes: ['fn-targeting','fn-budget'],
+    title: "Budget check: find campaigns with tokens",
+    desc: "Budget Service atomically checks 112 campaigns. Redis DECRBY returns 0 or negative if budget tokens exhausted — those campaigns excluded. 94 campaigns have remaining budget tokens for this minute. 18 are on pacing hold until the next minute.",
+    code: "// Atomic budget check (pipeline for batch efficiency)\nfor campaign in eligible:\n  remaining = redis.decrby('budget:' + campaign + ':tokens', 1)\n  if remaining < 0:\n    redis.incr('budget:' + campaign + ':tokens')  // put back\n    exclude(campaign)\n// 94 campaigns pass → enter auction"
+  },
+  {
+    nodes: ['fn-budget','fn-auction'],
+    title: "2nd-price auction runs in memory",
+    desc: "94 campaigns with their bids and quality scores. Sort by effective_CPM = bid × quality_score. Winner: Campaign-42 ($5.00 CPM × 0.9 quality = $4.50 effective). 2nd highest: Campaign-17 ($4.20 × 1.0 = $4.20). Winner pays $4.21 CPM. Runs in <2ms — pure CPU sort.",
+    code: "// 2nd-price auction\ncampaigns.sort((a, b) => b.effectiveCPM - a.effectiveCPM);\n// campaigns[0] = Campaign-42: $5.00 × 0.9 = $4.50 effective\n// campaigns[1] = Campaign-17: $4.20 × 1.0 = $4.20 effective\nconst winner = campaigns[0];\nconst pricePaid = campaigns[1].bid + 0.01; // $4.21\n// Total: <2ms computation"
+  },
+  {
+    nodes: ['fn-auction','fn-ad-server'],
+    title: "Winning ad served from CDN",
+    desc: "Ad Server looks up creative for Campaign-42. Creative HTML/image is CDN-cached (top 1000 ads preloaded to edge). INCR frequency cap counter for this user + campaign-42. Returns ad markup. Total response time so far: ~80ms.",
+    code: "// Ad Server response\nconst creative = cdn.get('creative:campaign-42:300x250');\n// CDN hit: <5ms\n// Increment frequency cap\nredis.incr('fc:user123:campaign-42');\nredis.expire('fc:user123:campaign-42', 86400);\n// Return to publisher:\nreturn { adm: creative.html, price: 4.21, trackUrl: '...' };"
+  },
+  {
+    nodes: ['fn-ad-server','fn-impression-log'],
+    title: "Impression logged asynchronously",
+    desc: "When browser renders the ad, a 1x1 tracking pixel fires. Impression Logger writes to Kafka: {impressionId, userId, campaignId, clearingPrice: 4.21, timestamp}. Kafka → ClickHouse for billing and reporting. Dedup by impressionId prevents double-billing on retry. Total pipeline: <5 min lag to advertiser dashboard.",
+    code: "// Impression pixel fires from browser\nGET /track/imp?id=imp-uuid&cid=campaign-42&p=4.21\n// Server logs to Kafka\nkafka.publish('impressions', {\n  impressionId: 'imp-uuid',  // dedup key\n  campaignId: 'campaign-42',\n  clearingPrice: 4.21,\n  userId: 'hashed-uid-123'\n});"
+  }
+];
+
+const FN_IDS = ['fn-ad-request','fn-targeting','fn-freq-cap','fn-budget','fn-auction','fn-ad-server','fn-impression-log'];
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  FN_IDS.forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    el.className = 'fn';
+    if (s.nodes.includes(id)) el.classList.add('act');
+    else {
+      const idx = FN_IDS.indexOf(id);
+      const firstActiveIdx = Math.min(...s.nodes.map(n => FN_IDS.indexOf(n)));
+      if (idx < firstActiveIdx) el.classList.add('done');
+    }
+  });
+  document.getElementById('flow-card').innerHTML = `<div class="fc-title">${s.title}</div><div class="fc-desc">${s.desc}</div><div class="fc-code">${s.code}</div>`;
+  document.getElementById('flow-counter').textContent = `${curStep+1} / ${STEPS.length}`;
+  document.getElementById('flow-prev').disabled = curStep === 0;
+  document.getElementById('flow-next').disabled = curStep === STEPS.length - 1;
+  document.querySelectorAll('.fdot').forEach((d,i) => d.classList.toggle('on', i===curStep));
+}
+function nextStep() { if (curStep < STEPS.length-1) { curStep++; renderStep(); } }
+function prevStep() { if (curStep > 0) { curStep--; renderStep(); } }
+function goStep(n) { curStep = n; renderStep(); }
+function toggleSC(id) { document.getElementById(id).classList.toggle('open'); }
+
+function runAuction() {
+  const bidA = parseFloat(document.getElementById('bid-a').value) || 0;
+  const bidB = parseFloat(document.getElementById('bid-b').value) || 0;
+  const bidC = parseFloat(document.getElementById('bid-c').value) || 0;
+  const bids = [
+    { name: 'Advertiser A', bid: bidA },
+    { name: 'Advertiser B', bid: bidB },
+    { name: 'Advertiser C', bid: bidC }
+  ].sort((a, b) => b.bid - a.bid);
+  const winner = bids[0];
+  const secondBid = bids[1].bid;
+  const pricePaid = secondBid + 0.01;
+  const savings = winner.bid - pricePaid;
+  document.getElementById('res-winner').innerHTML = winner.name + '<span class="winner-badge">Winner</span>';
+  document.getElementById('res-win-bid').textContent = '$' + winner.bid.toFixed(2) + ' CPM';
+  document.getElementById('res-price').textContent = '$' + pricePaid.toFixed(2) + ' CPM';
+  document.getElementById('res-first').textContent = '$' + winner.bid.toFixed(2) + ' CPM';
+  document.getElementById('res-savings').textContent = '$' + savings.toFixed(2) + ' CPM saved (' + Math.round(savings/winner.bid*100) + '%)';
+}
+
+(function() {
+  const dots = document.getElementById('flow-dots');
+  STEPS.forEach((_,i) => { const d = document.createElement('div'); d.className='fdot'; d.onclick=()=>goStep(i); dots.appendChild(d); });
+  renderStep();
+  runAuction();
+})();
+</script>
+</body>
+</html>

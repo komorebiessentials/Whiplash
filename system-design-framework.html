@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Design Framework — SDE Interview Prep</title>
+<style>
+  :root {
+    --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+    --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+    --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+    --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:0 32px 100px}
+  .back{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none;padding:28px 0 0}
+  .back:hover{color:var(--slate)}
+  header{padding:44px 0 56px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--g500);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay)}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,58px);line-height:1.06;letter-spacing:-.022em}
+  h1 em{font-style:italic;color:var(--clay)}
+  .sub{font-size:17px;color:var(--g700);margin-top:14px;max-width:620px;line-height:1.6}
+  section{margin-bottom:64px;scroll-margin-top:24px}
+  h2{font-family:var(--serif);font-weight:500;font-size:26px;letter-spacing:-.012em;margin-bottom:8px}
+  .section-sub{font-size:14px;color:var(--g500);margin-bottom:24px;font-family:var(--mono)}
+  h3{font-family:var(--serif);font-size:18px;font-weight:500;margin:0 0 6px}
+  p{font-size:15px;color:var(--g700);margin-bottom:10px;line-height:1.65}
+
+  /* Steps */
+  .steps{display:flex;flex-direction:column;gap:0}
+  .step{display:flex;gap:24px;position:relative}
+  .step::before{content:"";position:absolute;left:22px;top:52px;bottom:-24px;width:2px;background:var(--g200)}
+  .step:last-child::before{display:none}
+  .step-num{width:44px;height:44px;border-radius:50%;background:var(--slate);color:var(--paper);font-family:var(--mono);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:4px;position:relative;z-index:1}
+  .step-body{padding:4px 0 32px}
+  .step-time{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--clay);margin-bottom:6px}
+  .step-title{font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:8px}
+  .step-desc{font-size:14px;color:var(--g700);line-height:1.6}
+  .step-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .step-tag{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;padding:3px 10px;border-radius:4px;background:var(--g100);color:var(--g500)}
+
+  /* Numbers cheat sheet */
+  .numbers-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:0}
+  .numbers-table th{background:var(--slate);color:var(--paper);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:9px 16px;text-align:left}
+  .numbers-table td{padding:9px 16px;border-bottom:1px solid var(--g200);vertical-align:top}
+  .numbers-table tr:nth-child(even) td{background:var(--g100)}
+  .numbers-table .cat{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500)}
+  .numbers-table td:first-child{font-weight:500;color:var(--slate)}
+
+  /* Vocabulary */
+  .vocab-grid{display:grid;gap:12px}
+  .vocab-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:16px 20px}
+  .vocab-phrase{font-family:var(--serif);font-size:15px;font-weight:500;color:var(--clay);margin-bottom:6px;font-style:italic}
+  .vocab-why{font-size:13px;color:var(--g700);line-height:1.5}
+
+  /* Mistakes */
+  .mistake-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .mistake{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:16px 18px}
+  .mistake-bad{font-size:13px;color:#c0392b;margin-bottom:8px;display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+  .mistake-good{font-size:13px;color:var(--olive);display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+  .badge{font-family:var(--mono);font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+
+  /* Questions */
+  .q-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:600px){.q-grid{grid-template-columns:1fr}}
+  .q-box{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:18px 20px}
+  .q-box h3{font-size:13px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--clay);margin-bottom:12px;font-weight:600}
+  .q-item{font-size:13.5px;color:var(--g700);padding:5px 0;display:flex;gap:8px;line-height:1.4}
+  .q-item::before{content:"?";font-family:var(--mono);font-size:10px;color:var(--g300);flex-shrink:0;margin-top:2px;font-weight:700}
+
+  footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:28px;display:flex;justify-content:space-between;font-size:12px;color:var(--g500)}
+  footer a{color:var(--clay);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← Home</a>
+<header>
+  <div class="eyebrow">Interview Preparation · Framework</div>
+  <h1>How to Ace Any<br><em>System Design Interview</em></h1>
+  <p class="sub">A repeatable 6-step framework, back-of-envelope numbers every engineer should memorise, the vocabulary that signals seniority, and the mistakes that kill good candidates.</p>
+</header>
+
+<!-- STEP FRAMEWORK -->
+<section id="framework">
+  <h2>The 6-Step Framework</h2>
+  <div class="section-sub">A 45-minute system design interview, structured</div>
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-time">Minutes 0–5</div>
+        <div class="step-title">Clarify Requirements</div>
+        <p class="step-desc">The most important step. Never jump into design. Ask questions, then repeat back to confirm. Distinguish functional requirements (what the system does) from non-functional (how well it does it).</p>
+        <p class="step-desc">Do not assume scope — "design Twitter" could mean the timeline, the DM system, notifications, or all of it. Agree on what you're building before drawing anything.</p>
+        <div class="step-tags">
+          <span class="step-tag">Functional requirements</span>
+          <span class="step-tag">Non-functional requirements</span>
+          <span class="step-tag">Scope</span>
+          <span class="step-tag">Constraints</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-time">Minutes 5–10</div>
+        <div class="step-title">Scale Estimation</div>
+        <p class="step-desc">Back-of-envelope: convert DAU and usage patterns into QPS, storage, and bandwidth. This tells you whether you're designing for a single PostgreSQL instance or a distributed system with hundreds of nodes.</p>
+        <p class="step-desc">Identify: Is this read-heavy or write-heavy? What's the hot path? What needs strong consistency vs can tolerate eventual? These answers drive every architecture decision.</p>
+        <div class="step-tags">
+          <span class="step-tag">QPS calculation</span>
+          <span class="step-tag">Storage estimation</span>
+          <span class="step-tag">Read/write ratio</span>
+          <span class="step-tag">Hot path</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-time">Minutes 10–20</div>
+        <div class="step-title">High-Level Design</div>
+        <p class="step-desc">Start with the simplest design that satisfies the requirements. Draw boxes: Client → Load Balancer → API Servers → Database. Walk through the primary use case end-to-end, narrating the data flow.</p>
+        <p class="step-desc">Don't over-engineer at this stage. Add Kafka, Redis, and microservices only if you can justify them. The interviewer needs to see you understand the basics before the optimisations.</p>
+        <div class="step-tags">
+          <span class="step-tag">API design</span>
+          <span class="step-tag">Data model</span>
+          <span class="step-tag">Core flow</span>
+          <span class="step-tag">DB choice</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-time">Minutes 20–35</div>
+        <div class="step-title">Deep Dive</div>
+        <p class="step-desc">This is where senior engineers are separated from mid-level. Proactively identify the 2–3 hardest problems specific to this system. Say: "The most interesting challenge here is X, because…" Don't wait for the interviewer to lead.</p>
+        <p class="step-desc">For a URL shortener: the hashing algorithm and collision handling. For Twitter: the fan-out problem with celebrities. For payments: idempotency and double-charge prevention. Know the hard problem for each system.</p>
+        <div class="step-tags">
+          <span class="step-tag">System-specific challenges</span>
+          <span class="step-tag">Algorithms</span>
+          <span class="step-tag">Edge cases</span>
+          <span class="step-tag">Failure scenarios</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-time">Minutes 35–42</div>
+        <div class="step-title">Scaling</div>
+        <p class="step-desc">Systematically ask: "what happens to each component at 10x current load?" Walk through: add caching (Redis) for read-heavy paths, CDN for static assets, read replicas for DB, sharding for write-heavy DBs, async queues (Kafka) to decouple services.</p>
+        <p class="step-desc">Identify bottlenecks proactively rather than waiting to be challenged. Show you think about production realities, not just happy-path design.</p>
+        <div class="step-tags">
+          <span class="step-tag">Caching</span>
+          <span class="step-tag">Sharding</span>
+          <span class="step-tag">Replication</span>
+          <span class="step-tag">Async processing</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <div class="step-time">Minutes 42–45</div>
+        <div class="step-title">Wrap Up</div>
+        <p class="step-desc">Summarise the design in 2–3 sentences. Mention monitoring: "I'd alert on p99 latency and error rate." Discuss what you'd do differently with more time. Acknowledge trade-offs you made.</p>
+        <p class="step-desc">Senior signal: mention operational concerns — how do you deploy this, how do you roll back a bad release, what does an incident look like, how long does recovery take?</p>
+        <div class="step-tags">
+          <span class="step-tag">Monitoring</span>
+          <span class="step-tag">Trade-offs</span>
+          <span class="step-tag">Future work</span>
+          <span class="step-tag">Operations</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- NUMBERS CHEAT SHEET -->
+<section id="numbers">
+  <h2>Back-of-Envelope Cheat Sheet</h2>
+  <div class="section-sub">Memorise these. You'll use them in every interview.</div>
+
+  <table class="numbers-table">
+    <thead><tr><th>Category</th><th>Measure</th><th>Value</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="cat" colspan="4">Time Conversions</td></tr>
+      <tr><td>1 day in seconds</td><td>86,400 ≈ 100K</td><td></td><td>Round to 100K for quick math</td></tr>
+      <tr><td>1 million seconds</td><td>≈ 11.5 days</td><td></td><td></td></tr>
+      <tr><td>1 year in seconds</td><td>≈ 31.5 million</td><td></td><td></td></tr>
+
+      <tr><td class="cat" colspan="4">QPS Conversions</td></tr>
+      <tr><td>1M users × 1 req/day</td><td>= 12 QPS</td><td></td><td>÷ 86,400</td></tr>
+      <tr><td>100M users × 1 req/day</td><td>= 1,200 QPS</td><td></td><td></td></tr>
+      <tr><td>1B requests/day</td><td>= 12,000 QPS</td><td></td><td>≈ 10K</td></tr>
+      <tr><td>Peak traffic</td><td>= avg × 2–5×</td><td></td><td>Design for peak, not average</td></tr>
+
+      <tr><td class="cat" colspan="4">Storage</td></tr>
+      <tr><td>1 char (ASCII)</td><td>1 byte</td><td></td><td>UTF-8: 1–4 bytes</td></tr>
+      <tr><td>1 KB</td><td>1,000 bytes</td><td></td><td>Tweet ~280 bytes, URL ~100 bytes</td></tr>
+      <tr><td>1 GB</td><td>1 billion bytes</td><td></td><td></td></tr>
+      <tr><td>1 TB</td><td>1,000 GB</td><td></td><td>Typical DB server: 2–10 TB</td></tr>
+      <tr><td>1 PB</td><td>1,000 TB</td><td></td><td>Large data lake scale</td></tr>
+
+      <tr><td class="cat" colspan="4">Throughput</td></tr>
+      <tr><td>Network: 1 Gbps</td><td>= 125 MB/sec</td><td></td><td>Server NIC speed</td></tr>
+      <tr><td>SSD sequential read</td><td>= 500 MB/sec</td><td></td><td>NVMe: up to 7 GB/sec</td></tr>
+      <tr><td>HDD sequential read</td><td>= 150 MB/sec</td><td></td><td>Much slower for random I/O</td></tr>
+      <tr><td>Redis throughput</td><td>= 100K ops/sec</td><td></td><td>Per node, single-threaded</td></tr>
+
+      <tr><td class="cat" colspan="4">Latency (approximate)</td></tr>
+      <tr><td>L1 cache reference</td><td>1 ns</td><td></td><td>Essentially instant</td></tr>
+      <tr><td>Main memory reference</td><td>100 ns</td><td></td><td>100× slower than L1</td></tr>
+      <tr><td>SSD random read</td><td>100 μs</td><td></td><td>1000× slower than RAM</td></tr>
+      <tr><td>Network (same DC)</td><td>500 μs</td><td></td><td>Internal service call</td></tr>
+      <tr><td>Network (cross-region)</td><td>150 ms</td><td></td><td>US East ↔ US West</td></tr>
+      <tr><td>HDD seek</td><td>10 ms</td><td></td><td>Reason to avoid random HDD I/O</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- VOCABULARY -->
+<section id="vocabulary">
+  <h2>Trade-off Vocabulary</h2>
+  <div class="section-sub">Phrases that signal senior-level thinking to interviewers</div>
+
+  <div class="vocab-grid">
+    <div class="vocab-card">
+      <div class="vocab-phrase">"I'll start with the simplest design that satisfies requirements, then evolve it to meet scale..."</div>
+      <div class="vocab-why">Shows you don't over-engineer. You build what's needed, then add complexity with justification.</div>
+    </div>
+    <div class="vocab-card">
+      <div class="vocab-phrase">"The trade-off here is between consistency and availability. For this use case, I'd prioritise availability because..."</div>
+      <div class="vocab-why">Shows CAP theorem awareness. Shows you make principled decisions, not arbitrary ones.</div>
+    </div>
+    <div class="vocab-card">
+      <div class="vocab-phrase">"This is the hot path — everything else can be eventually consistent, but this must be strongly consistent."</div>
+      <div class="vocab-why">Shows you identify what actually matters in a system versus what can be relaxed.</div>
+    </div>
+    <div class="vocab-card">
+      <div class="vocab-phrase">"We could use a distributed lock here, but I'm concerned about the performance overhead at this scale. An alternative is..."</div>
+      <div class="vocab-why">Shows you think about production consequences of design choices, not just correctness.</div>
+    </div>
+    <div class="vocab-card">
+      <div class="vocab-phrase">"Let me think through failure scenarios — what happens if the cache is cold after a restart?"</div>
+      <div class="vocab-why">Shows reliability engineering thinking. Senior engineers always think about failure modes.</div>
+    </div>
+    <div class="vocab-card">
+      <div class="vocab-phrase">"I'd monitor this with [error rate / p99 latency] and alert if it exceeds [X]. Here's the runbook..."</div>
+      <div class="vocab-why">Shows operational maturity. Juniors think about building features; seniors think about running them.</div>
+    </div>
+    <div class="vocab-card">
+      <div class="vocab-phrase">"At 10× scale, the bottleneck will move to [X]. We'd address that by [sharding / async / caching]."</div>
+      <div class="vocab-why">Shows you think about how the system evolves, not just its current state.</div>
+    </div>
+    <div class="vocab-card">
+      <div class="vocab-phrase">"This is a read-heavy system (100:1 read/write ratio), so I'd optimise the read path first — cache, CDN, read replicas..."</div>
+      <div class="vocab-why">Shows data-driven design. Scale estimation directly informs architecture choices.</div>
+    </div>
+  </div>
+</section>
+
+<!-- MISTAKES -->
+<section id="mistakes">
+  <h2>Common Mistakes</h2>
+  <div class="section-sub">What kills otherwise good candidates</div>
+
+  <div class="mistake-grid">
+    <div class="mistake">
+      <div class="mistake-bad"><span class="badge">✗</span> Jumping into design without clarifying requirements</div>
+      <div class="mistake-good"><span class="badge">✓</span> Spend the first 5 minutes asking questions. Write requirements on the board before drawing anything.</div>
+    </div>
+    <div class="mistake">
+      <div class="mistake-bad"><span class="badge">✗</span> Designing for infinite scale from day 1</div>
+      <div class="mistake-good"><span class="badge">✓</span> Design for the given scale. Mention how to evolve, but don't add Kafka if the problem is 1K QPS.</div>
+    </div>
+    <div class="mistake">
+      <div class="mistake-bad"><span class="badge">✗</span> Not knowing your numbers (QPS, storage)</div>
+      <div class="mistake-good"><span class="badge">✓</span> Always do back-of-envelope. Numbers anchor every architectural decision.</div>
+    </div>
+    <div class="mistake">
+      <div class="mistake-bad"><span class="badge">✗</span> Treating all data as equally consistent</div>
+      <div class="mistake-good"><span class="badge">✓</span> Identify what needs strong consistency (payments, inventory) vs what can be eventual (timelines, notifications).</div>
+    </div>
+    <div class="mistake">
+      <div class="mistake-bad"><span class="badge">✗</span> Silent thinking — drawing without narrating</div>
+      <div class="mistake-good"><span class="badge">✓</span> Always narrate your thought process. Interviewers evaluate your reasoning, not just your final answer.</div>
+    </div>
+    <div class="mistake">
+      <div class="mistake-bad"><span class="badge">✗</span> Forgetting failure cases</div>
+      <div class="mistake-good"><span class="badge">✓</span> For each component: "what happens when this fails?" Circuit breakers, retries, fallbacks, graceful degradation.</div>
+    </div>
+    <div class="mistake">
+      <div class="mistake-bad"><span class="badge">✗</span> One-size-fits-all database (always PostgreSQL, or always NoSQL)</div>
+      <div class="mistake-good"><span class="badge">✓</span> Justify your DB choice: access patterns, consistency requirements, scale, query complexity. Multiple DBs in one system is fine.</div>
+    </div>
+    <div class="mistake">
+      <div class="mistake-bad"><span class="badge">✗</span> Not pushing back on vague requirements</div>
+      <div class="mistake-good"><span class="badge">✓</span> "Design a messaging system" is ambiguous. Push: 1:1 or group? Real-time or async? End-to-end encrypted? These change the architecture completely.</div>
+    </div>
+  </div>
+</section>
+
+<!-- QUESTIONS TO ASK -->
+<section id="questions">
+  <h2>Questions to Ask</h2>
+  <div class="section-sub">For any system design problem, these unlock the requirements</div>
+
+  <div class="q-grid">
+    <div class="q-box">
+      <h3>Functional</h3>
+      <div class="q-item">Who are the users? (consumers, businesses, internal engineers)</div>
+      <div class="q-item">What are the core features vs nice-to-haves?</div>
+      <div class="q-item">Do we need real-time updates or is polling acceptable?</div>
+      <div class="q-item">Do we need search? If so, full-text or structured?</div>
+      <div class="q-item">Do we need offline support or mobile sync?</div>
+      <div class="q-item">What are the primary read and write access patterns?</div>
+      <div class="q-item">Do we need multi-tenancy or is this single-tenant?</div>
+    </div>
+    <div class="q-box">
+      <h3>Non-Functional</h3>
+      <div class="q-item">What is the expected scale? (DAU, concurrent users, QPS)</div>
+      <div class="q-item">What is the acceptable latency? (p50, p99 targets)</div>
+      <div class="q-item">What consistency guarantees do we need?</div>
+      <div class="q-item">What is the data retention requirement?</div>
+      <div class="q-item">What is the availability target? (99.9% vs 99.999%)</div>
+      <div class="q-item">Any compliance or regulatory requirements? (GDPR, PCI-DSS, HIPAA)</div>
+      <div class="q-item">What is the read-to-write ratio? (helps select DB and cache strategy)</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="hld-index.html">HLD Problems</a></span>
+  <span><a href="index.html">Home</a></span>
+</footer>
+</div>
+</body>
+</html>

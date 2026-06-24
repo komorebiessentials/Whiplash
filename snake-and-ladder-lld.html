@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snake and Ladder — LLD Deep Dive</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5; --paper:  #FFFFFF; --slate:  #141413; --clay:   #D97757;
+    --clay-d: #B85C3E; --oat:    #E3DACC; --olive:  #788C5D;
+    --g100:   #F0EEE6; --g200:   #E6E3DA; --g300:   #D1CFC5; --g500:   #87867F; --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 120px; }
+  header.masthead { padding: 72px 0 48px; border-bottom: 1.5px solid var(--g300); margin-bottom: 8px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--g500); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content:""; width:24px; height:1.5px; background:var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 5vw, 56px); line-height: 1.06; letter-spacing: -0.018em; margin-bottom: 8px; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro { font-size: 15.5px; color: var(--g700); margin-top: 18px; max-width: 600px; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 28px; }
+  nav.toc a { font-size: 12px; padding: 6px 14px; border: 1.5px solid var(--g300); border-radius: 999px; text-decoration: none; color: var(--g700); background: var(--paper); transition: border-color 120ms, color 120ms; display: inline-flex; align-items: center; gap: 6px; }
+  nav.toc a .n { font-family: var(--mono); font-size: 10px; color: var(--g500); }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+  section { margin-top: 64px; scroll-margin-top: 24px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .sec-head .idx { font-family: var(--mono); font-size: 12px; color: var(--clay); font-weight: 600; width: 30px; flex-shrink: 0; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 500; font-size: 25px; letter-spacing: -0.012em; }
+  .sec-intro { font-size: 14px; color: var(--g700); max-width: 680px; margin: 0 0 22px 44px; }
+  .content-block { margin-left: 44px; }
+  @media (max-width: 600px) { .content-block, .sec-intro { margin-left: 0; } }
+  .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .req-grid { grid-template-columns: 1fr; } }
+  .req-item { background: var(--g100); border-radius: 8px; padding: 12px 14px; border-left: 3px solid var(--g300); }
+  .req-item.func { border-left-color: var(--clay); }
+  .req-item.nfunc { border-left-color: var(--olive); }
+  .req-item .req-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); margin-bottom: 4px; }
+  .req-item p { font-size: 13.5px; color: var(--g700); }
+  .diagram-wrap { overflow-x: auto; padding: 4px 0 8px; }
+  .class-box { display: inline-block; border: 2px solid var(--g300); border-radius: 8px; overflow: hidden; font-size: 13px; min-width: 170px; background: var(--paper); vertical-align: top; margin: 6px; }
+  .class-box .class-name { background: var(--slate); color: var(--paper); font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 7px 12px; letter-spacing: 0.04em; }
+  .class-box .class-name.interface { background: var(--olive); }
+  .class-box .class-name.enum { background: #4A6FA5; }
+  .class-box .class-name.abstract { background: var(--clay); }
+  .class-box .field { padding: 3px 12px; color: var(--g700); font-family: var(--mono); font-size: 11.5px; border-bottom: 1px solid var(--g100); }
+  .class-box .field.method { color: var(--clay-d); }
+  .class-box .field.enum-val { color: #4A6FA5; }
+  .class-box .divider { height: 1.5px; background: var(--g200); margin: 4px 0; }
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step { display: flex; gap: 0; align-items: stretch; }
+  .flow-left { display: flex; flex-direction: column; align-items: center; width: 40px; flex-shrink: 0; }
+  .flow-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--clay); flex-shrink: 0; margin-top: 3px; border: 2px solid var(--ivory); box-shadow: 0 0 0 2px var(--clay); }
+  .flow-dot.green { background: var(--olive); box-shadow: 0 0 0 2px var(--olive); }
+  .flow-dot.gray { background: var(--g300); box-shadow: 0 0 0 2px var(--g300); }
+  .flow-line { flex: 1; width: 2px; background: var(--g200); margin: 2px 0; }
+  .flow-content { padding: 0 0 20px 0; flex: 1; }
+  .flow-step-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .flow-step-desc { font-size: 13.5px; color: var(--g700); }
+  .flow-step:last-child .flow-line { display: none; }
+  pre { background: #1A1A18; color: #E8E6DF; border-radius: 8px; padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; overflow-x: auto; margin: 12px 0; }
+  pre .kw { color: #CF9F6E; } pre .cn { color: #88C0A0; } pre .cm { color: #5F5F5A; }
+  pre .st { color: #A8C97A; } pre .nm { color: #7AABD4; } pre .fn { color: #D97757; }
+  .tip { display: flex; gap: 12px; background: var(--g100); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .tip .tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tip .tip-text { font-size: 13.5px; color: var(--g700); }
+  .tip .tip-text strong { color: var(--slate); }
+  .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .pattern-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 10px; padding: 14px 16px; }
+  .pattern-card .p-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--olive); margin-bottom: 6px; }
+  .pattern-card .p-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .pattern-card .p-desc { font-size: 12.5px; color: var(--g700); }
+  .tabs { display: flex; gap: 4px; margin-bottom: -1px; flex-wrap: wrap; }
+  .tab-btn { font-family: var(--mono); font-size: 11.5px; padding: 7px 14px; border: 1.5px solid var(--g300); border-bottom: none; border-radius: 7px 7px 0 0; background: var(--g100); color: var(--g500); cursor: pointer; transition: background 120ms, color 120ms; }
+  .tab-btn.active { background: var(--paper); color: var(--slate); border-color: var(--g300); }
+  .tab-pane { display: none; border: 1.5px solid var(--g300); border-radius: 0 8px 8px 8px; }
+  .tab-pane.active { display: block; }
+  .tab-pane pre { border-radius: 0 6px 6px 6px; margin: 0; }
+  .q-list { list-style: none; }
+  .q-list li { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--g200); font-size: 13.5px; }
+  .q-list li:last-child { border-bottom: none; }
+  .q-list li .q-icon { color: var(--clay); flex-shrink: 0; font-weight: 700; }
+  .q-list li .q-text strong { display: block; color: var(--slate); margin-bottom: 2px; }
+  .q-list li .q-text span { color: var(--g700); }
+  .rel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rel-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); text-align: left; padding: 6px 10px; border-bottom: 1.5px solid var(--g300); }
+  .rel-table td { padding: 8px 10px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .rel-table td:first-child { font-family: var(--mono); font-size: 11.5px; color: var(--slate); white-space: nowrap; }
+  .rel-table td .badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--g100); color: var(--g500); margin-right: 4px; }
+  .rel-table td .badge.has { background: #EEF3E8; color: var(--olive); }
+  .rel-table td .badge.uses { background: #FEF3EE; color: var(--clay); }
+  .rel-table td .badge.impl { background: #EEF1F8; color: #4A6FA5; }
+  .highlight-box { background: #FEF3EE; border-left: 3px solid var(--clay); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0; font-size: 13.5px; color: var(--g700); }
+  .highlight-box strong { color: var(--clay-d); }
+  .thread-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .thread-table th { background: var(--g100); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); padding: 8px 12px; text-align: left; }
+  .thread-table td { padding: 9px 12px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .thread-table td:first-child { font-weight: 600; color: var(--slate); }
+  .risk-high { color: #C0392B; font-weight: 600; } .risk-med { color: #E67E22; font-weight: 600; } .risk-low { color: var(--olive); font-weight: 600; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+  .small-note { font-size: 12px; color: var(--g500); margin-top: 8px; font-family: var(--mono); }
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 30px; font-size: 12.5px; color: var(--g500); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 14px; }
+  .tab-group { margin-bottom: 24px; }
+  .tab-group-title { font-weight: 600; font-size: 13.5px; margin-bottom: 10px; color: var(--slate); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">LLD Interview Prep — System Design · SDE I</div>
+  <h1>Design <em>Snake and Ladder</em></h1>
+  <p class="intro">End-to-end guide: board design, dice abstraction, testable turn logic, and the one design insight that separates good answers — LoadedDice for testability.</p>
+  <nav class="toc">
+    <a href="#requirements">Requirements <span class="n">01</span></a>
+    <a href="#clarifications">Clarifying Qs <span class="n">02</span></a>
+    <a href="#entities">Entities <span class="n">03</span></a>
+    <a href="#relations">Relationships <span class="n">04</span></a>
+    <a href="#flows">Key Flows <span class="n">05</span></a>
+    <a href="#code">Code <span class="n">06</span></a>
+    <a href="#patterns">Patterns <span class="n">07</span></a>
+    <a href="#concurrency">Concurrency <span class="n">08</span></a>
+    <a href="#tips">Interview Tips <span class="n">09</span></a>
+  </nav>
+</header>
+
+<!-- 01 REQUIREMENTS -->
+<section id="requirements">
+  <div class="sec-head"><span class="idx">01</span><h2>Requirements</h2></div>
+  <p class="sec-intro">Simple game — but the requirements hide several design decisions worth calling out explicitly.</p>
+  <div class="content-block">
+    <div class="req-grid">
+      <div class="req-item func"><div class="req-label">Functional</div><p>100-cell board (positions 1–100)</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Snakes: landing on head → slide to tail (head &gt; tail)</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Ladders: landing on base → climb to top (top &gt; base)</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Multiple players take turns in order</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Roll dice to advance — first to reach exactly 100 wins</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Support different dice: normal 6-sided, custom-sided, loaded (test)</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Testable — deterministic dice for unit tests</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Extensible — new board sizes, new event types without Game changes</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 CLARIFYING QUESTIONS -->
+<section id="clarifications">
+  <div class="sec-head"><span class="idx">02</span><h2>Clarifying Questions</h2></div>
+  <p class="sec-intro">Three key rule ambiguities — always ask these before designing.</p>
+  <div class="content-block">
+    <ul class="q-list">
+      <li><span class="q-icon">?</span><span class="q-text"><strong>What if a dice roll overshoots 100?</strong><span>Three common rules: (1) stay put, (2) bounce back, (3) re-roll. Most interviewers say "stay put" — confirm this and model it in Board.getNextPosition().</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Can a snake head and a ladder base be on the same cell?</strong><span>No — validate during board setup and throw IllegalArgumentException. Also: snake tail and ladder top should not be at position 100.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Starting position — 0 or 1?</strong><span>Players start at 0 (off-board). First dice roll determines entry. Position 100 = win. This is cleaner than starting at 1.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Can you land on a snake and immediately land on a ladder?</strong><span>In standard rules: no chain reactions. Snake takes you down, that's your final position for the turn.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>How many dice?</strong><span>Usually one. Two dice (sum 2–12) changes balance logic — clarify the interface to allow this.</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 03 ENTITIES -->
+<section id="entities">
+  <div class="sec-head"><span class="idx">03</span><h2>Core Entities</h2></div>
+  <p class="sec-intro">Separate the static board configuration from the dynamic game state — this is the key design insight.</p>
+  <div class="content-block">
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Enums</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name enum">GameState</div>
+        <div class="field enum-val">NOT_STARTED</div>
+        <div class="field enum-val">IN_PROGRESS</div>
+        <div class="field enum-val">FINISHED</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name enum">GameEventType</div>
+        <div class="field enum-val">NORMAL_MOVE</div>
+        <div class="field enum-val">SNAKE_BITE</div>
+        <div class="field enum-val">LADDER_CLIMB</div>
+        <div class="field enum-val">WIN</div>
+      </div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Dice Interface & Implementations</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name interface">«interface» Dice</div>
+        <div class="divider"></div>
+        <div class="field method">+ roll(): int</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">NormalDice</div>
+        <div class="field" style="color:var(--g500);font-style:italic;">implements Dice</div>
+        <div class="field">- sides: int</div>
+        <div class="field">- random: Random</div>
+        <div class="divider"></div>
+        <div class="field method">+ roll(): int</div>
+        <div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ random.nextInt(sides)+1</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">LoadedDice</div>
+        <div class="field" style="color:var(--g500);font-style:italic;">implements Dice — for testing</div>
+        <div class="field">- rolls: Queue&lt;Integer&gt;</div>
+        <div class="divider"></div>
+        <div class="field method">+ roll(): int</div>
+        <div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ rolls.poll()</div>
+      </div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Core Models</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name">Player</div>
+        <div class="field">- id: String</div>
+        <div class="field">- name: String</div>
+        <div class="field">- position: int</div>
+        <div class="divider"></div>
+        <div class="field method">+ getPosition(): int</div>
+        <div class="field method">+ setPosition(int): void</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Board</div>
+        <div class="field">- size: int <em style="color:var(--g500)">(100)</em></div>
+        <div class="field">- snakes: Map&lt;Integer, Integer&gt;</div>
+        <div class="field">- ladders: Map&lt;Integer, Integer&gt;</div>
+        <div class="divider"></div>
+        <div class="field method">+ getNextPosition(cur, roll): int</div>
+        <div class="field method">+ isSnakeHead(pos): boolean</div>
+        <div class="field method">+ isLadderBase(pos): boolean</div>
+        <div class="field method">+ validate(): void</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">GameEvent</div>
+        <div class="field">- type: GameEventType</div>
+        <div class="field">- player: Player</div>
+        <div class="field">- from: int</div>
+        <div class="field">- to: int</div>
+        <div class="field">- diceRoll: int</div>
+      </div>
+      <div class="class-box" style="min-width:200px;">
+        <div class="class-name">Game</div>
+        <div class="field">- board: Board</div>
+        <div class="field">- players: List&lt;Player&gt;</div>
+        <div class="field">- dice: Dice</div>
+        <div class="field">- currentPlayerIndex: int</div>
+        <div class="field">- state: GameState</div>
+        <div class="divider"></div>
+        <div class="field method">+ start(): void</div>
+        <div class="field method">+ takeTurn(): GameEvent</div>
+        <div class="field method">+ getWinner(): Optional&lt;Player&gt;</div>
+      </div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Builder (optional, clean setup)</p>
+    <div class="diagram-wrap">
+      <div class="class-box" style="min-width:220px;">
+        <div class="class-name">GameBuilder</div>
+        <div class="field">- boardSize, snakes, ladders</div>
+        <div class="field">- players, dice</div>
+        <div class="divider"></div>
+        <div class="field method">+ withSnake(head, tail): GameBuilder</div>
+        <div class="field method">+ withLadder(start, end): GameBuilder</div>
+        <div class="field method">+ withPlayer(name): GameBuilder</div>
+        <div class="field method">+ withDice(dice): GameBuilder</div>
+        <div class="field method">+ build(): Game</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 RELATIONSHIPS -->
+<section id="relations">
+  <div class="sec-head"><span class="idx">04</span><h2>Relationships</h2></div>
+  <p class="sec-intro">Board is static config; Game is dynamic state. Keep them separate.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>From</th><th>To</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Game</td><td>Board</td><td><span class="badge has">HAS</span></td><td>Composition — Game owns one Board (the static layout)</td></tr>
+        <tr><td>Game</td><td>Player</td><td><span class="badge has">HAS</span></td><td>Composition — Game owns the player list (2–4 typically)</td></tr>
+        <tr><td>Game</td><td>Dice</td><td><span class="badge uses">USES</span></td><td>Dependency injection — NormalDice in prod, LoadedDice in tests</td></tr>
+        <tr><td>NormalDice / LoadedDice</td><td>Dice</td><td><span class="badge impl">IMPLEMENTS</span></td><td>Strategy — swappable via DI, no Game changes needed</td></tr>
+        <tr><td>Game</td><td>GameEventListener</td><td><span class="badge uses">USES</span></td><td>Observer — Game emits GameEvents; UI/logger observes</td></tr>
+        <tr><td>GameBuilder</td><td>Game</td><td><span class="badge uses">USES</span></td><td>Builder — constructs and validates Game before returning it</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 05 KEY FLOWS -->
+<section id="flows">
+  <div class="sec-head"><span class="idx">05</span><h2>Key Flows</h2></div>
+  <p class="sec-intro">The entire game logic fits in takeTurn() — walk through this step by step in the interview.</p>
+  <div class="content-block">
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-content"><div class="flow-step-title">1. Get current player</div><div class="flow-step-desc">players.get(currentPlayerIndex). Check game.state == IN_PROGRESS, else throw.</div></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-content"><div class="flow-step-title">2. Roll dice</div><div class="flow-step-desc">int roll = dice.roll(). For NormalDice this is random 1–6. For LoadedDice it's the next value in the queue (deterministic for tests).</div></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-content"><div class="flow-step-title">3. Compute raw new position</div><div class="flow-step-desc">int raw = player.position + roll. If raw &gt; board.size → stay (common rule). Raw position before snake/ladder check.</div></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-content"><div class="flow-step-title">4. Apply board effects</div><div class="flow-step-desc">board.getNextPosition(current, roll) returns the final position after snake/ladder resolution. If snake head → tail. If ladder base → top. Else → raw.</div></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-content"><div class="flow-step-title">5. Determine event type</div><div class="flow-step-desc">WIN if to == 100. SNAKE_BITE if snake at raw. LADDER_CLIMB if ladder at raw. NORMAL_MOVE otherwise.</div></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-content"><div class="flow-step-title">6. Update player position</div><div class="flow-step-desc">player.setPosition(to). If WIN → game.state = FINISHED. Don't advance turn on win.</div></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left"><div class="flow-dot green"></div></div>
+        <div class="flow-content"><div class="flow-step-title">7. Notify observers and advance turn</div><div class="flow-step-desc">Emit GameEvent to all listeners. currentPlayerIndex = (currentPlayerIndex + 1) % players.size().</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 CODE -->
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">Three key pieces: Dice abstraction, Board.getNextPosition(), and Game.takeTurn().</p>
+  <div class="content-block">
+
+    <div class="tab-group">
+      <div class="tab-group-title">Dice — strategy for testability</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'dice-normal')">NormalDice</button>
+        <button class="tab-btn" onclick="switchTab(this,'dice-loaded')">LoadedDice</button>
+      </div>
+      <div class="tab-pane active" id="dice-normal">
+<pre><span class="kw">interface</span> <span class="cn">Dice</span> {
+    <span class="kw">int</span> <span class="fn">roll</span>();
+}
+
+<span class="kw">class</span> <span class="cn">NormalDice</span> <span class="kw">implements</span> <span class="cn">Dice</span> {
+    <span class="kw">private final int</span> sides;
+    <span class="kw">private final</span> <span class="cn">Random</span> random = <span class="kw">new</span> <span class="cn">Random</span>();
+
+    <span class="kw">public</span> <span class="fn">NormalDice</span>(<span class="kw">int</span> sides) { <span class="kw">this</span>.sides = sides; }
+
+    <span class="kw">public int</span> <span class="fn">roll</span>() {
+        <span class="kw">return</span> random.<span class="fn">nextInt</span>(sides) + <span class="nm">1</span>; <span class="cm">// 1 to sides inclusive</span>
+    }
+}</pre>
+      </div>
+      <div class="tab-pane" id="dice-loaded">
+<pre><span class="cm">// For testing — pre-load the sequence of rolls</span>
+<span class="kw">class</span> <span class="cn">LoadedDice</span> <span class="kw">implements</span> <span class="cn">Dice</span> {
+    <span class="kw">private final</span> <span class="cn">Queue</span>&lt;Integer&gt; rolls;
+
+    <span class="kw">public</span> <span class="fn">LoadedDice</span>(Integer... sequence) {
+        rolls = <span class="kw">new</span> <span class="cn">LinkedList</span>&lt;&gt;(<span class="cn">Arrays</span>.<span class="fn">asList</span>(sequence));
+    }
+
+    <span class="kw">public int</span> <span class="fn">roll</span>() {
+        <span class="kw">if</span> (rolls.<span class="fn">isEmpty</span>()) <span class="kw">throw new</span> <span class="cn">IllegalStateException</span>(<span class="st">"No more rolls"</span>);
+        <span class="kw">return</span> rolls.<span class="fn">poll</span>();
+    }
+}
+
+<span class="cm">// Usage in test:</span>
+<span class="cn">Dice</span> dice = <span class="kw">new</span> <span class="cn">LoadedDice</span>(<span class="nm">3</span>, <span class="nm">6</span>, <span class="nm">4</span>, <span class="nm">2</span>); <span class="cm">// player will roll 3, 6, 4, 2...</span>
+<span class="cn">Game</span> game = <span class="kw">new</span> <span class="cn">GameBuilder</span>().<span class="fn">withDice</span>(dice).<span class="fn">build</span>();</pre>
+      </div>
+    </div>
+
+    <div class="tab-group">
+      <div class="tab-group-title">Board — position resolution</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'board-init')">Board Setup</button>
+        <button class="tab-btn" onclick="switchTab(this,'board-next')">getNextPosition</button>
+      </div>
+      <div class="tab-pane active" id="board-init">
+<pre><span class="kw">class</span> <span class="cn">Board</span> {
+    <span class="kw">private final int</span> size;
+    <span class="kw">private final</span> Map&lt;Integer, Integer&gt; snakes;  <span class="cm">// head → tail</span>
+    <span class="kw">private final</span> Map&lt;Integer, Integer&gt; ladders; <span class="cm">// base → top</span>
+
+    <span class="kw">public</span> <span class="fn">Board</span>(<span class="kw">int</span> size, Map&lt;Integer,Integer&gt; snakes, Map&lt;Integer,Integer&gt; ladders) {
+        <span class="kw">this</span>.size    = size;
+        <span class="kw">this</span>.snakes  = <span class="cn">Collections</span>.<span class="fn">unmodifiableMap</span>(snakes);
+        <span class="kw">this</span>.ladders = <span class="cn">Collections</span>.<span class="fn">unmodifiableMap</span>(ladders);
+        <span class="fn">validate</span>();
+    }
+
+    <span class="kw">private void</span> <span class="fn">validate</span>() {
+        <span class="cm">// snake heads and ladder bases must not overlap</span>
+        <span class="cn">Set</span>&lt;Integer&gt; snakeHeads  = snakes.<span class="fn">keySet</span>();
+        <span class="cn">Set</span>&lt;Integer&gt; ladderBases = ladders.<span class="fn">keySet</span>();
+        <span class="kw">if</span> (!<span class="cn">Collections</span>.<span class="fn">disjoint</span>(snakeHeads, ladderBases))
+            <span class="kw">throw new</span> <span class="cn">IllegalArgumentException</span>(<span class="st">"Snake head and ladder base overlap!"</span>);
+        <span class="cm">// snake tails must be below heads, ladder tops above bases</span>
+        snakes.<span class="fn">forEach</span>((h, t) -&gt; { <span class="kw">if</span> (h &lt;= t) <span class="kw">throw new</span> <span class="cn">IllegalArgumentException</span>(<span class="st">"Invalid snake"</span>); });
+        ladders.<span class="fn">forEach</span>((b, e) -&gt; { <span class="kw">if</span> (b &gt;= e) <span class="kw">throw new</span> <span class="cn">IllegalArgumentException</span>(<span class="st">"Invalid ladder"</span>); });
+    }
+}</pre>
+      </div>
+      <div class="tab-pane" id="board-next">
+<pre><span class="kw">public int</span> <span class="fn">getNextPosition</span>(<span class="kw">int</span> currentPos, <span class="kw">int</span> diceValue) {
+    <span class="kw">int</span> newPos = currentPos + diceValue;
+
+    <span class="cm">// overshoot rule: stay put (most common)</span>
+    <span class="kw">if</span> (newPos &gt; size) <span class="kw">return</span> currentPos;
+
+    <span class="cm">// snake: slide down from head to tail</span>
+    <span class="kw">if</span> (snakes.<span class="fn">containsKey</span>(newPos))  <span class="kw">return</span> snakes.<span class="fn">get</span>(newPos);
+
+    <span class="cm">// ladder: climb from base to top</span>
+    <span class="kw">if</span> (ladders.<span class="fn">containsKey</span>(newPos)) <span class="kw">return</span> ladders.<span class="fn">get</span>(newPos);
+
+    <span class="kw">return</span> newPos; <span class="cm">// normal move</span>
+}
+
+<span class="kw">public boolean</span> <span class="fn">isSnakeHead</span>(<span class="kw">int</span> pos)  { <span class="kw">return</span> snakes.<span class="fn">containsKey</span>(pos); }
+<span class="kw">public boolean</span> <span class="fn">isLadderBase</span>(<span class="kw">int</span> pos) { <span class="kw">return</span> ladders.<span class="fn">containsKey</span>(pos); }</pre>
+      </div>
+    </div>
+
+    <div class="tab-group">
+      <div class="tab-group-title">Game — turn logic</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'game-turn')">takeTurn</button>
+        <button class="tab-btn" onclick="switchTab(this,'game-builder')">GameBuilder</button>
+      </div>
+      <div class="tab-pane active" id="game-turn">
+<pre><span class="kw">public</span> <span class="cn">GameEvent</span> <span class="fn">takeTurn</span>() {
+    <span class="kw">if</span> (state != <span class="cn">GameState</span>.IN_PROGRESS)
+        <span class="kw">throw new</span> <span class="cn">IllegalStateException</span>(<span class="st">"Game is not in progress"</span>);
+
+    <span class="cn">Player</span> current = players.<span class="fn">get</span>(currentPlayerIndex);
+    <span class="kw">int</span> roll = dice.<span class="fn">roll</span>();
+    <span class="kw">int</span> from = current.<span class="fn">getPosition</span>();
+    <span class="kw">int</span> raw  = from + roll;
+    <span class="kw">int</span> to   = board.<span class="fn">getNextPosition</span>(from, roll);
+
+    current.<span class="fn">setPosition</span>(to);
+
+    <span class="cm">// determine what happened</span>
+    <span class="cn">GameEventType</span> type;
+    <span class="kw">if</span> (to == board.<span class="fn">getSize</span>()) {
+        type  = <span class="cn">GameEventType</span>.WIN;
+        state = <span class="cn">GameState</span>.FINISHED;
+    } <span class="kw">else if</span> (raw &lt;= board.<span class="fn">getSize</span>() &amp;&amp; board.<span class="fn">isSnakeHead</span>(raw)) {
+        type = <span class="cn">GameEventType</span>.SNAKE_BITE;
+    } <span class="kw">else if</span> (raw &lt;= board.<span class="fn">getSize</span>() &amp;&amp; board.<span class="fn">isLadderBase</span>(raw)) {
+        type = <span class="cn">GameEventType</span>.LADDER_CLIMB;
+    } <span class="kw">else</span> {
+        type = <span class="cn">GameEventType</span>.NORMAL_MOVE;
+    }
+
+    <span class="cn">GameEvent</span> event = <span class="kw">new</span> <span class="cn">GameEvent</span>(type, current, from, to, roll);
+    observers.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">onEvent</span>(event));
+
+    <span class="kw">if</span> (state != <span class="cn">GameState</span>.FINISHED)
+        currentPlayerIndex = (currentPlayerIndex + <span class="nm">1</span>) % players.<span class="fn">size</span>();
+
+    <span class="kw">return</span> event;
+}</pre>
+      </div>
+      <div class="tab-pane" id="game-builder">
+<pre><span class="kw">class</span> <span class="cn">GameBuilder</span> {
+    <span class="kw">private int</span> boardSize = <span class="nm">100</span>;
+    <span class="kw">private final</span> Map&lt;Integer,Integer&gt; snakes  = <span class="kw">new</span> HashMap&lt;&gt;();
+    <span class="kw">private final</span> Map&lt;Integer,Integer&gt; ladders = <span class="kw">new</span> HashMap&lt;&gt;();
+    <span class="kw">private final</span> List&lt;<span class="cn">Player</span>&gt; players = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">private</span> <span class="cn">Dice</span> dice = <span class="kw">new</span> <span class="cn">NormalDice</span>(<span class="nm">6</span>); <span class="cm">// sensible default</span>
+
+    <span class="kw">public</span> <span class="cn">GameBuilder</span> <span class="fn">withSnake</span>(<span class="kw">int</span> head, <span class="kw">int</span> tail)  { snakes.<span class="fn">put</span>(head, tail); <span class="kw">return this</span>; }
+    <span class="kw">public</span> <span class="cn">GameBuilder</span> <span class="fn">withLadder</span>(<span class="kw">int</span> base, <span class="kw">int</span> top)  { ladders.<span class="fn">put</span>(base, top); <span class="kw">return this</span>; }
+    <span class="kw">public</span> <span class="cn">GameBuilder</span> <span class="fn">withPlayer</span>(String name) {
+        players.<span class="fn">add</span>(<span class="kw">new</span> <span class="cn">Player</span>(<span class="cn">UUID</span>.<span class="fn">randomUUID</span>().<span class="fn">toString</span>(), name, <span class="nm">0</span>));
+        <span class="kw">return this</span>;
+    }
+    <span class="kw">public</span> <span class="cn">GameBuilder</span> <span class="fn">withDice</span>(<span class="cn">Dice</span> dice) { <span class="kw">this</span>.dice = dice; <span class="kw">return this</span>; }
+
+    <span class="kw">public</span> <span class="cn">Game</span> <span class="fn">build</span>() {
+        <span class="kw">if</span> (players.<span class="fn">isEmpty</span>()) <span class="kw">throw new</span> <span class="cn">IllegalStateException</span>(<span class="st">"Need at least one player"</span>);
+        <span class="cn">Board</span> board = <span class="kw">new</span> <span class="cn">Board</span>(boardSize, snakes, ladders); <span class="cm">// validates in constructor</span>
+        <span class="kw">return new</span> <span class="cn">Game</span>(board, players, dice);
+    }
+}</pre>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 07 PATTERNS -->
+<section id="patterns">
+  <div class="sec-head"><span class="idx">07</span><h2>Design Patterns</h2></div>
+  <p class="sec-intro">Small problem, but several patterns apply cleanly here.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="p-name">Behavioral</div>
+        <div class="p-title">Strategy</div>
+        <div class="p-desc">Dice interface — swap NormalDice with LoadedDice for testing without changing Game. This is the most important design decision in the entire problem.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Behavioral</div>
+        <div class="p-title">Observer</div>
+        <div class="p-desc">Game emits GameEvents. UI, logger, or analytics subscribe. Game doesn't know about its observers — clean separation.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Behavioral</div>
+        <div class="p-title">State</div>
+        <div class="p-desc">GameState enum — NOT_STARTED / IN_PROGRESS / FINISHED. takeTurn() rejects calls when FINISHED. Clean guard without conditionals scattered everywhere.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Creational</div>
+        <div class="p-title">Builder</div>
+        <div class="p-desc">GameBuilder chains withSnake/withLadder/withPlayer/withDice. Validates in build(). Far cleaner than a 5-arg constructor.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 CONCURRENCY -->
+<section id="concurrency">
+  <div class="sec-head"><span class="idx">08</span><h2>Concurrency</h2></div>
+  <p class="sec-intro">Snake and Ladder is turn-based — single-threaded by nature. Mention this, then note what changes for multiplayer online.</p>
+  <div class="content-block">
+    <div class="highlight-box"><strong>Single-player/local multiplayer:</strong> No concurrency issues. Turn-based games are naturally sequential. The only risk is if you expose game state to external reads while takeTurn() runs.</div>
+    <table class="thread-table" style="margin-top:16px;">
+      <thead><tr><th>Scenario</th><th>Risk</th><th>Severity</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Local multiplayer (same JVM)</td><td>None — sequential turns</td><td class="risk-low">LOW</td><td>No action needed</td></tr>
+        <tr><td>Online multiplayer — network</td><td>Two players submit a turn simultaneously</td><td class="risk-high">HIGH</td><td>Synchronize takeTurn() + version number (optimistic locking)</td></tr>
+        <tr><td>Real-time leaderboard reads</td><td>Player position read mid-turn</td><td class="risk-med">MED</td><td>Make Player.position volatile or use an AtomicInteger</td></tr>
+      </tbody>
+    </table>
+    <p class="small-note" style="margin-top:12px;">→ For online: each turn is a transaction with a version counter. Client sends (turnId, version). Server rejects if version != expected. Classic optimistic locking.</p>
+  </div>
+</section>
+
+<!-- 09 TIPS -->
+<section id="tips">
+  <div class="sec-head"><span class="idx">09</span><h2>Interview Tips</h2></div>
+  <p class="sec-intro">Simpler problem than Parking Lot — differentiate yourself with clean design decisions, not raw complexity.</p>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>LoadedDice is the most important design insight.</strong> When you say "I'll make Dice an interface so tests can inject a deterministic sequence," interviewers immediately know you think about testability. This is the signal they're looking for on an SDE I problem.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>Separate Board from Game.</strong> Board is static — snakes and ladders don't move. Game is dynamic — player positions change. Mixing them makes Game a God class. State this separation explicitly.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>Board validates itself in the constructor.</strong> Snake head and ladder base can't be the same cell. Snake head must be &gt; tail. Ladder top must be &gt; base. Put this in Board's constructor so it's impossible to create an invalid board.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>Ask about the overshoot rule explicitly.</strong> Say "If a player at 97 rolls 6, should they stay at 97, move to 100, or bounce back to 97? I'll implement 'stay put' — let me know if you want a different rule." Shows you know the ambiguity exists.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Players start at 0, not 1.</strong> Starting at 0 means the first roll always lands them on the board cleanly. Position 100 = win. Avoid off-by-one confusion with a 1-indexed start.</div></div>
+    <div class="tip"><div class="tip-icon">6</div><div class="tip-text"><strong>Use GameBuilder — it signals maturity.</strong> A builder is cleaner than a constructor with 5 arguments. It also lets you add features (multiple dice, custom board sizes) without breaking existing callers.</div></div>
+  </div>
+</section>
+
+<footer>
+  <span class="k">Snake and Ladder — Low Level Design</span>
+  <span>Software Engineering Interview Prep</span>
+</footer>
+</div>
+
+<script>
+function switchTab(btn, id) {
+  const container = btn.closest('.tab-group') || btn.parentElement.parentElement;
+  container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+}
+</script>
+</body>
+</html>

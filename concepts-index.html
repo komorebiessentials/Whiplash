@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Key Concepts — Interview Prep</title>
+<style>
+  :root {
+    --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+    --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+    --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 32px 120px; }
+
+  header.masthead { padding: 72px 0 48px; border-bottom: 1.5px solid var(--g300); margin-bottom: 12px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--g500); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); }
+  .back { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-decoration: none; color: var(--g500); margin-right: 16px; transition: color 120ms; }
+  .back:hover { color: var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 5vw, 54px); line-height: 1.06; letter-spacing: -.018em; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro { font-size: 15px; color: var(--g700); margin-top: 16px; max-width: 580px; }
+
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 24px; }
+  nav.toc a { font-size: 12px; padding: 6px 14px; border: 1.5px solid var(--g300); border-radius: 999px; text-decoration: none; color: var(--g700); background: var(--paper); transition: border-color 120ms, color 120ms; display: inline-flex; align-items: center; gap: 6px; }
+  nav.toc a .n { font-family: var(--mono); font-size: 10px; color: var(--g500); }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+
+  section { margin-top: 60px; scroll-margin-top: 24px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .sec-head .idx { font-family: var(--mono); font-size: 12px; color: var(--clay); font-weight: 600; width: 30px; flex-shrink: 0; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 500; font-size: 23px; letter-spacing: -.012em; }
+  .sec-head .count { font-family: var(--mono); font-size: 10px; color: var(--g500); background: var(--g100); padding: 2px 8px; border-radius: 999px; }
+  .sec-intro { font-size: 13.5px; color: var(--g700); max-width: 680px; margin: 0 0 20px 44px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; margin-left: 44px; }
+  @media (max-width: 640px) { .grid { margin-left: 0; } .sec-intro { margin-left: 0; } }
+
+  a.card { display: flex; flex-direction: column; background: var(--paper); border: 1.5px solid var(--g300); border-radius: 14px; text-decoration: none; color: inherit; transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease; overflow: hidden; }
+  a.card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(20,20,19,.10); border-color: var(--slate); }
+
+  .thumb { height: 128px; background: var(--g100); border-bottom: 1.5px solid var(--g200); display: flex; align-items: center; justify-content: center; padding: 16px; transition: background 150ms; }
+  a.card:hover .thumb { background: var(--oat); }
+  .thumb svg { width: 100%; height: 100%; overflow: visible; }
+
+  .body { padding: 16px 18px 14px; display: flex; flex-direction: column; flex: 1; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .title { font-family: var(--serif); font-size: 17px; font-weight: 500; line-height: 1.22; color: var(--slate); letter-spacing: -.008em; }
+  .tag { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; padding: 2px 7px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+  .tag.dist  { background: #FEF3EE; color: var(--clay); }
+  .tag.oop   { background: #EEF3E8; color: var(--olive); }
+  .tag.perf  { background: #EEF1F8; color: #4A6FA5; }
+  .tag.sys   { background: #F3EEF8; color: #7B5EA7; }
+  .desc { font-size: 13px; color: var(--g700); line-height: 1.5; margin-bottom: 14px; flex: 1; }
+  .file { font-family: var(--mono); font-size: 10.5px; color: var(--g500); border-top: 1px solid var(--g100); padding-top: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .file .arrow { transition: transform 150ms; color: var(--g300); }
+  a.card:hover .file { color: var(--clay); }
+  a.card:hover .file .arrow { transform: translateX(3px); color: var(--clay); }
+
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 28px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--g500); }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow"><a class="back" href="index.html">← Home</a> Key Concepts · Interview Prep</div>
+  <h1>Important <em>Concepts</em></h1>
+  <p class="intro">12 foundational concepts that appear in system design and LLD interviews across all levels. Each page covers the theory, visual diagrams, code, and interview tips.</p>
+  <nav class="toc">
+    <a href="#distributed">Distributed Systems <span class="n">2</span></a>
+    <a href="#oop">OOP &amp; Design <span class="n">1</span></a>
+    <a href="#performance">Performance <span class="n">2</span></a>
+    <a href="#systems">Systems Programming <span class="n">1</span></a>
+    <a href="#advanced">Advanced · Senior <span class="n">6</span></a>
+  </nav>
+</header>
+
+<!-- Distributed Systems -->
+<section id="distributed">
+  <div class="sec-head"><span class="idx">01</span><h2>Distributed Systems</h2><span class="count">2 concepts</span></div>
+  <p class="sec-intro">The foundations of scalable distributed systems — how data is routed across nodes and the fundamental trade-offs you must make.</p>
+  <div class="grid">
+
+    <a class="card" href="consistent-hashing.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- Hash ring -->
+          <circle cx="60" cy="40" r="32" fill="none" stroke="var(--g300)" stroke-width="2"/>
+          <!-- Servers on ring -->
+          <circle cx="60" cy="8" r="7" fill="var(--clay)"/>
+          <circle cx="88" cy="56" r="7" fill="var(--olive)"/>
+          <circle cx="30" cy="62" r="7" fill="#4A6FA5"/>
+          <!-- Key dots -->
+          <circle cx="82" cy="14" r="3.5" fill="var(--g300)"/>
+          <circle cx="92" cy="32" r="3.5" fill="var(--g300)"/>
+          <circle cx="22" cy="42" r="3.5" fill="var(--g300)"/>
+          <circle cx="42" cy="72" r="3.5" fill="var(--g300)"/>
+          <!-- Clockwise arrow -->
+          <path d="M 90 40 A 30 30 0 0 1 75 68" fill="none" stroke="var(--clay)" stroke-width="1.5" stroke-linecap="round"/>
+          <polygon fill="var(--clay)" points="75,68 68,63 76,61"/>
+          <!-- Labels -->
+          <text x="60" y="6" text-anchor="middle" font-family="monospace" font-size="6" fill="white" font-weight="700">S1</text>
+          <text x="88" y="54" text-anchor="middle" font-family="monospace" font-size="6" fill="white" font-weight="700">S2</text>
+          <text x="30" y="60" text-anchor="middle" font-family="monospace" font-size="6" fill="white" font-weight="700">S3</text>
+          <!-- VNode indicator -->
+          <text x="105" y="20" text-anchor="middle" font-family="monospace" font-size="6" fill="var(--g500)">V-nodes</text>
+          <circle cx="96" cy="24" r="2" fill="var(--clay)" opacity=".5"/>
+          <circle cx="104" cy="28" r="2" fill="var(--clay)" opacity=".5"/>
+          <circle cx="108" cy="36" r="2" fill="var(--clay)" opacity=".5"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Consistent Hashing</div><span class="tag dist">Distributed</span></div>
+        <div class="desc">The hash ring that minimises key remapping when servers are added or removed. Virtual nodes for uniform distribution.</div>
+        <div class="file"><span>consistent-hashing.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="cap-theorem.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- CAP triangle -->
+          <polygon points="60,8 106,72 14,72" fill="none" stroke="var(--g300)" stroke-width="2"/>
+          <!-- Vertices -->
+          <circle cx="60" cy="8" r="8" fill="var(--clay)"/>
+          <circle cx="106" cy="72" r="8" fill="var(--olive)"/>
+          <circle cx="14" cy="72" r="8" fill="#4A6FA5"/>
+          <!-- Labels -->
+          <text x="60" y="6" text-anchor="middle" font-family="monospace" font-size="7" fill="white" font-weight="700">C</text>
+          <text x="106" y="70" text-anchor="middle" font-family="monospace" font-size="7" fill="white" font-weight="700">A</text>
+          <text x="14" y="70" text-anchor="middle" font-family="monospace" font-size="7" fill="white" font-weight="700">P</text>
+          <!-- Shaded region (CP highlighted) -->
+          <polygon points="60,8 14,72 37,40" fill="var(--clay)" opacity=".12"/>
+          <!-- "pick 2" text -->
+          <text x="60" y="50" text-anchor="middle" font-family="monospace" font-size="7.5" fill="var(--g500)">pick 2</text>
+          <!-- CP / AP labels -->
+          <text x="30" y="36" text-anchor="middle" font-family="monospace" font-size="6" fill="var(--clay)">CP</text>
+          <text x="86" y="36" text-anchor="middle" font-family="monospace" font-size="6" fill="var(--olive)">AP</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">CAP Theorem</div><span class="tag dist">Distributed</span></div>
+        <div class="desc">Consistency, Availability, Partition Tolerance — you can only have 2. Why P isn't optional and when to choose CP vs AP.</div>
+        <div class="file"><span>cap-theorem.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<!-- OOP & Design -->
+<section id="oop">
+  <div class="sec-head"><span class="idx">02</span><h2>OOP &amp; Design</h2><span class="count">1 concept</span></div>
+  <p class="sec-intro">The principles that underpin every good LLD design. Interviewers listen for these explicitly.</p>
+  <div class="grid">
+
+    <a class="card" href="solid-principles.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- SOLID letters large -->
+          <text x="8" y="52" font-family="serif" font-size="44" font-weight="500" fill="var(--g200)" letter-spacing="2">SOLID</text>
+          <!-- Highlighted letters -->
+          <text x="8"  y="52" font-family="serif" font-size="44" font-weight="500" fill="var(--clay)" opacity=".9">S</text>
+          <text x="36" y="52" font-family="serif" font-size="44" font-weight="500" fill="var(--olive)" opacity=".7">O</text>
+          <!-- Annotation lines -->
+          <line x1="14" y1="58" x2="14" y2="72" stroke="var(--clay)" stroke-width="1.5"/>
+          <line x1="14" y1="72" x2="50" y2="72" stroke="var(--clay)" stroke-width="1.5"/>
+          <text x="52" y="75" font-family="monospace" font-size="6" fill="var(--clay)">Single Responsibility</text>
+          <!-- DI arrow -->
+          <path d="M 100 20 L 100 60" fill="none" stroke="var(--g300)" stroke-width="2" stroke-linecap="round"/>
+          <rect x="94" y="10" width="18" height="12" rx="3" fill="none" stroke="var(--g300)" stroke-width="1.5"/>
+          <rect x="94" y="60" width="18" height="12" rx="3" fill="none" stroke="var(--olive)" stroke-width="1.5"/>
+          <text x="103" y="17" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g500)">«interface»</text>
+          <text x="103" y="67" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--olive)">Impl</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">SOLID Principles</div><span class="tag oop">OOP Design</span></div>
+        <div class="desc">SRP, OCP, LSP, ISP, DIP — each with a violation and fix in code. The vocabulary every LLD interviewer expects you to use.</div>
+        <div class="file"><span>solid-principles.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<!-- Performance -->
+<section id="performance">
+  <div class="sec-head"><span class="idx">03</span><h2>Performance</h2><span class="count">2 concepts</span></div>
+  <p class="sec-intro">The two most common performance mechanisms in distributed systems — how to store hot data close to the requester, and how to prevent a single client from overwhelming a service.</p>
+  <div class="grid">
+
+    <a class="card" href="caching.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- App box -->
+          <rect x="6" y="28" width="24" height="24" rx="4" fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5"/>
+          <text x="18" y="43" text-anchor="middle" font-family="monospace" font-size="6.5" fill="var(--g700)">APP</text>
+          <!-- Cache box -->
+          <rect x="44" y="20" width="32" height="18" rx="3" fill="var(--clay)" opacity=".85"/>
+          <text x="60" y="32" text-anchor="middle" font-family="monospace" font-size="6.5" fill="white" font-weight="700">CACHE</text>
+          <!-- DB box -->
+          <rect x="44" y="50" width="32" height="18" rx="3" fill="var(--paper)" stroke="var(--g500)" stroke-width="1.5"/>
+          <text x="60" y="62" text-anchor="middle" font-family="monospace" font-size="6.5" fill="var(--g700)">DB</text>
+          <!-- HIT arrow (green) -->
+          <path d="M30 35 L44 29" fill="none" stroke="var(--olive)" stroke-width="1.5" stroke-linecap="round"/>
+          <polygon fill="var(--olive)" points="42,25 46,29 41,31"/>
+          <!-- MISS arrow -->
+          <path d="M30 45 L44 56" fill="none" stroke="var(--g500)" stroke-width="1.5" stroke-dasharray="3 2" stroke-linecap="round"/>
+          <!-- HIT / MISS labels -->
+          <text x="34" y="26" font-family="monospace" font-size="5.5" fill="var(--olive)">HIT</text>
+          <text x="33" y="55" font-family="monospace" font-size="5.5" fill="var(--g500)">MISS</text>
+          <!-- Eviction policies -->
+          <rect x="90" y="10" width="26" height="60" rx="4" fill="var(--g100)" stroke="var(--g300)" stroke-width="1"/>
+          <text x="103" y="20" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g500)">LRU</text>
+          <text x="103" y="32" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g500)">LFU</text>
+          <text x="103" y="44" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g500)">FIFO</text>
+          <text x="103" y="56" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--clay)">TTL</text>
+          <line x1="90" y1="26" x2="116" y2="26" stroke="var(--g200)" stroke-width="1"/>
+          <line x1="90" y1="38" x2="116" y2="38" stroke="var(--g200)" stroke-width="1"/>
+          <line x1="90" y1="50" x2="116" y2="50" stroke="var(--g200)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Caching Strategies</div><span class="tag perf">Performance</span></div>
+        <div class="desc">Cache-aside, write-through, write-back, write-around. LRU/LFU eviction. Cache stampede prevention. When to use each.</div>
+        <div class="file"><span>caching.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="rate-limiting.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- Token bucket -->
+          <rect x="10" y="12" width="40" height="58" rx="5" fill="none" stroke="var(--g300)" stroke-width="2"/>
+          <!-- Tokens inside bucket -->
+          <circle cx="20" cy="30" r="5" fill="var(--clay)" opacity=".9"/>
+          <circle cx="34" cy="28" r="5" fill="var(--clay)" opacity=".9"/>
+          <circle cx="43" cy="34" r="5" fill="var(--clay)" opacity=".9"/>
+          <circle cx="20" cy="44" r="5" fill="var(--clay)" opacity=".7"/>
+          <circle cx="34" cy="44" r="5" fill="var(--clay)" opacity=".7"/>
+          <!-- Refill arrow top -->
+          <line x1="30" y1="4" x2="30" y2="12" stroke="var(--olive)" stroke-width="2" stroke-linecap="round"/>
+          <polygon fill="var(--olive)" points="26,12 30,18 34,12"/>
+          <text x="30" y="4" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--olive)">+tokens/s</text>
+          <!-- Request out bottom -->
+          <line x1="30" y1="70" x2="30" y2="78" stroke="var(--g500)" stroke-width="2" stroke-linecap="round"/>
+          <text x="30" y="78" text-anchor="middle" font-family="monospace" font-size="5" fill="var(--g500)">req</text>
+          <!-- Sliding window -->
+          <rect x="68" y="15" width="46" height="14" rx="3" fill="var(--g200)"/>
+          <rect x="78" y="15" width="26" height="14" rx="2" fill="var(--clay)" opacity=".4"/>
+          <text x="91" y="25" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g700)">window</text>
+          <text x="72" y="42" font-family="monospace" font-size="5.5" fill="var(--g500)">Fixed Window</text>
+          <text x="72" y="54" font-family="monospace" font-size="5.5" fill="var(--g500)">Sliding Log</text>
+          <text x="72" y="66" font-family="monospace" font-size="5.5" fill="var(--clay)">Token Bucket ←</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Rate Limiting</div><span class="tag perf">Performance</span></div>
+        <div class="desc">Token bucket, leaky bucket, fixed window, sliding window counter. Distributed rate limiting with Redis. HTTP 429 semantics.</div>
+        <div class="file"><span>rate-limiting.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<!-- Systems Programming -->
+<section id="systems">
+  <div class="sec-head"><span class="idx">04</span><h2>Systems Programming</h2><span class="count">1 concept</span></div>
+  <p class="sec-intro">The bedrock of thread-safe code. Every LLD interview involving shared state requires this knowledge.</p>
+  <div class="grid">
+
+    <a class="card" href="concurrency.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- Two threads -->
+          <rect x="6" y="10" width="18" height="60" rx="3" fill="var(--g100)" stroke="var(--g300)" stroke-width="1.5"/>
+          <rect x="6" y="10" width="18" height="16" rx="3 3 0 0" fill="var(--clay)" opacity=".7"/>
+          <text x="15" y="21" text-anchor="middle" font-family="monospace" font-size="5.5" fill="white">T1</text>
+          <rect x="30" y="10" width="18" height="60" rx="3" fill="var(--g100)" stroke="var(--g300)" stroke-width="1.5"/>
+          <rect x="30" y="28" width="18" height="16" rx="0" fill="var(--olive)" opacity=".7"/>
+          <text x="39" y="21" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g500)">T2</text>
+          <!-- Lock -->
+          <rect x="55" y="28" width="20" height="22" rx="3" fill="var(--slate)"/>
+          <rect x="61" y="22" width="8" height="12" rx="4" fill="none" stroke="var(--slate)" stroke-width="2.5"/>
+          <circle cx="65" cy="38" r="3" fill="var(--clay)"/>
+          <text x="65" y="56" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g500)">mutex</text>
+          <!-- Arrow from T1 to lock -->
+          <line x1="24" y1="22" x2="54" y2="36" stroke="var(--clay)" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- T2 blocked -->
+          <line x1="48" y1="36" x2="54" y2="36" stroke="var(--g300)" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <text x="51" y="44" font-family="monospace" font-size="5" fill="var(--g500)">wait</text>
+          <!-- Deadlock indicator -->
+          <rect x="86" y="14" width="28" height="22" rx="3" fill="none" stroke="var(--clay)" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <text x="100" y="27" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--clay)">DEAD</text>
+          <text x="100" y="34" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--clay)">LOCK</text>
+          <!-- Atomic -->
+          <rect x="86" y="46" width="28" height="18" rx="3" fill="var(--g100)" stroke="var(--g300)" stroke-width="1"/>
+          <text x="100" y="57" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--olive)">CAS</text>
+          <text x="100" y="64" text-anchor="middle" font-family="monospace" font-size="5" fill="var(--g500)">atomic</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Concurrency &amp; Thread Safety</div><span class="tag sys">Systems</span></div>
+        <div class="desc">Mutex, semaphore, ReadWriteLock, volatile, CAS. Deadlock — 4 conditions and prevention. When to use synchronized vs atomic vs immutability.</div>
+        <div class="file"><span>concurrency.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<!-- Advanced / Senior -->
+<section id="advanced">
+  <div class="sec-head"><span class="idx">05</span><h2>Advanced · Senior Level</h2><span class="count">6 concepts</span></div>
+  <p class="sec-intro">The deep technical knowledge that separates senior and staff engineers — distributed systems internals, modern architecture patterns, and production-grade security and observability.</p>
+  <div class="grid">
+
+    <a class="card" href="database-internals.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- B-tree node -->
+          <rect x="36" y="6" width="48" height="22" rx="3" fill="var(--paper)" stroke="var(--clay)" stroke-width="1.5"/>
+          <line x1="60" y1="6" x2="60" y2="28" stroke="var(--clay)" stroke-width="1"/>
+          <text x="48" y="20" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--clay)">25</text>
+          <text x="72" y="20" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--clay)">50</text>
+          <!-- Children -->
+          <rect x="6" y="42" width="30" height="16" rx="2" fill="var(--g100)" stroke="var(--g300)" stroke-width="1"/>
+          <rect x="42" y="42" width="36" height="16" rx="2" fill="var(--g100)" stroke="var(--g300)" stroke-width="1"/>
+          <rect x="84" y="42" width="30" height="16" rx="2" fill="var(--g100)" stroke="var(--g300)" stroke-width="1"/>
+          <text x="21" y="53" text-anchor="middle" font-family="monospace" font-size="7" fill="var(--g700)">10,18</text>
+          <text x="60" y="53" text-anchor="middle" font-family="monospace" font-size="7" fill="var(--g700)">30,42</text>
+          <text x="99" y="53" text-anchor="middle" font-family="monospace" font-size="7" fill="var(--g700)">60,75</text>
+          <line x1="48" y1="28" x2="21" y2="42" stroke="var(--g500)" stroke-width="1"/>
+          <line x1="60" y1="28" x2="60" y2="42" stroke="var(--g500)" stroke-width="1"/>
+          <line x1="72" y1="28" x2="99" y2="42" stroke="var(--g500)" stroke-width="1"/>
+          <!-- LSM label -->
+          <text x="60" y="74" text-anchor="middle" font-family="monospace" font-size="7" fill="var(--g500)">B-tree · LSM · MVCC · WAL</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Database Internals</div><span class="tag sys">Systems</span></div>
+        <div class="desc">B-tree vs LSM tree, WAL, MVCC, indexing strategies, query optimisation, isolation levels. Why Cassandra is fast for writes, why PostgreSQL MVCC is great for reads.</div>
+        <div class="file"><span>database-internals.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="distributed-consensus.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- 3 nodes -->
+          <circle cx="22" cy="40" r="14" fill="var(--g100)" stroke="var(--g300)" stroke-width="1.5"/>
+          <circle cx="60" cy="16" r="14" fill="var(--clay)" opacity=".85"/>
+          <circle cx="98" cy="40" r="14" fill="var(--g100)" stroke="var(--g300)" stroke-width="1.5"/>
+          <text x="22" y="44" text-anchor="middle" font-family="monospace" font-size="7" fill="var(--g500)">F</text>
+          <text x="60" y="20" text-anchor="middle" font-family="monospace" font-size="7" fill="white" font-weight="700">L</text>
+          <text x="98" y="44" text-anchor="middle" font-family="monospace" font-size="7" fill="var(--g500)">F</text>
+          <!-- Vote arrows -->
+          <line x1="46" y1="22" x2="34" y2="34" stroke="var(--clay)" stroke-width="1.5"/>
+          <line x1="74" y1="22" x2="86" y2="34" stroke="var(--clay)" stroke-width="1.5"/>
+          <polygon fill="var(--clay)" points="34,34 38,27 40,34"/>
+          <polygon fill="var(--clay)" points="86,34 82,27 80,34"/>
+          <!-- Term label -->
+          <text x="60" y="52" text-anchor="middle" font-family="monospace" font-size="6.5" fill="var(--clay)">Leader (term=3)</text>
+          <!-- Heartbeat -->
+          <text x="60" y="70" text-anchor="middle" font-family="monospace" font-size="6" fill="var(--g500)">Raft · Paxos · Quorum</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Distributed Consensus</div><span class="tag dist">Distributed</span></div>
+        <div class="desc">Raft leader election and log replication. Paxos phases. Quorum reads/writes (W+R&gt;N). Used in etcd, CockroachDB, Kafka KRaft. How Kubernetes stays consistent.</div>
+        <div class="file"><span>distributed-consensus.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="event-driven-architecture.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- Command -->
+          <rect x="4" y="32" width="28" height="16" rx="3" fill="var(--clay)" opacity=".8"/>
+          <text x="18" y="43" text-anchor="middle" font-family="monospace" font-size="6" fill="white">Cmd</text>
+          <!-- Event store -->
+          <rect x="44" y="26" width="32" height="28" rx="3" fill="var(--slate)"/>
+          <text x="60" y="37" text-anchor="middle" font-family="monospace" font-size="6" fill="#7eb8f7">Event</text>
+          <text x="60" y="47" text-anchor="middle" font-family="monospace" font-size="6" fill="#7eb8f7">Store</text>
+          <line x1="32" y1="40" x2="42" y2="40" stroke="var(--clay)" stroke-width="1.5"/>
+          <polygon fill="var(--clay)" points="42,40 37,37 37,43"/>
+          <!-- Projections -->
+          <rect x="88" y="10" width="28" height="14" rx="2" fill="var(--olive)" opacity=".7"/>
+          <rect x="88" y="32" width="28" height="14" rx="2" fill="var(--g300)"/>
+          <rect x="88" y="54" width="28" height="14" rx="2" fill="var(--g300)"/>
+          <text x="102" y="20" text-anchor="middle" font-family="monospace" font-size="5.5" fill="white">Read</text>
+          <text x="102" y="42" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g700)">Saga</text>
+          <text x="102" y="64" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g700)">Notify</text>
+          <line x1="76" y1="33" x2="86" y2="17" stroke="var(--g500)" stroke-width="1" stroke-dasharray="3,2"/>
+          <line x1="76" y1="40" x2="86" y2="39" stroke="var(--g500)" stroke-width="1" stroke-dasharray="3,2"/>
+          <line x1="76" y1="47" x2="86" y2="61" stroke="var(--g500)" stroke-width="1" stroke-dasharray="3,2"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Event-Driven Architecture</div><span class="tag dist">Distributed</span></div>
+        <div class="desc">CQRS (separate write/read models), Event Sourcing (store events not state), Saga Pattern (distributed transactions), Outbox Pattern (atomic DB+Kafka write).</div>
+        <div class="file"><span>event-driven-architecture.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="microservices-patterns.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- API Gateway -->
+          <rect x="40" y="4" width="40" height="16" rx="3" fill="var(--slate)"/>
+          <text x="60" y="15" text-anchor="middle" font-family="monospace" font-size="6" fill="#7eb8f7">API Gateway</text>
+          <!-- Services with circuit breaker -->
+          <rect x="8" y="34" width="30" height="18" rx="3" fill="var(--g100)" stroke="var(--g300)" stroke-width="1.5"/>
+          <text x="23" y="46" text-anchor="middle" font-family="monospace" font-size="6" fill="var(--g700)">Svc A</text>
+          <rect x="45" y="34" width="30" height="18" rx="3" fill="var(--g100)" stroke="var(--clay)" stroke-width="1.5"/>
+          <text x="60" y="43" text-anchor="middle" font-family="monospace" font-size="6" fill="var(--clay)">Svc B</text>
+          <text x="60" y="52" text-anchor="middle" font-family="monospace" font-size="5" fill="var(--clay)">OPEN</text>
+          <rect x="82" y="34" width="30" height="18" rx="3" fill="var(--g100)" stroke="var(--g300)" stroke-width="1.5"/>
+          <text x="97" y="46" text-anchor="middle" font-family="monospace" font-size="6" fill="var(--g700)">Svc C</text>
+          <line x1="48" y1="20" x2="23" y2="34" stroke="var(--g500)" stroke-width="1"/>
+          <line x1="60" y1="20" x2="60" y2="34" stroke="var(--clay)" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="72" y1="20" x2="97" y2="34" stroke="var(--g500)" stroke-width="1"/>
+          <text x="60" y="70" text-anchor="middle" font-family="monospace" font-size="6" fill="var(--g500)">Circuit Breaker · Bulkhead · Mesh</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Microservices Patterns</div><span class="tag sys">Systems</span></div>
+        <div class="desc">Circuit Breaker, Bulkhead, Retry with backoff, Service Mesh (Istio), API Gateway, Strangler Fig. Cascade failure prevention and service resilience.</div>
+        <div class="file"><span>microservices-patterns.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="observability.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- 3 pillars -->
+          <rect x="6" y="24" width="28" height="48" rx="3" fill="var(--clay)" opacity=".75"/>
+          <rect x="46" y="16" width="28" height="56" rx="3" fill="var(--olive)" opacity=".75"/>
+          <rect x="86" y="8" width="28" height="64" rx="3" fill="#4A6FA5" opacity=".75"/>
+          <text x="20" y="72" text-anchor="middle" font-family="monospace" font-size="6" fill="white">Metrics</text>
+          <text x="60" y="72" text-anchor="middle" font-family="monospace" font-size="6" fill="white">Logs</text>
+          <text x="100" y="72" text-anchor="middle" font-family="monospace" font-size="6" fill="white">Traces</text>
+          <!-- SLO label -->
+          <text x="20" y="18" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g500)">Prom</text>
+          <text x="60" y="10" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g500)">ELK</text>
+          <text x="100" y="4" text-anchor="middle" font-family="monospace" font-size="5.5" fill="var(--g500)">Jaeger</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Observability</div><span class="tag perf">Performance</span></div>
+        <div class="desc">The 3 pillars: Metrics (Prometheus), Logs (ELK/Loki), Traces (Jaeger). SLI/SLO/SLA and error budgets. OpenTelemetry. Alerting on symptoms, not causes.</div>
+        <div class="file"><span>observability.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="security-fundamentals.html">
+      <div class="thumb">
+        <svg viewBox="0 0 120 80">
+          <!-- Lock -->
+          <rect x="38" y="34" width="44" height="36" rx="5" fill="var(--slate)"/>
+          <rect x="48" y="20" width="24" height="22" rx="12" fill="none" stroke="var(--slate)" stroke-width="6"/>
+          <circle cx="60" cy="52" r="7" fill="var(--clay)"/>
+          <line x1="60" y1="56" x2="60" y2="64" stroke="var(--clay)" stroke-width="3" stroke-linecap="round"/>
+          <!-- JWT label -->
+          <text x="60" y="10" text-anchor="middle" font-family="monospace" font-size="6" fill="var(--clay)">header.payload.sig</text>
+          <text x="14" y="50" font-family="monospace" font-size="6" fill="var(--olive)">OAuth2</text>
+          <text x="14" y="62" font-family="monospace" font-size="6" fill="var(--g500)">mTLS</text>
+          <text x="96" y="50" text-anchor="end" font-family="monospace" font-size="6" fill="#4A6FA5">JWT</text>
+          <text x="96" y="62" text-anchor="end" font-family="monospace" font-size="6" fill="var(--g500)">Zero Trust</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="card-top"><div class="title">Security Fundamentals</div><span class="tag sys">Systems</span></div>
+        <div class="desc">OAuth2/OIDC flows, JWT internals and pitfalls, mTLS for service identity, Zero Trust architecture, OWASP API security, secrets management with Vault.</div>
+        <div class="file"><span>security-fundamentals.html</span><span class="arrow">→</span></div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<footer>
+  <span class="k">12 concepts · interview essentials</span>
+  <span><a href="index.html" style="color:var(--clay);text-decoration:none;">← Back to Home</a></span>
+</footer>
+
+</div>
+</body>
+</html>

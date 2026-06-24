@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Real-time Analytics — HLD Interview Prep</title>
+<style>
+:root {
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 28px 100px}
+.back{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none;padding:28px 0 0}
+.back:hover{color:var(--clay)}
+header{padding:44px 0 40px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(30px,5vw,52px);line-height:1.06;letter-spacing:-.022em;margin-bottom:12px}
+.sub{font-size:16px;color:var(--g700);max-width:580px;line-height:1.6}
+.toc-pills{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 48px}
+.toc-pills a{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;padding:6px 14px;border:1.5px solid var(--g300);border-radius:999px;text-decoration:none;color:var(--g700);background:var(--paper);transition:all 120ms}
+.toc-pills a:hover{border-color:var(--clay);color:var(--clay)}
+section{margin-bottom:60px;scroll-margin-top:24px}
+h2{font-family:var(--serif);font-weight:500;font-size:26px;letter-spacing:-.012em;margin-bottom:16px;padding-bottom:10px;border-bottom:1.5px solid var(--g200)}
+p{font-size:14.5px;color:var(--g700);margin-bottom:12px;line-height:1.65}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-box{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:16px 18px}
+.req-box h4{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.req-box h4.func{color:var(--olive)}
+.req-box h4.nfunc{color:var(--clay)}
+.req-item{font-size:13px;color:var(--g700);padding:4px 0;display:flex;align-items:flex-start;gap:8px}
+.req-item::before{content:"▸";color:var(--clay);flex-shrink:0;margin-top:1px}
+.est-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:24px}
+.est-table th{background:var(--slate);color:var(--paper);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:9px 14px;text-align:left}
+.est-table td{padding:9px 14px;border-bottom:1px solid var(--g200)}
+.est-table tr:nth-child(even) td{background:var(--g100)}
+.arch-box{background:var(--paper);border:1.5px solid var(--g300);border-radius:16px;padding:24px;overflow-x:auto}
+pre{background:var(--slate);color:#e8e6e0;font-family:var(--mono);font-size:12.5px;line-height:1.6;padding:22px;border-radius:10px;overflow-x:auto;margin-bottom:16px}
+.kw{color:#7eb8f7}.cn{color:#a8c880}.cm{color:#87867F;font-style:italic}.st{color:#D97757}.nm{color:#c39bd3}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:16px}
+.card{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--serif);font-size:15px;font-weight:500;margin-bottom:6px}
+.card p{font-size:13px;margin-bottom:0;line-height:1.5}
+.tip{background:var(--paper);border:1.5px solid var(--g200);border-left:4px solid var(--clay);border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:12px}
+.tip strong{display:block;font-size:13px;margin-bottom:4px}
+.tip p{font-size:12.5px;margin-bottom:0;line-height:1.5}
+footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:28px;display:flex;justify-content:space-between;font-size:12px;color:var(--g500)}
+footer a{color:var(--clay);text-decoration:none}
+
+/* === Interactive arch === */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:700px){.arch-wrap{grid-template-columns:1fr}}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px;color:var(--slate)}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px}
+.ap-empty{color:var(--g500);font-size:13px;text-align:center;padding-top:40px}
+
+/* === Flow stepper === */
+.flow-pills{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:16px}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);font-size:14px;margin:0 2px}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin:16px 0;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px;color:var(--slate)}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.65;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:12px;margin-top:8px}
+.fnav-btn{padding:7px 18px;border-radius:7px;border:1.5px solid var(--g300);font-size:13px;font-weight:500;background:var(--g100);cursor:pointer;transition:all .15s;color:var(--slate)}
+.fnav-btn:hover:not(:disabled){background:var(--clay);border-color:var(--clay);color:white}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:12px;color:var(--g500)}
+.flow-dots{display:flex;gap:6px;margin-left:auto}
+.fdot{width:8px;height:8px;border-radius:50%;background:var(--g300);cursor:pointer;transition:background .15s}
+.fdot.on{background:var(--clay)}
+
+/* === Self-check === */
+.sc-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+
+/* === Playground === */
+.playground{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin-top:20px}
+.playground h3{font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:8px}
+.pg-inputs{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:20px;margin-top:16px}
+.pg-field{display:flex;flex-direction:column;gap:6px}
+.pg-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500)}
+.pg-input{padding:8px 12px;border-radius:7px;border:1.5px solid var(--g300);font-size:14px;background:var(--g100);color:var(--slate);font-family:var(--mono);width:180px}
+.pg-input:focus{outline:none;border-color:var(--clay)}
+.pg-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.pg-metric{background:var(--g100);border-radius:10px;padding:14px 16px}
+.pg-val{font-family:var(--serif);font-size:26px;font-weight:500;color:var(--slate);line-height:1}
+.pg-val.highlight{color:var(--clay)}
+.pg-lbl{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--g500);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← Home</a>
+
+<header>
+  <div class="eyebrow">High Level Design · Senior</div>
+  <h1>Real-Time Analytics System</h1>
+  <p class="sub">Ingest billions of events per day, process them in real-time with Kafka + Flink, and serve sub-second OLAP queries. Lambda vs Kappa architecture.</p>
+</header>
+
+<div class="toc-pills">
+  <a href="#overview">Requirements</a>
+  <a href="#estimation">Scale</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Request Flow</a>
+  <a href="#api">API</a>
+  <a href="#database">Storage</a>
+  <a href="#deep-dive">Deep Dive</a>
+  <a href="#scaling">Scaling</a>
+  <a href="#self-check">Self-Check</a>
+  <a href="#playground">Calculator</a>
+</div>
+
+<section id="overview">
+  <h2>Requirements</h2>
+  <div class="req-grid">
+    <div class="req-box">
+      <h4 class="func">Functional</h4>
+      <div class="req-item">Ingest billions of events/day (clicks, views, purchases, errors)</div>
+      <div class="req-item">Real-time dashboards — data visible within 5 seconds of event</div>
+      <div class="req-item">Historical queries over months/years of data</div>
+      <div class="req-item">Anomaly detection and alerting on metric thresholds</div>
+      <div class="req-item">Custom metric definitions, funnel analysis, A/B test results</div>
+      <div class="req-item">Segmentation by user attributes, geography, device type</div>
+    </div>
+    <div class="req-box">
+      <h4 class="nfunc">Non-Functional</h4>
+      <div class="req-item">1M events/sec sustained ingest throughput</div>
+      <div class="req-item">Real-time query latency &lt;5 seconds end-to-end</div>
+      <div class="req-item">Historical aggregation queries &lt;30 seconds</div>
+      <div class="req-item">Exactly-once processing (no double-counting)</div>
+      <div class="req-item">1 year+ data retention; hot/warm/cold tiering</div>
+      <div class="req-item">99.9% availability for ingestion pipeline</div>
+    </div>
+  </div>
+</section>
+
+<section id="estimation">
+  <h2>Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Ingest rate</td><td>1M events/sec × 500 bytes avg</td><td>500 MB/sec raw</td></tr>
+      <tr><td>Daily raw volume</td><td>500 MB/sec × 86,400</td><td>~43 TB/day</td></tr>
+      <tr><td>Compressed (10:1)</td><td>Parquet + Snappy</td><td>~4.3 TB/day</td></tr>
+      <tr><td>1-year storage</td><td>4.3 TB × 365 days</td><td>~1.6 PB</td></tr>
+      <tr><td>Kafka partitions needed</td><td>1M/sec ÷ 50K/partition</td><td>~20 partitions</td></tr>
+      <tr><td>Real-time query QPS</td><td>1000 dashboard users × 1 req/sec</td><td>~1000 QPS on ClickHouse</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="architecture">
+  <h2>High-Level Architecture</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:12px">Click any component to learn about it.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 760 280" fill="none" style="max-width:100%;width:100%">
+        <!-- Producers group -->
+        <g class="arch-node" data-id="producers" onclick="showNode('producers')">
+          <rect x="10" y="70" width="90" height="28" rx="5" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="55" y="88" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="600">Web / Mobile</text>
+          <rect x="10" y="110" width="90" height="28" rx="5" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="55" y="128" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="600">Backend Svcs</text>
+          <rect x="10" y="150" width="90" height="28" rx="5" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="55" y="168" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="600">3rd Party</text>
+          <text x="55" y="55" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Event Producers</text>
+        </g>
+
+        <!-- Event Collector -->
+        <g class="arch-node" data-id="collector" onclick="showNode('collector')">
+          <rect x="130" y="80" width="80" height="120" rx="6" fill="#F0EEE6" stroke="#87867F" stroke-width="1.5"/>
+          <text x="170" y="136" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">Event</text>
+          <text x="170" y="150" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">Collector</text>
+          <text x="170" y="165" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">validate · batch</text>
+        </g>
+        <line x1="100" y1="84" x2="129" y2="120" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="100" y1="124" x2="129" y2="140" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="100" y1="164" x2="129" y2="162" stroke="#D1CFC5" stroke-width="1.5"/>
+
+        <!-- Kafka -->
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="240" y="80" width="80" height="120" rx="6" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="280" y="106" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">Kafka</text>
+          <text x="280" y="125" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">1M/sec</text>
+          <text x="280" y="142" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">7-day retention</text>
+          <text x="280" y="159" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">20+ partitions</text>
+        </g>
+        <line x1="210" y1="140" x2="239" y2="140" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="239,140 232,136 232,144" fill="#D1CFC5"/>
+
+        <!-- Flink -->
+        <g class="arch-node" data-id="flink" onclick="showNode('flink')">
+          <rect x="350" y="80" width="80" height="120" rx="6" fill="#EFF5EA" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="390" y="130" text-anchor="middle" font-family="monospace" font-size="10" fill="#788C5D" font-weight="700">Flink</text>
+          <text x="390" y="148" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">stream proc.</text>
+          <text x="390" y="162" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">exactly-once</text>
+        </g>
+        <line x1="320" y1="140" x2="349" y2="140" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="349,140 342,136 342,144" fill="#D1CFC5"/>
+
+        <!-- ClickHouse -->
+        <g class="arch-node" data-id="clickhouse" onclick="showNode('clickhouse')">
+          <rect x="460" y="50" width="100" height="42" rx="6" fill="#EEF2F8" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="510" y="70" text-anchor="middle" font-family="monospace" font-size="9" fill="#4A6FA5" font-weight="600">ClickHouse</text>
+          <text x="510" y="84" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">OLAP · hot queries</text>
+        </g>
+
+        <!-- S3 Parquet -->
+        <g class="arch-node" data-id="s3" onclick="showNode('s3')">
+          <rect x="460" y="110" width="100" height="42" rx="6" fill="#F0EEE6" stroke="#87867F" stroke-width="1.5"/>
+          <text x="510" y="130" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">S3 + Parquet</text>
+          <text x="510" y="144" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">cold storage · cheap</text>
+        </g>
+
+        <!-- Redis -->
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="460" y="170" width="100" height="42" rx="6" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="510" y="190" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="600">Redis</text>
+          <text x="510" y="204" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">real-time counters</text>
+        </g>
+
+        <!-- Arrows Flink → outputs -->
+        <line x1="430" y1="120" x2="459" y2="71" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="430" y1="140" x2="459" y2="131" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="430" y1="160" x2="459" y2="191" stroke="#D1CFC5" stroke-width="1.5"/>
+
+        <!-- Grafana -->
+        <g class="arch-node" data-id="grafana" onclick="showNode('grafana')">
+          <rect x="600" y="50" width="110" height="42" rx="6" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="655" y="70" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="600">Grafana</text>
+          <text x="655" y="84" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">dashboards · alerts</text>
+        </g>
+        <line x1="560" y1="71" x2="599" y2="71" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="599,71 592,67 592,75" fill="#D1CFC5"/>
+
+        <!-- Batch ETL -->
+        <g class="arch-node" data-id="batch-etl" onclick="showNode('batch-etl')">
+          <rect x="600" y="110" width="110" height="42" rx="6" fill="#F0EEE6" stroke="#87867F" stroke-width="1.5"/>
+          <text x="655" y="130" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">Spark / Trino</text>
+          <text x="655" y="144" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">batch queries</text>
+        </g>
+        <line x1="560" y1="131" x2="599" y2="131" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="599,131 592,127 592,135" fill="#D1CFC5"/>
+
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#D1CFC5"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <div id="arch-panel" class="arch-panel">
+      <p class="ap-empty">Click any component to learn about it</p>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>Request Flow</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:4px">Trace an event from user action to Grafana dashboard update.</p>
+  <div class="flow-pills">
+    <span id="fn-producers" class="fn">Producers</span>
+    <span class="farr">→</span>
+    <span id="fn-collector" class="fn">Collector</span>
+    <span class="farr">→</span>
+    <span id="fn-kafka" class="fn">Kafka</span>
+    <span class="farr">→</span>
+    <span id="fn-flink" class="fn">Flink</span>
+    <span class="farr">→</span>
+    <span id="fn-redis" class="fn">Redis</span>
+    <span class="farr">→</span>
+    <span id="fn-clickhouse" class="fn">ClickHouse</span>
+    <span class="farr">→</span>
+    <span id="fn-grafana" class="fn">Grafana</span>
+  </div>
+  <div id="flow-card" class="flow-card"><div class="fc-title">Loading…</div></div>
+  <div class="flow-nav">
+    <button class="fnav-btn" onclick="prevStep()" id="flow-prev">← Prev</button>
+    <span class="fnav-counter" id="flow-counter">1 / 6</span>
+    <button class="fnav-btn" onclick="nextStep()" id="flow-next">Next →</button>
+    <div class="flow-dots" id="flow-dots"></div>
+  </div>
+</section>
+
+<section id="api">
+  <h2>API Design</h2>
+<pre><span class="cm">POST /ingest/v1/events  — SDK sends batch every 5s</span>
+{
+  <span class="st">"events"</span>: [
+    { <span class="st">"type"</span>: <span class="st">"page_view"</span>, <span class="st">"userId"</span>: <span class="st">"u123"</span>, <span class="st">"ts"</span>: <span class="nm">1719000000000</span>,
+      <span class="st">"props"</span>: { <span class="st">"url"</span>: <span class="st">"/checkout"</span>, <span class="st">"country"</span>: <span class="st">"US"</span>, <span class="st">"device"</span>: <span class="st">"mobile"</span> } }
+  ]
+}
+→ <span class="nm">200</span> { <span class="st">"accepted"</span>: <span class="nm">1</span> }
+
+<span class="cm">GET /api/v1/metrics?metric=page_views&amp;granularity=1m&amp;from=2026-06-20T00:00Z&amp;to=now
+     &amp;filters[country]=US&amp;groupBy=device</span>
+→ { <span class="st">"series"</span>: [{ <span class="st">"ts"</span>: <span class="nm">1719000000</span>, <span class="st">"value"</span>: <span class="nm">12500</span>, <span class="st">"device"</span>: <span class="st">"mobile"</span> }] }
+
+<span class="cm">GET /api/v1/funnels?steps[]=view_product&amp;steps[]=add_cart&amp;steps[]=purchase&amp;dateRange=7d</span>
+→ { <span class="st">"steps"</span>: [{ <span class="st">"name"</span>: <span class="st">"view_product"</span>, <span class="st">"count"</span>: <span class="nm">100000</span>, <span class="st">"dropOff"</span>: <span class="nm">0</span> }, ...] }</pre>
+</section>
+
+<section id="database">
+  <h2>Storage Architecture</h2>
+  <div class="card-grid">
+    <div class="card"><h4>Kafka (Ingest Buffer)</h4><p>Topics per event type, 7-day retention for Kappa replay. Partitioned by userId for ordering. 20+ partitions for 1M/sec throughput.</p></div>
+    <div class="card"><h4>ClickHouse (Hot OLAP)</h4><p>Columnar store, pre-aggregated rollups, bitmap indexes on dimensions. Sub-second aggregation queries over billions of rows. Last 7–30 days hot tier.</p></div>
+    <div class="card"><h4>S3 + Parquet (Cold Lake)</h4><p>All raw events as Parquet files partitioned by date/hour. Cheap at scale. Queried by Spark/Trino for historical analysis. Indefinite retention.</p></div>
+    <div class="card"><h4>Redis (Real-time Counters)</h4><p>INCR per (event_type, minute) bucket. Pre-computed dashboard metrics cached with 10s TTL. Reduces ClickHouse load for hot queries.</p></div>
+    <div class="card"><h4>PostgreSQL (Metadata)</h4><p>Metric definitions, alert rules, experiment configs, user/team management. Transactional, low volume.</p></div>
+  </div>
+</section>
+
+<section id="deep-dive">
+  <h2>Key Design Decisions</h2>
+  <p><strong>Exactly-Once with Flink:</strong> Flink checkpoints its processing state to S3 every 30 seconds. On failure, it restarts from the last checkpoint and re-reads from the saved Kafka offset. For exactly-once: Kafka consumer offsets are committed only after the checkpoint succeeds. The sink (ClickHouse) must support idempotent writes (overwrite on duplicate key).</p>
+  <div class="card-grid">
+    <div class="card"><h4>Tumbling Window</h4><p>Fixed non-overlapping 1-minute buckets. Simple, no overlap. Use for time-series metrics like "events per minute."</p></div>
+    <div class="card"><h4>Sliding Window</h4><p>Overlapping windows (5-min window, every 1 min). Smoother trends. 5× more computation. Use for moving averages.</p></div>
+    <div class="card"><h4>Session Window</h4><p>Gap-based: window ends after N minutes of inactivity. Perfect for user sessions. Variable-length windows.</p></div>
+  </div>
+  <table class="est-table" style="margin-top:16px">
+    <thead><tr><th></th><th>Lambda</th><th>Kappa</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Approach</strong></td><td>Batch (Spark on S3) + Speed (Flink) merged at serving</td><td>Only stream processing; replay Kafka for history</td></tr>
+      <tr><td><strong>Complexity</strong></td><td>Two codebases to maintain</td><td>Single processing path — simpler ops</td></tr>
+      <tr><td><strong>Reprocessing</strong></td><td>Re-run batch job from S3</td><td>Reset Kafka consumer offset to 0</td></tr>
+      <tr><td><strong>Preferred</strong></td><td>Legacy systems with existing batch pipelines</td><td>Modern (Netflix, LinkedIn) — greenfield</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="scaling">
+  <h2>Scaling &amp; Bottlenecks</h2>
+  <div class="card-grid">
+    <div class="card"><h4>Kafka Partitioning</h4><p>Each partition processed by one Flink task. More partitions = more parallelism. Add partitions to scale at 1:1 with Flink task slots.</p></div>
+    <div class="card"><h4>Flink Scaling</h4><p>Add TaskManager instances. RocksDB state backend for large keyed state. Incremental checkpointing reduces S3 write size.</p></div>
+    <div class="card"><h4>Pre-aggregation</h4><p>Flink writes minute-level rollups to ClickHouse. Dashboards query rollups — 1000x smaller dataset vs raw event scans for common time-range queries.</p></div>
+    <div class="card"><h4>Backpressure</h4><p>Kafka buffers ingest spikes. Flink applies backpressure by slowing Kafka consumption. Prevents cascade failures during traffic bursts.</p></div>
+    <div class="card"><h4>Tiered Storage</h4><p>Hot (0–7 days): ClickHouse in-memory. Warm (7–90 days): ClickHouse historical. Cold (90d+): S3 + Trino query on demand. 10× cost reduction.</p></div>
+    <div class="card"><h4>Late Events</h4><p>Watermarks define expected lateness. Events within 30s of window close still processed. Beyond → side output (audit log). &lt;0.1% of events arrive >5min late.</p></div>
+  </div>
+</section>
+
+<section id="self-check">
+  <h2>Self-Check</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:16px">Test your understanding. Click to reveal answers.</p>
+  <div class="sc-list">
+    <div class="sc-item" id="sc-1">
+      <div class="sc-q" onclick="toggleSC('sc-1')">
+        <span>What happens to events that arrive 2 minutes late to Flink? <span class="sc-tag">Late Data</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Flink uses watermarks to track event time progress. Window [10:00–10:01] closes when watermark passes 10:01:30 (30s grace period). Events arriving within this window are still processed. "Allowed lateness" (up to 5 min): Flink reopens the window, updates aggregates, emits a correction event downstream. Beyond 5 min: events go to a side output topic (logged for audit, not counted in metrics). In practice, &lt;0.1% of events arrive &gt;5 min late. Nightly Spark batch reprocesses raw Kafka data (7-day retention) to correct historical figures with late-arriving data.</p></div>
+    </div>
+    <div class="sc-item" id="sc-2">
+      <div class="sc-q" onclick="toggleSC('sc-2')">
+        <span>Why ClickHouse instead of MySQL for analytics? <span class="sc-tag">Storage</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>MySQL stores rows: all columns written contiguously on disk. For SELECT count(*) WHERE date=today, MySQL reads every column of every row. ClickHouse stores columns separately: reading 'count' and 'date' doesn't touch other columns. On 1B rows: MySQL might read 100GB+; ClickHouse reads &lt;1GB. Additionally, ClickHouse uses vectorized execution (SIMD operations on column batches), MergeTree engine optimized for time-series inserts, and supports pre-aggregated materialized views. Result: analytical queries 10–1000× faster than MySQL at &gt;10x lower cost (less data read = less I/O).</p></div>
+    </div>
+    <div class="sc-item" id="sc-3">
+      <div class="sc-q" onclick="toggleSC('sc-3')">
+        <span>How do you handle a Flink job failure without losing data? <span class="sc-tag">Fault Tolerance</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Flink uses checkpointing every 30 seconds. A checkpoint is a consistent snapshot of all operator state (window buffers, aggregators) written to S3. The snapshot includes Kafka consumer offsets per partition. On failure: Flink restarts from last checkpoint, resets Kafka consumer offsets to match checkpoint, reprocesses events since then. Exactly-once semantics end-to-end. Recovery time: typically &lt;1 minute for checkpoint load + replay. Kafka 7-day retention ensures replay window is large. The downstream sink (ClickHouse) must handle idempotent writes — Flink uses transaction markers to ensure exactly-once on the write side.</p></div>
+    </div>
+    <div class="sc-item" id="sc-4">
+      <div class="sc-q" onclick="toggleSC('sc-4')">
+        <span>How do you scale to 10M events/second? <span class="sc-tag">Scale</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Kafka: add partitions (linear scale — 200 partitions = 200 parallel consumers at 50K events/sec each = 10M/sec). Flink: add TaskManagers; each handles a partition subset. Flink's state is sharded by key — adding parallelism redistributes key ranges. ClickHouse: shard across servers with ReplicatedMergeTree; Flink routes by hash(userId). Redis: Redis Cluster shards by key slot. The collection tier (Event Collector) is stateless — autoscales behind load balancer. The whole pipeline scales horizontally at every stage with no coordination needed.</p></div>
+    </div>
+    <div class="sc-item" id="sc-5">
+      <div class="sc-q" onclick="toggleSC('sc-5')">
+        <span>Stream vs batch — when would you use each? <span class="sc-tag">Concepts</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a"><p>Batch (Spark): processes bounded datasets — all data available at once. Latency: minutes to hours. Throughput: very high (can optimize globally). Use for: end-of-day reports, ML training datasets, ETL jobs that correct historical data. Stream (Flink): processes unbounded data as it arrives. Latency: milliseconds to seconds. State maintained across events. Use for: real-time dashboards, fraud detection, alerting, personalization. Hybrid (Lambda): run both — stream for low-latency approximate results, batch for accurate corrections. Modern alternative: Kappa — stream-only, replay Kafka for batch-style corrections. Netflix uses Kappa; Facebook historically used Lambda.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="playground">
+  <h2>Interactive</h2>
+  <div class="playground">
+    <h3>Event Throughput &amp; Storage Calculator</h3>
+    <p style="font-size:13px;color:var(--g500)">Estimate Kafka throughput, required partitions, and storage for your scale.</p>
+    <div class="pg-inputs">
+      <div class="pg-field">
+        <label class="pg-label" for="pg-eps">Events per second</label>
+        <input class="pg-input" type="number" id="pg-eps" value="1000000" min="1" oninput="calcThroughput()">
+      </div>
+      <div class="pg-field">
+        <label class="pg-label" for="pg-size">Avg event size (bytes)</label>
+        <input class="pg-input" type="number" id="pg-size" value="500" min="1" oninput="calcThroughput()">
+      </div>
+    </div>
+    <div class="pg-results">
+      <div class="pg-metric"><div class="pg-val" id="r-mbps">—</div><div class="pg-lbl">Kafka throughput MB/s</div></div>
+      <div class="pg-metric"><div class="pg-val" id="r-parts">—</div><div class="pg-lbl">Kafka partitions (10MB/s/part)</div></div>
+      <div class="pg-metric"><div class="pg-val" id="r-raw-day">—</div><div class="pg-lbl">Raw storage / day</div></div>
+      <div class="pg-metric"><div class="pg-val highlight" id="r-comp-day">—</div><div class="pg-lbl">Compressed / day (10:1)</div></div>
+      <div class="pg-metric"><div class="pg-val" id="r-7day">—</div><div class="pg-lbl">Kafka 7-day retention</div></div>
+      <div class="pg-metric"><div class="pg-val highlight" id="r-year">—</div><div class="pg-lbl">Compressed 1-year total</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="hld-index.html">All HLD Problems</a></span>
+  <span><a href="index.html">Home</a></span>
+</footer>
+</div>
+
+<script>
+const NODE_INFO = {
+  producers: {
+    title: "Event Producers (Web / Mobile / Services)",
+    body: "Any system that generates events: web pages (pageview, click), mobile apps (session start, purchase), backend services (order created, payment failed). Use a client-side SDK that batches events in memory and flushes every 5 seconds to the Event Collector. Batching reduces HTTP overhead from 1M req/sec to ~200K/sec. Snappy compression on batch reduces payload by ~70%.",
+    stats: ["SDK batches every 5s", "Snappy compression", "Structured JSON events", "Async — never blocks UI"],
+    warn: null
+  },
+  collector: {
+    title: "Event Collector",
+    body: "Receives batched events from producers. Validates event schema (unknown fields dropped, required fields enforced). Normalizes timestamps to UTC. Deduplicates events with the same eventId (idempotency). Forwards valid events to Kafka. Runs in many stateless instances behind a load balancer.",
+    stats: ["Schema validation", "UTC timestamp normalization", "Event dedup by ID", "Stateless — horizontal scale"],
+    warn: null
+  },
+  kafka: {
+    title: "Apache Kafka",
+    body: "Durable event log. Each event type gets its own topic (page_views, purchases, errors). Partitioned by userId → events for same user arrive in order to same Flink partition. Consumers can replay from any offset (7-day retention). Handles producer spikes by decoupling write from processing speed.",
+    stats: ["1M events/sec throughput", "20+ partitions", "7-day retention for replay", "3x replication for durability"],
+    warn: null
+  },
+  flink: {
+    title: "Apache Flink",
+    body: "Stateful stream processing engine. Aggregates metrics in sliding/tumbling windows (1min, 5min, 1hr). Watermarks handle late-arriving events (30s grace). Checkpoints state to S3 every 30s for fault tolerance — on failure, replay from last checkpoint. Exactly-once semantics with Kafka + idempotent sinks.",
+    stats: ["Tumbling + sliding windows", "Watermarks for late events", "S3 checkpointing every 30s", "Exactly-once semantics"],
+    warn: null
+  },
+  clickhouse: {
+    title: "ClickHouse (Hot OLAP)",
+    body: "Columnar database for analytical queries. Stores 30 days of pre-aggregated metrics. Flink writes batched rollups every 10s. MergeTree engine merges overlapping time windows asynchronously. Query: SELECT count(*), country FROM events WHERE date=today GROUP BY country runs in <100ms on billions of rows — only the 'date' and 'country' columns are scanned.",
+    stats: ["Columnar — read only needed cols", "Pre-aggregated 1-min rollups", "MergeTree for efficient inserts", "Sub-second query on billions rows"],
+    warn: null
+  },
+  s3: {
+    title: "S3 + Parquet (Cold Lake)",
+    body: "Raw events written as Parquet files partitioned by date/hour/event_type. After Kafka retention expires, this is the historical record. Queried by Spark or Trino for ad-hoc historical analysis and backfills. Schema-on-read: can evolve schema without migrations. Cost ~$0.023/GB/month vs ClickHouse's compute overhead.",
+    stats: ["Raw event archive", "Parquet columnar format", "Partitioned by date/hour", "Queried by Spark/Trino"],
+    warn: null
+  },
+  redis: {
+    title: "Redis (Real-Time Counters)",
+    body: "Maintains live counters for the past few minutes: active users right now, events/sec by type, error rates. Flink writes INCR commands every second. Dashboard widgets poll Redis for sub-second freshness without hitting ClickHouse. Key: 'metric:page_view:2026-06-21T10:05:00' → value: 142500. TTL 1 hour.",
+    stats: ["INCR atomic counters", "Sub-second freshness", "TTL 1 hour auto-cleanup", "Reduces ClickHouse query load"],
+    warn: null
+  },
+  grafana: {
+    title: "Grafana (Dashboards & Alerting)",
+    body: "Connects to ClickHouse for historical charts and Redis for live counters. Dashboards auto-refresh every 10s for near-real-time views. Alerting: if p99 latency > 500ms for 5 consecutive minutes → PagerDuty. Alert engine evaluates rules every minute against ClickHouse.",
+    stats: ["ClickHouse for historical", "Redis for live counters", "10s auto-refresh", "PagerDuty alert integration"],
+    warn: null
+  },
+  'batch-etl': {
+    title: "Spark / Trino (Batch ETL)",
+    body: "Runs nightly batch jobs to reprocess raw data from S3 with corrected logic. Handles late data that missed the streaming window. Also: ad-hoc analytical queries over months/years, ML feature engineering, A/B test analysis. Trino is better for interactive queries; Spark for heavy transformations.",
+    stats: ["Nightly historical reprocessing", "Late data correction", "Ad-hoc ML queries", "S3 Parquet as input"],
+    warn: null
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  const el = document.querySelector(`.arch-node[data-id="${id}"]`);
+  if (el) el.classList.add('sel');
+  const info = NODE_INFO[id];
+  const panel = document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  if (!info) { panel.innerHTML = '<p class="ap-empty">No info for this component</p>'; return; }
+  panel.innerHTML = `
+    <div class="ap-title">${info.title}</div>
+    <div class="ap-body">${info.body}</div>
+    <div>${info.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>
+    ${info.warn ? `<div class="ap-warn">${info.warn}</div>` : ''}
+  `;
+}
+
+const STEPS = [
+  {
+    nodes: ['fn-producers'],
+    title: "User action generates event",
+    desc: "User opens app, clicks a button. SDK batches 100 events every 5 seconds and sends to the Event Collector in one HTTP call. Events are structured JSON: {userId, eventType:'page_view', page:'/checkout', timestamp, sessionId}. Snappy-compressed to reduce payload ~70%.",
+    code: "// SDK batches events client-side\nconst events = [{\n  type: 'page_view', userId: 'u123',\n  ts: Date.now(), sessionId: 'sess_abc',\n  props: { url: '/checkout', device: 'mobile' }\n}];\n// Flush every 5s to /ingest/v1/events\n// 100 events per batch = 1M events/sec at 10K clients"
+  },
+  {
+    nodes: ['fn-producers','fn-collector','fn-kafka'],
+    title: "Event lands in Kafka topic",
+    desc: "Event Collector validates schema, normalizes timestamp to UTC, deduplicates by eventId. Routes to Kafka topic 'events.page_view', partitioned by userId. Written to disk (WAL), replicated to 3 brokers. Offset returned to producer.",
+    code: "// Event Collector validation\nif (!event.userId || !event.ts || !event.type) return 400;\nif (redis.exists('dedup:' + event.id)) return 200; // dup\nkafka.publish('events.' + event.type, {\n  key: event.userId,  // partition by userId\n  value: compressSnappy(event)\n});"
+  },
+  {
+    nodes: ['fn-kafka','fn-flink'],
+    title: "Flink processes stream",
+    desc: "Flink consumer reads from Kafka partition. Applies tumbling 1-minute window. Aggregates: page_view count per page, p99 load time, bounce rate. Watermark handles events up to 30s late. State backed by RocksDB locally, checkpointed to S3 every 30s.",
+    code: "// Flink tumbling window aggregation\nstream\n  .keyBy(event -> event.pageUrl)\n  .window(TumblingEventTimeWindows.of(Time.minutes(1)))\n  .allowedLateness(Time.seconds(30))\n  .aggregate(new PageViewAggregator())\n  .sinkTo(clickhouseSink);\n// Emits: {pageUrl, minute_bucket, count, p99_ms}"
+  },
+  {
+    nodes: ['fn-flink','fn-redis'],
+    title: "Hot metrics written to Redis",
+    desc: "Every second, Flink writes running counters to Redis: INCR metric:page_view:total. Active user count: SADD active_users:{minute} userId. Dashboard polls Redis every 1s for sub-second freshness — no ClickHouse query needed for live counters.",
+    code: "// Flink Redis sink (every 1s)\nredis.incr('metric:page_view:' + minuteBucket);\nredis.sadd('active_users:' + minuteBucket, userId);\n// TTL auto-expires old keys\nredis.expire('metric:page_view:' + minuteBucket, 3600);\n// Dashboard: GET metric:page_view:* → live count"
+  },
+  {
+    nodes: ['fn-flink','fn-clickhouse'],
+    title: "Aggregates written to ClickHouse",
+    desc: "Every 10 seconds, Flink flushes aggregated rows to ClickHouse via batch INSERT. 10,000 rows at once is far more efficient than 10,000 individual INSERTs. ClickHouse MergeTree engine merges overlapping time windows asynchronously.",
+    code: "// Flink batch sink to ClickHouse\nINSERT INTO metrics (minute_bucket, page_url, event_count, p99_ms)\nVALUES\n  ('2026-06-21 10:05:00', '/checkout', 14250, 342),\n  ('2026-06-21 10:05:00', '/home',      89431, 98),\n  ... -- 10,000 rows per batch every 10s"
+  },
+  {
+    nodes: ['fn-clickhouse','fn-grafana'],
+    title: "Dashboard query served",
+    desc: "Grafana executes ClickHouse query. ClickHouse scans only the 'minute_bucket' and 'page_url' columns — columnar storage means unneeded columns are never read. Query over 7 days of data returns in <100ms.",
+    code: "-- Grafana → ClickHouse query\nSELECT\n  toStartOfHour(minute_bucket) as hour,\n  page_url,\n  sum(event_count) as total_views\nFROM metrics\nWHERE minute_bucket >= now() - INTERVAL 7 DAY\n  AND page_url LIKE '/checkout%'\nGROUP BY 1, 2\nORDER BY 1;\n-- Scans only 2 columns on 100M rows → <100ms"
+  }
+];
+
+const FN_IDS = ['fn-producers','fn-collector','fn-kafka','fn-flink','fn-redis','fn-clickhouse','fn-grafana'];
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  FN_IDS.forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    el.className = 'fn';
+    if (s.nodes.includes(id)) el.classList.add('act');
+    else {
+      const idx = FN_IDS.indexOf(id);
+      const firstActiveIdx = Math.min(...s.nodes.map(n => FN_IDS.indexOf(n)));
+      if (idx < firstActiveIdx) el.classList.add('done');
+    }
+  });
+  document.getElementById('flow-card').innerHTML = `<div class="fc-title">${s.title}</div><div class="fc-desc">${s.desc}</div><div class="fc-code">${s.code}</div>`;
+  document.getElementById('flow-counter').textContent = `${curStep+1} / ${STEPS.length}`;
+  document.getElementById('flow-prev').disabled = curStep === 0;
+  document.getElementById('flow-next').disabled = curStep === STEPS.length - 1;
+  document.querySelectorAll('.fdot').forEach((d,i) => d.classList.toggle('on', i===curStep));
+}
+function nextStep() { if (curStep < STEPS.length-1) { curStep++; renderStep(); } }
+function prevStep() { if (curStep > 0) { curStep--; renderStep(); } }
+function goStep(n) { curStep = n; renderStep(); }
+function toggleSC(id) { document.getElementById(id).classList.toggle('open'); }
+
+function fmtBytes(bytes) {
+  if (bytes >= 1e15) return (bytes/1e15).toFixed(1) + ' PB';
+  if (bytes >= 1e12) return (bytes/1e12).toFixed(1) + ' TB';
+  if (bytes >= 1e9)  return (bytes/1e9).toFixed(1) + ' GB';
+  if (bytes >= 1e6)  return (bytes/1e6).toFixed(1) + ' MB';
+  return bytes.toFixed(0) + ' B';
+}
+
+function calcThroughput() {
+  const eps = Math.max(1, parseInt(document.getElementById('pg-eps').value) || 1000000);
+  const size = Math.max(1, parseInt(document.getElementById('pg-size').value) || 500);
+  const bytesPerSec = eps * size;
+  const mbps = bytesPerSec / 1e6;
+  const partitions = Math.ceil(mbps / 10);
+  const rawPerDay = bytesPerSec * 86400;
+  const compPerDay = rawPerDay / 10;
+  const kafka7Day = rawPerDay * 7 / 10;
+  const compYear = compPerDay * 365;
+  document.getElementById('r-mbps').textContent = mbps.toFixed(0);
+  document.getElementById('r-parts').textContent = partitions;
+  document.getElementById('r-raw-day').textContent = fmtBytes(rawPerDay);
+  document.getElementById('r-comp-day').textContent = fmtBytes(compPerDay);
+  document.getElementById('r-7day').textContent = fmtBytes(kafka7Day);
+  document.getElementById('r-year').textContent = fmtBytes(compYear);
+}
+
+(function() {
+  const dots = document.getElementById('flow-dots');
+  STEPS.forEach((_,i) => { const d = document.createElement('div'); d.className='fdot'; d.onclick=()=>goStep(i); dots.appendChild(d); });
+  renderStep();
+  calcThroughput();
+})();
+</script>
+</body>
+</html>

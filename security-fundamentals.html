@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Fundamentals — SDE Interview Prep</title>
+<style>
+  :root {
+    --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+    --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+    --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+    --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px 100px}
+  .back{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none;padding:28px 0 0}
+  .back:hover{color:var(--slate)}
+  header{padding:44px 0 52px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--g500);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay)}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,56px);line-height:1.06;letter-spacing:-.022em}
+  h1 em{font-style:italic;color:var(--clay)}
+  .sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:580px;line-height:1.6}
+  .layout{display:grid;grid-template-columns:200px 1fr;gap:48px;align-items:start}
+  @media(max-width:760px){.layout{grid-template-columns:1fr}}
+  .toc{position:sticky;top:32px;background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:16px}
+  .toc-title{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--g500);margin-bottom:12px}
+  .toc a{display:block;font-size:12.5px;color:var(--g700);text-decoration:none;padding:5px 0;border-left:2px solid transparent;padding-left:10px;transition:all 120ms}
+  .toc a:hover{color:var(--clay);border-left-color:var(--clay)}
+  section{margin-bottom:56px;scroll-margin-top:24px}
+  h2{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:-.014em;margin-bottom:18px;display:flex;align-items:center;gap:12px}
+  h2::before{content:attr(data-n);font-family:var(--mono);font-size:12px;color:var(--clay);font-weight:600}
+  h3{font-family:var(--serif);font-size:19px;font-weight:500;margin:24px 0 10px}
+  p{font-size:15px;color:var(--g700);margin-bottom:14px;line-height:1.65}
+  code{font-family:var(--mono);font-size:13px;background:var(--g100);padding:2px 6px;border-radius:4px}
+  .svg-wrap{background:var(--g100);border:1.5px solid var(--g200);border-radius:12px;padding:28px;margin-bottom:28px;display:flex;justify-content:center}
+  .svg-wrap svg{max-width:640px;width:100%;height:auto}
+  .variant-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:24px}
+  .variant-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:18px 20px}
+  .variant-card h4{font-family:var(--serif);font-size:16px;font-weight:500;margin-bottom:8px;color:var(--slate)}
+  .variant-card p{font-size:13px;margin-bottom:0;line-height:1.55}
+  .tradeoff-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:24px}
+  .tradeoff-table th{background:var(--slate);color:var(--paper);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:10px 14px;text-align:left}
+  .tradeoff-table td{padding:10px 14px;border-bottom:1px solid var(--g200);vertical-align:top}
+  .tradeoff-table tr:nth-child(even) td{background:var(--g100)}
+  .tabs{display:flex;gap:0;margin-bottom:-1px;flex-wrap:wrap}
+  .tab-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:8px 16px;border:1.5px solid var(--g300);border-bottom:none;background:var(--g100);color:var(--g500);cursor:pointer;border-radius:8px 8px 0 0;transition:all 120ms;margin-right:4px}
+  .tab-btn.active{background:var(--paper);color:var(--slate);border-color:var(--g300)}
+  .tab-pane{display:none;background:var(--paper);border:1.5px solid var(--g300);border-radius:0 12px 12px 12px;overflow:hidden}
+  .tab-pane.active{display:block}
+  pre{background:var(--slate);color:#e8e6e0;font-family:var(--mono);font-size:13px;line-height:1.6;padding:24px;overflow-x:auto}
+  .kw{color:#7eb8f7}.cn{color:#a8c880}.cm{color:#87867F;font-style:italic}.st{color:#D97757}.nm{color:#c39bd3}.fn{color:#79c9c0}
+  .tip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .tip{background:var(--paper);border:1.5px solid var(--g200);border-left:4px solid var(--clay);border-radius:0 10px 10px 0;padding:14px 16px}
+  .tip strong{display:block;font-size:13px;margin-bottom:4px;color:var(--slate)}
+  .tip p{font-size:12.5px;margin-bottom:0;line-height:1.5}
+  footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:28px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--g500)}
+  footer a{color:var(--clay);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← Home</a>
+<header>
+  <div class="eyebrow">Key Concepts · Advanced</div>
+  <h1>Security<br><em>Fundamentals</em></h1>
+  <p class="sub">OAuth2, JWT, mTLS, Zero Trust, and API security patterns — what every senior engineer must know to design and review secure systems.</p>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <a href="#what">What Is It</a>
+  <a href="#problem">The Problem</a>
+  <a href="#how">How It Works</a>
+  <a href="#types">Mechanisms</a>
+  <a href="#tradeoffs">Trade-offs</a>
+  <a href="#code">Code</a>
+  <a href="#real-world">Real World</a>
+  <a href="#tips">Interview Tips</a>
+</nav>
+
+<div>
+
+<section id="what">
+  <h2 data-n="01">What Is It</h2>
+  <p>Application security covers two core problems: <strong>Authentication</strong> (who are you?) and <strong>Authorization</strong> (what are you allowed to do?). At senior level, you're expected to design systems that handle these correctly across service boundaries, at scale, and under adversarial conditions.</p>
+  <div class="variant-grid">
+    <div class="variant-card"><h4>OAuth2 / OIDC</h4><p>Industry-standard protocols for delegated authorization and federated identity. The foundation of every modern auth system.</p></div>
+    <div class="variant-card"><h4>JWT</h4><p>JSON Web Tokens — signed, self-contained tokens for stateless authentication. Widely used but with sharp edges.</p></div>
+    <div class="variant-card"><h4>mTLS</h4><p>Mutual TLS — both client and server present X.509 certificates. The standard for service-to-service auth in zero-trust environments.</p></div>
+    <div class="variant-card"><h4>Zero Trust</h4><p>"Never trust, always verify" — no implicit trust even inside the network perimeter. Every call must be authenticated and authorized.</p></div>
+  </div>
+</section>
+
+<section id="problem">
+  <h2 data-n="02">The Problem It Solves</h2>
+  <p><strong>Session scalability:</strong> Server-side sessions require shared storage (sticky sessions or Redis). At millions of users, this becomes a bottleneck. JWTs are stateless — the server validates a signature without any lookup.</p>
+  <p><strong>Service identity:</strong> In microservices, Service A calls Service B. How does B know the caller is actually A and not an attacker who compromised the network? mTLS provides cryptographic proof of identity.</p>
+  <p><strong>Delegated authorization:</strong> A user wants to grant your app access to their Google Drive without giving you their password. OAuth2 solves this with access tokens scoped to specific permissions.</p>
+  <p><strong>The confused deputy problem:</strong> A service has elevated privileges; an attacker tricks it into performing actions on their behalf. Zero-trust and per-request authorization prevent this.</p>
+</section>
+
+<section id="how">
+  <h2 data-n="03">OAuth2 Authorization Code + PKCE Flow</h2>
+  <div class="svg-wrap">
+    <svg viewBox="0 0 640 300" fill="none">
+      <!-- Actors -->
+      <rect x="20" y="60" width="80" height="36" rx="6" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+      <text x="60" y="82" text-anchor="middle" font-family="monospace" font-size="10" fill="white">Browser</text>
+      <rect x="240" y="60" width="100" height="36" rx="6" fill="#D97757" opacity=".85"/>
+      <text x="290" y="78" text-anchor="middle" font-family="monospace" font-size="10" fill="white">Auth Server</text>
+      <text x="290" y="91" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.7)">(Okta / Auth0)</text>
+      <rect x="490" y="60" width="100" height="36" rx="6" fill="#788C5D" opacity=".85"/>
+      <text x="540" y="82" text-anchor="middle" font-family="monospace" font-size="10" fill="white">API Server</text>
+
+      <!-- Step 1: redirect to auth server -->
+      <line x1="100" y1="120" x2="238" y2="130" stroke="#7eb8f7" stroke-width="1.5"/>
+      <polygon points="238,130 230,125 231,133" fill="#7eb8f7"/>
+      <text x="165" y="118" text-anchor="middle" font-family="monospace" font-size="8" fill="#7eb8f7">1. redirect + code_challenge</text>
+
+      <!-- Step 2: user login → code -->
+      <line x1="238" y1="155" x2="100" y2="165" stroke="#D97757" stroke-width="1.5"/>
+      <polygon points="100,165 107,160 108,168" fill="#D97757"/>
+      <text x="165" y="152" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757">2. auth code (redirect)</text>
+
+      <!-- Step 3: exchange code for token -->
+      <line x1="100" y1="190" x2="238" y2="200" stroke="#a8c880" stroke-width="1.5"/>
+      <polygon points="238,200 230,195 231,203" fill="#a8c880"/>
+      <text x="165" y="187" text-anchor="middle" font-family="monospace" font-size="8" fill="#a8c880">3. code + code_verifier → token</text>
+
+      <!-- Step 4: JWT access token -->
+      <line x1="238" y1="225" x2="100" y2="235" stroke="#c39bd3" stroke-width="1.5"/>
+      <polygon points="100,235 107,230 108,238" fill="#c39bd3"/>
+      <text x="165" y="222" text-anchor="middle" font-family="monospace" font-size="8" fill="#c39bd3">4. access_token (JWT)</text>
+
+      <!-- Step 5: API call with bearer token -->
+      <line x1="100" y1="258" x2="488" y2="258" stroke="#788C5D" stroke-width="1.5"/>
+      <polygon points="488,258 481,254 481,262" fill="#788C5D"/>
+      <text x="295" y="252" text-anchor="middle" font-family="monospace" font-size="8" fill="#788C5D">5. Bearer token → validate signature</text>
+
+      <!-- JWT structure -->
+      <rect x="310" y="14" width="290" height="36" rx="6" fill="#1a1f2e" stroke="#3D3D3A" stroke-width="1.5"/>
+      <text x="455" y="28" text-anchor="middle" font-family="monospace" font-size="9" fill="#7eb8f7">header</text>
+      <text x="455" y="41" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.4)">{"alg":"RS256"}</text>
+      <text x="530" y="28" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">.payload</text>
+      <text x="530" y="41" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.4)">{"sub":"u1","exp":…}</text>
+      <text x="590" y="28" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757">.sig</text>
+    </svg>
+  </div>
+  <p><strong>PKCE (Proof Key for Code Exchange):</strong> The browser generates a random <code>code_verifier</code>, sends its hash <code>code_challenge</code> in the redirect. When exchanging the code for a token, it sends the original <code>code_verifier</code>. The auth server verifies the hash — prevents an attacker who intercepts the code from using it without the verifier.</p>
+</section>
+
+<section id="types">
+  <h2 data-n="04">Mechanisms in Depth</h2>
+
+  <h3>JWT Deep Dive</h3>
+  <p>A JWT has three Base64url-encoded parts: <strong>header</strong> (algorithm, token type), <strong>payload</strong> (claims: iss, sub, aud, exp, iat + custom), <strong>signature</strong> (HMAC-SHA256 or RSA/ECDSA of header.payload).</p>
+  <p><strong>RS256 vs HS256:</strong> HS256 uses a shared secret — all services must know it (hard to rotate, any service can forge tokens). RS256 uses a private key (only auth server signs) + public key (anyone can verify). Always use RS256 for production.</p>
+  <p><strong>JWT pitfalls:</strong> The <code>alg:none</code> attack — always validate the algorithm explicitly, never trust the header's alg. The algorithm confusion attack (RS256 → HS256) — attacker sends a token signed with the public key using HS256; if the server accepts the public key as an HS256 secret, it validates. Use libraries with explicit algorithm configuration.</p>
+  <p><strong>Token revocation:</strong> JWTs can't be revoked before expiry (they're stateless). Use short TTL (15 min) + opaque refresh token (stored in HttpOnly cookie, validated against a DB/Redis store). On logout, delete the refresh token.</p>
+
+  <h3>OAuth2 Grant Types</h3>
+  <div class="variant-grid">
+    <div class="variant-card"><h4>Authorization Code + PKCE</h4><p>For browser/mobile apps (public clients). Most secure. PKCE prevents authorization code interception attacks.</p></div>
+    <div class="variant-card"><h4>Client Credentials</h4><p>For service-to-service auth (no user involved). client_id + client_secret → access token. Use for backend-to-backend API calls.</p></div>
+    <div class="variant-card"><h4>Device Code Flow</h4><p>For CLI tools and smart TVs. Device shows a code; user authenticates on phone. Polls for token.</p></div>
+    <div class="variant-card"><h4>Implicit Flow (DEPRECATED)</h4><p>Tokens returned in URL fragment — visible in browser history and server logs. Never use in new systems.</p></div>
+  </div>
+
+  <h3>Transport Security: TLS and mTLS</h3>
+  <p><strong>TLS 1.3:</strong> 1-RTT handshake (vs TLS 1.2's 2-RTT). ECDHE for forward secrecy — session keys are ephemeral, so past sessions can't be decrypted even if the server's private key is compromised.</p>
+  <p><strong>mTLS:</strong> Both client and server present X.509 certificates. The server verifies the client's cert against a CA. Used in service mesh (Istio/Linkerd) where each service gets a SPIFFE/X.509 identity. Prevents impersonation even inside the VPC — an attacker who compromises the network can't make requests as Service A without its cert/key.</p>
+
+  <h3>Zero Trust Architecture</h3>
+  <p>"Never trust, always verify" — no implicit trust based on network location. Every service-to-service call must be authenticated (mTLS) and authorized (RBAC/ABAC). Micro-segmentation limits blast radius. Continuous verification re-checks identity on sensitive operations. BeyondCorp (Google) and SPIFFE/SPIRE are the reference implementations.</p>
+
+  <h3>API Security — OWASP Top 10</h3>
+  <div class="variant-grid">
+    <div class="variant-card"><h4>BOLA / IDOR</h4><p>Broken Object Level Authorization — user accesses another user's resource by changing an ID in the URL. Fix: always check resource.ownerId == authenticatedUserId.</p></div>
+    <div class="variant-card"><h4>SSRF</h4><p>Server-Side Request Forgery — attacker causes server to make requests to internal services. Fix: validate/allowlist URLs, block metadata service IP (169.254.169.254).</p></div>
+    <div class="variant-card"><h4>Secrets Management</h4><p>Never store secrets in code or env vars. Use HashiCorp Vault, AWS Secrets Manager, or Kubernetes Secrets with KMS encryption. Rotate regularly.</p></div>
+    <div class="variant-card"><h4>Input Validation</h4><p>Validate all input at API boundary. Allowlist > denylist. Reject unexpected fields. Parameterised queries prevent SQL injection.</p></div>
+  </div>
+</section>
+
+<section id="tradeoffs">
+  <h2 data-n="05">Trade-offs</h2>
+  <table class="tradeoff-table">
+    <thead><tr><th>Mechanism</th><th>Stateless</th><th>Revocable</th><th>Overhead</th><th>Best For</th></tr></thead>
+    <tbody>
+      <tr><td>JWT (short-lived)</td><td>Yes</td><td>No (until expiry)</td><td>Low (signature verify)</td><td>Stateless API auth, microservices</td></tr>
+      <tr><td>Opaque token + introspection</td><td>No (DB lookup)</td><td>Instant</td><td>Medium (per-request DB call)</td><td>When immediate revocation is required</td></tr>
+      <tr><td>Session cookie</td><td>No (session store)</td><td>Instant</td><td>Medium (Redis lookup)</td><td>Traditional web apps, server-side rendering</td></tr>
+      <tr><td>mTLS</td><td>Yes</td><td>CRL/OCSP needed</td><td>Medium (cert verify)</td><td>Service-to-service, zero-trust environments</td></tr>
+      <tr><td>API Key</td><td>No (DB lookup)</td><td>Instant</td><td>Low</td><td>Third-party integrations, developer APIs</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="code">
+  <h2 data-n="06">Code</h2>
+  <div class="tabs">
+    <button class="tab-btn active" data-group="code" onclick="switchTab('code','jwt')">JWT Validation</button>
+    <button class="tab-btn" data-group="code" onclick="switchTab('code','cc')">Client Credentials</button>
+    <button class="tab-btn" data-group="code" onclick="switchTab('code','idor')">IDOR Prevention</button>
+    <button class="tab-btn" data-group="code" onclick="switchTab('code','vault')">Secrets / Vault</button>
+  </div>
+  <div class="tab-pane active" data-group="code" data-tab="code-jwt">
+<pre><span class="cm">// JWT Validation — always explicit algorithm, validate all claims</span>
+<span class="kw">class</span> <span class="cn">JwtValidator</span> {
+    <span class="kw">private final</span> <span class="cn">JWTVerifier</span> verifier;
+
+    <span class="cn">JwtValidator</span>(<span class="cn">RSAPublicKey</span> publicKey) {
+        verifier = <span class="cn">JWT</span>.<span class="fn">require</span>(<span class="cn">Algorithm</span>.<span class="fn">RSA256</span>(publicKey, <span class="kw">null</span>)) <span class="cm">// explicit alg</span>
+            .<span class="fn">withIssuer</span>(<span class="st">"https://auth.example.com"</span>)
+            .<span class="fn">withAudience</span>(<span class="st">"api.example.com"</span>)
+            .<span class="fn">acceptLeeway</span>(<span class="nm">30</span>) <span class="cm">// 30s clock skew</span>
+            .<span class="fn">build</span>();
+    }
+
+    <span class="cn">DecodedJWT</span> <span class="fn">validate</span>(<span class="cn">String</span> token) {
+        <span class="kw">try</span> {
+            <span class="kw">return</span> verifier.<span class="fn">verify</span>(token); <span class="cm">// throws on invalid sig/exp</span>
+        } <span class="kw">catch</span> (<span class="cn">JWTVerificationException</span> e) {
+            <span class="kw">throw new</span> <span class="cn">UnauthorizedException</span>(<span class="st">"Invalid token: "</span> + e.<span class="fn">getMessage</span>());
+        }
+    }
+
+    <span class="cn">String</span> <span class="fn">getUserId</span>(<span class="cn">DecodedJWT</span> jwt) {
+        <span class="kw">return</span> jwt.<span class="fn">getSubject</span>(); <span class="cm">// "sub" claim</span>
+    }
+}</pre>
+  </div>
+  <div class="tab-pane" data-group="code" data-tab="code-cc">
+<pre><span class="cm">// OAuth2 Client Credentials — service-to-service</span>
+@<span class="cn">Component</span>
+<span class="kw">class</span> <span class="cn">ServiceTokenProvider</span> {
+    <span class="kw">private final</span> <span class="cn">WebClient</span> webClient;
+    <span class="kw">private volatile</span> <span class="cn">CachedToken</span> cachedToken; <span class="cm">// cache to avoid per-request fetches</span>
+
+    <span class="cn">String</span> <span class="fn">getToken</span>() {
+        <span class="kw">if</span> (cachedToken != <span class="kw">null</span> &amp;&amp; !cachedToken.<span class="fn">isExpiredSoon</span>()) {
+            <span class="kw">return</span> cachedToken.<span class="fn">value</span>();
+        }
+        <span class="kw">return</span> <span class="fn">fetchNewToken</span>();
+    }
+
+    <span class="kw">private synchronized</span> <span class="cn">String</span> <span class="fn">fetchNewToken</span>() {
+        <span class="kw">if</span> (cachedToken != <span class="kw">null</span> &amp;&amp; !cachedToken.<span class="fn">isExpiredSoon</span>()) {
+            <span class="kw">return</span> cachedToken.<span class="fn">value</span>(); <span class="cm">// double-check after lock</span>
+        }
+        <span class="kw">var</span> response = webClient.<span class="fn">post</span>()
+            .<span class="fn">uri</span>(<span class="st">"/oauth2/token"</span>)
+            .<span class="fn">bodyValue</span>(<span class="cn">Map</span>.<span class="fn">of</span>(
+                <span class="st">"grant_type"</span>, <span class="st">"client_credentials"</span>,
+                <span class="st">"client_id"</span>, clientId,
+                <span class="st">"client_secret"</span>, clientSecret,
+                <span class="st">"scope"</span>, <span class="st">"inventory:read"</span>
+            ))
+            .<span class="fn">retrieve</span>().<span class="fn">bodyToMono</span>(<span class="cn">TokenResponse</span>.<span class="kw">class</span>).<span class="fn">block</span>();
+        cachedToken = <span class="kw">new</span> <span class="cn">CachedToken</span>(response.<span class="fn">accessToken</span>(), response.<span class="fn">expiresIn</span>());
+        <span class="kw">return</span> cachedToken.<span class="fn">value</span>();
+    }
+}</pre>
+  </div>
+  <div class="tab-pane" data-group="code" data-tab="code-idor">
+<pre><span class="cm">// IDOR Prevention — always verify ownership</span>
+@<span class="cn">GetMapping</span>(<span class="st">"/orders/{orderId}"</span>)
+<span class="cn">OrderResponse</span> <span class="fn">getOrder</span>(
+    @<span class="cn">PathVariable</span> <span class="cn">String</span> orderId,
+    @<span class="cn">AuthenticationPrincipal</span> <span class="cn">JwtUser</span> user
+) {
+    <span class="kw">var</span> order = orderRepository.<span class="fn">findById</span>(orderId)
+        .<span class="fn">orElseThrow</span>(() -&gt; <span class="kw">new</span> <span class="cn">NotFoundException</span>());
+
+    <span class="cm">// CRITICAL: check ownership — don't trust the client's orderId</span>
+    <span class="kw">if</span> (!order.<span class="fn">getOwnerId</span>().<span class="fn">equals</span>(user.<span class="fn">getId</span>())) {
+        <span class="kw">throw new</span> <span class="cn">ForbiddenException</span>(<span class="st">"Access denied"</span>); <span class="cm">// 403, not 404</span>
+        <span class="cm">// Note: return 403, not 404, to avoid leaking resource existence</span>
+    }
+
+    <span class="kw">return</span> <span class="cn">OrderMapper</span>.<span class="fn">toResponse</span>(order);
+}
+
+<span class="cm">// Better: use a query that enforces ownership at DB level</span>
+<span class="cn">Optional</span>&lt;<span class="cn">Order</span>&gt; <span class="fn">findByIdAndOwner</span>(<span class="cn">String</span> id, <span class="cn">String</span> ownerId) {
+    <span class="kw">return</span> orderRepository.<span class="fn">findByIdAndOwnerId</span>(id, ownerId); <span class="cm">// WHERE id=? AND owner_id=?</span>
+}</pre>
+  </div>
+  <div class="tab-pane" data-group="code" data-tab="code-vault">
+<pre><span class="cm">// HashiCorp Vault — fetch secrets at runtime, not config</span>
+@<span class="cn">Configuration</span>
+<span class="kw">class</span> <span class="cn">VaultConfig</span> {
+
+    @<span class="cn">Bean</span>
+    <span class="cn">DataSource</span> <span class="fn">dataSource</span>(<span class="cn">VaultTemplate</span> vault) {
+        <span class="cm">// Vault returns dynamic short-lived DB credentials</span>
+        <span class="kw">var</span> creds = vault.<span class="fn">read</span>(<span class="st">"database/creds/my-role"</span>);
+        <span class="kw">var</span> username = (<span class="cn">String</span>) creds.<span class="fn">getData</span>().<span class="fn">get</span>(<span class="st">"username"</span>);
+        <span class="kw">var</span> password = (<span class="cn">String</span>) creds.<span class="fn">getData</span>().<span class="fn">get</span>(<span class="st">"password"</span>);
+        <span class="kw">return</span> <span class="cn">DataSourceBuilder</span>.<span class="fn">create</span>()
+            .<span class="fn">url</span>(<span class="st">"jdbc:postgresql://db:5432/app"</span>)
+            .<span class="fn">username</span>(username).<span class="fn">password</span>(password).<span class="fn">build</span>();
+    }
+}
+
+<span class="cm">// Spring Cloud Vault auto-renews leases; credentials expire after TTL</span>
+<span class="cm">// Never store passwords in application.properties or env vars</span></pre>
+  </div>
+</section>
+
+<section id="real-world">
+  <h2 data-n="07">Real-World Usage</h2>
+  <div class="variant-grid">
+    <div class="variant-card"><h4>Auth0 / Okta</h4><p>Managed OIDC/OAuth2 providers. Handles authorization servers, user stores, MFA, and token issuance. Used by most SaaS companies.</p></div>
+    <div class="variant-card"><h4>Istio / Linkerd</h4><p>Service meshes that implement automatic mTLS between all services using SPIFFE/X.509 certificates. Zero-trust networking at the platform level.</p></div>
+    <div class="variant-card"><h4>HashiCorp Vault</h4><p>Secrets management — dynamic credentials, PKI certificates, encryption as a service. Standard in enterprise and cloud-native environments.</p></div>
+    <div class="variant-card"><h4>AWS IAM</h4><p>Role-based access control for AWS services. Service accounts for pods (IRSA on EKS). Instance profiles eliminate static credentials.</p></div>
+    <div class="variant-card"><h4>Google BeyondCorp</h4><p>Invented Zero Trust networking in 2011. Every resource requires authentication regardless of network location. Basis for modern ZTNA products.</p></div>
+    <div class="variant-card"><h4>SPIFFE / SPIRE</h4><p>Standard for service identity in cloud-native environments. Issues X.509 SVIDs to workloads — used by Istio, Envoy, and HashiCorp Vault.</p></div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2 data-n="08">Interview Tips</h2>
+  <div class="tip-grid">
+    <div class="tip"><strong>"JWT vs session-based auth — when to use each?"</strong><p>JWT for stateless, horizontally-scaled APIs and microservices. Sessions when you need instant revocation (banking logout) or can afford a shared session store.</p></div>
+    <div class="tip"><strong>"How do you revoke a JWT before expiry?"</strong><p>Maintain a token revocation list in Redis (jti claim as key, TTL = token expiry). Or switch to short-lived JWTs (15 min) + opaque refresh tokens with a DB-backed revocation list.</p></div>
+    <div class="tip"><strong>"What is PKCE and why is it needed?"</strong><p>Prevents authorization code interception in public clients (browser/mobile) that can't keep a client_secret. The code_verifier proves the original requestor is the one exchanging the code.</p></div>
+    <div class="tip"><strong>"What's the difference between authn and authz?"</strong><p>Authentication = who are you? (JWT, cert, cookie). Authorization = what can you do? (RBAC, ABAC, OPA policies). They're separate concerns — always implement both.</p></div>
+    <div class="tip"><strong>"How does mTLS prevent the confused deputy problem?"</strong><p>Service identity is based on the X.509 cert, not network position. Even if an attacker reaches Service B's port, they can't present Service A's cert without its private key.</p></div>
+    <div class="tip"><strong>"How do you handle secrets in a Kubernetes deployment?"</strong><p>Kubernetes Secrets base64-encoded (not encrypted by default) → enable etcd encryption at rest + KMS key. Better: use Vault with the sidecar injector or AWS Secrets Manager CSI driver.</p></div>
+  </div>
+</section>
+
+</div>
+</div>
+
+<footer>
+  <span>← <a href="concepts-index.html">All Concepts</a></span>
+  <span><a href="index.html">Home</a></span>
+</footer>
+</div>
+<script>
+function switchTab(group, id) {
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el => el.classList.add('active'));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Chat System — HLD</title>
+<style>
+:root{
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 100px}
+.top-bar{display:flex;align-items:center;gap:16px;padding:24px 0 0}
+.back{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none}
+.back:hover{color:var(--clay)}
+header{padding:48px 0 40px;border-bottom:1.5px solid var(--g300);margin-bottom:48px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:20px;height:1.5px;background:var(--clay)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,52px);line-height:1.08;letter-spacing:-.022em}
+h1 em{font-style:italic;color:var(--clay)}
+.sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:540px;line-height:1.65}
+.difficulty{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:4px;background:var(--g200);color:var(--g700)}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:48px}
+.toc a{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;padding:4px 12px;border-radius:20px;background:var(--paper);border:1.5px solid var(--g300);color:var(--g700);text-decoration:none;transition:border-color .15s,color .15s}
+.toc a:hover{border-color:var(--clay);color:var(--clay)}
+section{margin-bottom:56px;scroll-margin-top:24px}
+.section-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--clay);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-label::before{content:"";width:16px;height:1.5px;background:var(--clay)}
+h2{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:-.015em;margin-bottom:8px}
+.hint{font-size:13px;color:var(--g500);font-family:var(--mono);margin-bottom:20px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{padding:14px 18px;border-radius:10px;border-left:3px solid;font-size:14px;line-height:1.5}
+.req-item.func{background:rgba(120,140,93,.08);border-color:var(--olive)}
+.req-item.nfunc{background:rgba(217,119,87,.08);border-color:var(--clay)}
+.req-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.req-item.func .req-label{color:var(--olive)}
+.req-item.nfunc .req-label{color:var(--clay)}
+.est-table{width:100%;border-collapse:collapse;font-size:14px}
+.est-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300)}
+.est-table td{padding:10px 12px;border-bottom:1px solid var(--g200)}
+.est-table tr:last-child td{border-bottom:none}
+.est-table td:first-child{font-weight:500}
+.est-table td code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.highlight-row td{background:rgba(217,119,87,.06)}
+/* Interactive Architecture */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:720px){.arch-wrap{grid-template-columns:1fr}}
+.arch-box{background:var(--paper);border:1.5px solid var(--g300);border-radius:16px;padding:20px;overflow:auto}
+.arch-box svg{width:100%;height:auto;display:block}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px;transition:border-color .2s}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px 2px 2px 0;color:var(--g700)}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px;color:var(--g700);line-height:1.5}
+.ap-empty{color:var(--g500);font-size:13px;display:flex;height:120px;align-items:center;justify-content:center;text-align:center;line-height:1.6}
+/* Flow Stepper */
+.flow-diagram{display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:14px 18px;background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;margin-bottom:16px;overflow-x:auto}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);padding:0 5px;font-size:13px;flex-shrink:0}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin-bottom:14px;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:10px}
+.fnav-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:7px 16px;border-radius:6px;border:1.5px solid var(--g300);background:var(--paper);color:var(--g700);cursor:pointer;transition:all .15s}
+.fnav-btn:hover:not(:disabled){border-color:var(--clay);color:var(--clay)}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:11px;color:var(--g500);flex:1;text-align:center}
+.flow-dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+.fdot{width:7px;height:7px;border-radius:50%;background:var(--g200);cursor:pointer;transition:background .2s}
+.fdot.act{background:var(--clay)}
+.fdot.done{background:var(--g500);opacity:.5}
+/* API */
+.api-block{margin-bottom:20px}
+.api-block .endpoint{font-family:var(--mono);font-size:13px;padding:10px 16px;background:var(--slate);color:var(--oat);border-radius:8px 8px 0 0;display:flex;gap:12px;align-items:center}
+.method{font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px}
+.method.get{background:var(--olive);color:#fff}
+.method.post{background:var(--clay);color:#fff}
+.method.ws{background:#4A6FA5;color:#fff}
+.api-body{background:var(--g100);border:1.5px solid var(--g300);border-top:none;border-radius:0 0 8px 8px;padding:14px 16px}
+.api-body pre{font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--g700);white-space:pre-wrap}
+/* DB */
+.schema-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+.schema-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300);background:var(--g100)}
+.schema-table td{padding:8px 12px;border-bottom:1px solid var(--g200);font-family:var(--mono);font-size:12px}
+.schema-table td:first-child{color:var(--slate);font-weight:600}
+.schema-table td:nth-child(2){color:var(--clay)}
+.pk{font-size:9px;background:var(--clay);color:white;padding:1px 5px;border-radius:3px;margin-left:6px}
+.db-note{font-size:13px;color:var(--g700);padding:12px 16px;background:rgba(120,140,93,.07);border-left:3px solid var(--olive);border-radius:0 8px 8px 0;margin-top:8px}
+/* E2EE Simulator */
+.e2ee-box{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin:28px 0}
+.e2ee-box h3{font-family:var(--serif);font-size:19px;font-weight:500;margin-bottom:6px}
+.e2ee-sub{font-size:13px;color:var(--g500);margin-bottom:20px}
+.e2ee-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;align-items:start}
+@media(max-width:600px){.e2ee-grid{grid-template-columns:1fr}}
+.e2ee-party{background:var(--g100);border:1.5px solid var(--g200);border-radius:10px;padding:14px}
+.e2ee-party-name{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);margin-bottom:8px}
+.e2ee-party.server{border-color:var(--clay);background:rgba(217,119,87,.06)}
+.e2ee-party.server .e2ee-party-name{color:var(--clay)}
+.e2ee-field{font-size:12px;line-height:1.5;color:var(--g700);margin-bottom:8px;word-break:break-all}
+.e2ee-field strong{color:var(--slate);display:block;font-size:10px;font-family:var(--mono);text-transform:uppercase;margin-bottom:2px}
+.e2ee-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:7px 16px;border-radius:6px;border:1.5px solid var(--clay);color:var(--clay);background:transparent;cursor:pointer;transition:all .15s}
+.e2ee-btn:hover{background:var(--clay);color:white}
+.e2ee-msg{font-size:13px;color:var(--olive);font-family:var(--mono);margin-top:12px;min-height:18px}
+/* Tabs */
+.tabs{margin-bottom:4px;display:flex;gap:4px;flex-wrap:wrap}
+.tab-btn{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:5px 12px;border-radius:6px 6px 0 0;border:1.5px solid var(--g300);border-bottom:none;background:var(--g100);color:var(--g500);cursor:pointer}
+.tab-btn.active{background:var(--slate);color:var(--oat);border-color:var(--slate)}
+.tab-pane{display:none;background:var(--slate);border-radius:0 8px 8px 8px;padding:20px;overflow-x:auto}
+.tab-pane.active{display:block}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.65;color:#cdd6f4}
+.kw{color:#89b4fa}.cn{color:#a6e3a1}.cm{color:#6c7086;font-style:italic}
+.st{color:#fab387}.nm{color:#cba6f7}.fn2{color:#89dceb}
+/* Scale */
+.scale-list{display:grid;gap:10px}
+.scale-item{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;background:var(--paper);border:1.5px solid var(--g300);border-radius:10px}
+.si-icon{font-size:18px;flex-shrink:0;margin-top:2px}
+.si-title{font-weight:600;font-size:14px;margin-bottom:3px}
+.si-desc{font-size:13px;color:var(--g700);line-height:1.5}
+/* Self Check */
+.sc-list{display:flex;flex-direction:column;gap:8px}
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-q:hover{background:var(--g100)}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s;font-family:var(--mono)}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-a p{margin-top:10px}
+.sc-a code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--g500)}
+footer a{color:var(--g500);text-decoration:none}
+footer a:hover{color:var(--clay)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top-bar">
+  <a class="back" href="index.html">← Home</a>
+  <span style="color:var(--g300)">|</span>
+  <a class="back" href="hld-index.html">HLD Problems</a>
+</div>
+<header>
+  <div class="eyebrow">High Level Design</div>
+  <h1>Design a <em>Chat System</em></h1>
+  <p class="sub">Build WhatsApp-scale messaging — 100B messages/day, real-time delivery via WebSockets, offline queuing, group chat, and end-to-end encryption.</p>
+  <span class="difficulty">Difficulty: SDE II · WebSocket &amp; Real-time Problem</span>
+</header>
+<nav class="toc">
+  <a href="#overview">Requirements</a>
+  <a href="#estimation">Estimation</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Message Flow</a>
+  <a href="#api">API Design</a>
+  <a href="#database">Database</a>
+  <a href="#deep-dive">Deep Dive</a>
+  <a href="#self-check">Self Check</a>
+</nav>
+
+<!-- 1. Requirements -->
+<section id="overview">
+  <div class="section-label">01</div>
+  <h2>What We're Building</h2>
+  <div class="req-grid">
+    <div class="req-item func"><div class="req-label">Functional</div>1-on-1 messaging with text, images, video, documents</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Group chat — up to 1000 members per group</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Message delivery receipts: Sent ✓ / Delivered ✓✓ / Read ✓✓ (blue)</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Online presence — "Online" / "Last seen X ago"</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Offline message queuing — deliver when user reconnects</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>2B users, 100B messages/day, 1.15M msg/sec</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Message delivery latency &lt;100ms (online users)</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>At-least-once delivery, message ordering preserved</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>End-to-end encrypted — server never sees plaintext</div>
+  </div>
+</section>
+
+<!-- 2. Estimation -->
+<section id="estimation">
+  <div class="section-label">02</div>
+  <h2>Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Total Users</td><td>Given</td><td><code>2B users</code></td></tr>
+      <tr><td>Daily Active</td><td>~50% of total</td><td><code>1B DAU</code></td></tr>
+      <tr class="highlight-row"><td>Message QPS</td><td>100B / 86,400s</td><td><code>~1.15M msg/sec</code></td></tr>
+      <tr><td>Message Storage</td><td>100B × 100 bytes avg</td><td><code>~10 TB/day text</code></td></tr>
+      <tr><td>Media Storage</td><td>20% msgs × 500KB avg</td><td><code>~1 PB/day (S3)</code></td></tr>
+      <tr class="highlight-row"><td>Concurrent WS Connections</td><td>~25% of DAU online simultaneously</td><td><code>~250M connections</code></td></tr>
+      <tr><td>WS Servers Needed</td><td>250M / 10K conns per server</td><td><code>~25,000 servers</code></td></tr>
+      <tr><td>Presence Heartbeats</td><td>250M × 1 heartbeat/30s</td><td><code>~8.3M heartbeats/sec</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 3. Architecture — INTERACTIVE -->
+<section id="architecture">
+  <div class="section-label">03</div>
+  <h2>High-Level Architecture</h2>
+  <p class="hint">Click any component to learn why it's here and what happens if it fails.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 820 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g class="arch-node" data-id="client-a" onclick="showNode('client-a')">
+          <rect x="10" y="140" width="80" height="44" rx="7" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="50" y="158" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">Client A</text>
+          <text x="50" y="174" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">WebSocket</text>
+        </g>
+        <g class="arch-node" data-id="ws1" onclick="showNode('ws1')">
+          <rect x="130" y="90" width="110" height="44" rx="7" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="185" y="108" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#FAF9F5">WS Server 1</text>
+          <text x="185" y="123" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">10K conns each</text>
+        </g>
+        <g class="arch-node" data-id="ws2" onclick="showNode('ws2')">
+          <rect x="130" y="180" width="110" height="44" rx="7" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="185" y="198" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#FAF9F5">WS Server 2</text>
+          <text x="185" y="213" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Client B here</text>
+        </g>
+        <g class="arch-node" data-id="msg-svc" onclick="showNode('msg-svc')">
+          <rect x="290" y="135" width="110" height="54" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="345" y="155" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">Message Svc</text>
+          <text x="345" y="170" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Store + Route</text>
+          <text x="345" y="183" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Dedup + ACK</text>
+        </g>
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="290" y="250" width="110" height="44" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="345" y="268" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">Kafka</text>
+          <text x="345" y="283" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757">Routing Bus</text>
+        </g>
+        <g class="arch-node" data-id="cassandra" onclick="showNode('cassandra')">
+          <rect x="460" y="50" width="110" height="44" rx="7" fill="#FAF9F5" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="515" y="68" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">Cassandra</text>
+          <text x="515" y="83" text-anchor="middle" font-family="monospace" font-size="8" fill="#4A6FA5">messages, chats</text>
+        </g>
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="460" y="135" width="110" height="44" rx="7" fill="#FAF9F5" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="515" y="153" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">Redis</text>
+          <text x="515" y="168" text-anchor="middle" font-family="monospace" font-size="8" fill="#788C5D">presence, routing</text>
+        </g>
+        <g class="arch-node" data-id="postgres" onclick="showNode('postgres')">
+          <rect x="460" y="220" width="110" height="44" rx="7" fill="#FAF9F5" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="515" y="238" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">PostgreSQL</text>
+          <text x="515" y="253" text-anchor="middle" font-family="monospace" font-size="8" fill="#4A6FA5">users, groups</text>
+        </g>
+        <g class="arch-node" data-id="push" onclick="showNode('push')">
+          <rect x="460" y="305" width="110" height="44" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="515" y="323" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="600" fill="#141413">Push Service</text>
+          <text x="515" y="338" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757">FCM / APNs</text>
+        </g>
+        <g class="arch-node" data-id="client-b" onclick="showNode('client-b')">
+          <rect x="640" y="140" width="80" height="44" rx="7" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="680" y="158" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">Client B</text>
+          <text x="680" y="174" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">WebSocket</text>
+        </g>
+        <!-- Arrows -->
+        <line x1="90" y1="155" x2="128" y2="120" stroke="#4A6FA5" stroke-width="1.5" marker-end="url(#arrb)"/>
+        <text x="95" y="132" font-family="monospace" font-size="8" fill="#4A6FA5">WS</text>
+        <line x1="240" y1="112" x2="288" y2="148" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrc)"/>
+        <line x1="240" y1="202" x2="288" y2="180" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrc)"/>
+        <line x1="400" y1="155" x2="458" y2="82" stroke="#4A6FA5" stroke-width="1.5" marker-end="url(#arrb)"/>
+        <line x1="400" y1="162" x2="458" y2="157" stroke="#788C5D" stroke-width="1.5" marker-end="url(#arrog)"/>
+        <line x1="345" y1="189" x2="345" y2="248" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrc)"/>
+        <line x1="400" y1="272" x2="458" y2="242" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrc)"/>
+        <line x1="400" y1="280" x2="458" y2="315" stroke="#D97757" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrc)"/>
+        <text x="410" y="310" font-family="monospace" font-size="8" fill="#D97757">offline</text>
+        <line x1="240" y1="202" x2="638" y2="162" stroke="#4A6FA5" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrb)"/>
+        <text x="420" y="183" font-family="monospace" font-size="8" fill="#4A6FA5">via Redis pub/sub routing</text>
+        <defs>
+          <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#D1CFC5"/></marker>
+          <marker id="arrc" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#D97757"/></marker>
+          <marker id="arrog" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#788C5D"/></marker>
+          <marker id="arrb" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#4A6FA5"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <div class="arch-panel" id="arch-panel">
+      <div class="ap-empty">Click any component<br>to learn why it's there</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Message Flow Stepper -->
+<section id="flow">
+  <div class="section-label">04</div>
+  <h2>Walk Through a Message</h2>
+  <p class="hint">Step through how a message travels from Client A to Client B in real-time.</p>
+  <div class="flow-diagram">
+    <div class="fn act" id="fn-ca">Client A</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-ws1">WS Server 1</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-msgsvc">Message Svc</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-cassandra">Cassandra</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-redis">Redis</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-ws2">WS Server 2</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-cb">Client B</div>
+  </div>
+  <div class="flow-card" id="flow-card"></div>
+  <div class="flow-nav">
+    <button class="fnav-btn" id="btn-prev" onclick="prevStep()" disabled>← Prev</button>
+    <span class="fnav-counter" id="fnav-counter">Step 1 of 7</span>
+    <button class="fnav-btn" id="btn-next" onclick="nextStep()">Next →</button>
+  </div>
+  <div class="flow-dots" id="flow-dots"></div>
+</section>
+
+<!-- 5. API -->
+<section id="api">
+  <div class="section-label">05</div>
+  <h2>API Design</h2>
+  <div class="api-block">
+    <div class="endpoint"><span class="method ws">WS</span><span>wss://chat.example.com/ws?token=&lt;JWT&gt;</span></div>
+    <div class="api-body"><pre>// Client A → Server: Send message
+{ "type": "message", "chatId": "chat_123", "content": "encrypted_base64", "clientMsgId": "c8f2a1" }
+
+// Server → Client B: Deliver message
+{ "type": "message", "msgId": "snow_456", "chatId": "chat_123",
+  "senderId": "u_789", "content": "encrypted_base64", "ts": 1705312200000 }
+
+// Server → Client A: Delivery receipt
+{ "type": "receipt", "msgId": "snow_456", "status": "delivered" }
+
+// Client → Server: Read receipt
+{ "type": "read", "chatId": "chat_123", "lastReadMsgId": "snow_456" }
+
+// Client → Server: Heartbeat
+{ "type": "ping" }   →   { "type": "pong" }</pre></div>
+  </div>
+  <div class="api-block">
+    <div class="endpoint"><span class="method post">POST</span><span>/api/v1/groups</span></div>
+    <div class="api-body"><pre>{ "name": "Team Rocket", "memberIds": ["u_1", "u_2", "u_3"] }
+→ { "chatId": "chat_456", "type": "group" }</pre></div>
+  </div>
+  <div class="api-block">
+    <div class="endpoint"><span class="method get">GET</span><span>/api/v1/messages?chatId=chat_123&amp;before=snow_456&amp;limit=50</span></div>
+    <div class="api-body"><pre>// Cursor-based pagination for message history
+→ { "messages": [...], "hasMore": true, "nextCursor": "snow_400" }</pre></div>
+  </div>
+</section>
+
+<!-- 6. Database -->
+<section id="database">
+  <div class="section-label">06</div>
+  <h2>Database Design</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:12px;"><strong>messages</strong> — Cassandra (10 TB/day, time-ordered per chat)</p>
+  <table class="schema-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>chat_id<span class="pk">PK</span></td><td>UUID</td><td>Partition key — all messages in a chat on same node</td></tr>
+      <tr><td>msg_id</td><td>BIGINT</td><td>Clustering key DESC (Snowflake, time-ordered)</td></tr>
+      <tr><td>sender_id</td><td>BIGINT</td><td>User who sent the message</td></tr>
+      <tr><td>content</td><td>BLOB</td><td>Encrypted ciphertext (E2EE); server can't read</td></tr>
+      <tr><td>type</td><td>TEXT</td><td>'text', 'image', 'video', 'doc'</td></tr>
+      <tr><td>media_key</td><td>TEXT</td><td>S3 object key for media; NULL for text</td></tr>
+      <tr><td>client_msg_id</td><td>TEXT</td><td>Client-generated ID for deduplication on retry</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:14px;color:var(--g700);margin:20px 0 12px;"><strong>users + chats</strong> — PostgreSQL</p>
+  <table class="schema-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>user_id<span class="pk">PK</span></td><td>BIGINT</td><td>Snowflake ID</td></tr>
+      <tr><td>phone_hash</td><td>VARCHAR(64)</td><td>SHA256(phone) — never store plaintext phone</td></tr>
+      <tr><td>public_key</td><td>TEXT</td><td>Public half of E2EE key pair (set at registration)</td></tr>
+      <tr><td>push_token</td><td>TEXT</td><td>FCM/APNs token for offline push notifications</td></tr>
+    </tbody>
+  </table>
+  <div class="db-note">
+    <strong>Redis for routing &amp; presence:</strong><br>
+    <code>user:{id}:server</code> → WS server hostname (TTL 35s, refresh on heartbeat)<br>
+    <code>user:{id}:last_seen</code> → timestamp (TTL 7d)<br>
+    WS servers subscribe to Redis pub/sub channel <code>user:{id}:inbox</code> to receive routed messages.
+  </div>
+</section>
+
+<!-- 7. Deep Dive -->
+<section id="deep-dive">
+  <div class="section-label">07</div>
+  <h2>E2EE Message Flow Simulator</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:4px;">WhatsApp uses the Signal Protocol. The server only ever sees ciphertext — it literally cannot read your messages even if subpoenaed. Simulate how it works:</p>
+
+  <div class="e2ee-box">
+    <h3>End-to-End Encryption Demo</h3>
+    <p class="e2ee-sub">Alice wants to message Bob. Each has a key pair. Click through each step to see the Signal Protocol in action.</p>
+    <div class="e2ee-grid">
+      <div class="e2ee-party" id="e2ee-alice">
+        <div class="e2ee-party-name">Alice (Sender)</div>
+        <div class="e2ee-field"><strong>Message</strong><span id="alice-msg">Hello Bob!</span></div>
+        <div class="e2ee-field"><strong>Private Key (never leaves device)</strong><span id="alice-priv" style="color:var(--clay)">a3f8...2c91</span></div>
+        <div class="e2ee-field"><strong>Bob's Public Key</strong><span id="bob-pub-a">b7d4...1e56</span></div>
+        <div class="e2ee-field" id="alice-cipher-field" style="display:none"><strong>Encrypted Output</strong><span id="alice-cipher" style="font-family:monospace;font-size:10px;color:var(--g500)"></span></div>
+      </div>
+      <div class="e2ee-party server" id="e2ee-server">
+        <div class="e2ee-party-name">Server (WhatsApp)</div>
+        <div class="e2ee-field"><strong>What Server Sees</strong><span id="server-sees" style="color:var(--clay)">Waiting...</span></div>
+        <div class="e2ee-field"><strong>Has Private Keys?</strong><span style="color:var(--olive)">No</span></div>
+        <div class="e2ee-field"><strong>Can Decrypt?</strong><span style="color:var(--olive)">No</span></div>
+        <div class="e2ee-field" style="font-size:11px;color:var(--g500);margin-top:8px;">Even with a court order, server can only hand over encrypted blobs.</div>
+      </div>
+      <div class="e2ee-party" id="e2ee-bob">
+        <div class="e2ee-party-name">Bob (Receiver)</div>
+        <div class="e2ee-field"><strong>Private Key (never leaves device)</strong><span id="bob-priv" style="color:var(--clay)">b9e2...7f3a</span></div>
+        <div class="e2ee-field"><strong>Alice's Public Key</strong><span id="alice-pub-b">a1c7...9d82</span></div>
+        <div class="e2ee-field" id="bob-cipher-field" style="display:none"><strong>Received (encrypted)</strong><span id="bob-cipher" style="font-family:monospace;font-size:10px;color:var(--g500)"></span></div>
+        <div class="e2ee-field" id="bob-decrypted-field" style="display:none"><strong>Decrypted Message</strong><span id="bob-decrypted" style="color:var(--olive);font-weight:500"></span></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="e2ee-btn" onclick="e2eeStep(1)">1. Alice Encrypts</button>
+      <button class="e2ee-btn" onclick="e2eeStep(2)">2. Server Forwards</button>
+      <button class="e2ee-btn" onclick="e2eeStep(3)">3. Bob Decrypts</button>
+      <button class="e2ee-btn" onclick="e2eeStep(0)" style="border-color:var(--g300);color:var(--g500)">Reset</button>
+    </div>
+    <div class="e2ee-msg" id="e2ee-msg"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-group="chat" onclick="switchTab('chat','routing')">Cross-Server Routing</button>
+    <button class="tab-btn" data-group="chat" onclick="switchTab('chat','offline')">Offline Delivery</button>
+    <button class="tab-btn" data-group="chat" onclick="switchTab('chat','group')">Group Chat Fan-out</button>
+  </div>
+  <div class="tab-pane active" data-tab="chat-routing">
+    <pre><span class="cm">// Message Service: routes message to recipient's WS server</span>
+<span class="kw">void</span> <span class="fn2">routeMessage</span>(<span class="cn">Message</span> msg) {
+    <span class="cm">// Look up which WS server has recipient's connection</span>
+    <span class="cn">String</span> wsServer = redis.<span class="fn2">get</span>(<span class="st">"user:"</span> + msg.recipientId + <span class="st">":server"</span>);
+
+    <span class="kw">if</span> (wsServer != <span class="kw">null</span>) {
+        <span class="cm">// Recipient is online — publish to their inbox channel</span>
+        redis.<span class="fn2">publish</span>(<span class="st">"user:"</span> + msg.recipientId + <span class="st">":inbox"</span>, msg);
+        <span class="cm">// The WS server subscribed to this channel delivers it</span>
+    } <span class="kw">else</span> {
+        <span class="cm">// Recipient offline — queue for later delivery</span>
+        kafka.<span class="fn2">publish</span>(<span class="st">"offline-queue"</span>, msg);
+    }
+}</pre>
+  </div>
+  <div class="tab-pane" data-tab="chat-offline">
+    <pre><span class="cm">// On reconnect: drain offline queue and deliver</span>
+<span class="kw">void</span> <span class="fn2">onUserConnect</span>(<span class="cn">String</span> userId, <span class="cn">String</span> wsServer) {
+    <span class="cm">// Register presence: TTL 35s, refreshed by 30s heartbeat</span>
+    redis.<span class="fn2">setex</span>(<span class="st">"user:"</span> + userId + <span class="st">":server"</span>, <span class="nm">35</span>, wsServer);
+
+    <span class="cm">// Fetch and clear offline queue from Cassandra</span>
+    <span class="cn">List</span>&lt;<span class="cn">Message</span>&gt; pending = cassandra.<span class="fn2">getUndelivered</span>(userId);
+    <span class="kw">for</span> (<span class="cn">Message</span> m : pending) {
+        wsServer.<span class="fn2">deliver</span>(userId, m);
+        cassandra.<span class="fn2">markDelivered</span>(m.msgId);
+    }
+}</pre>
+  </div>
+  <div class="tab-pane" data-tab="chat-group">
+    <pre><span class="cm">// Group message fan-out: 1 send → N deliveries</span>
+<span class="kw">void</span> <span class="fn2">fanOutGroupMessage</span>(<span class="cn">Message</span> msg, <span class="cn">String</span> groupId) {
+    <span class="cm">// Get all member IDs (cached in Redis for active groups)</span>
+    <span class="cn">List</span>&lt;<span class="cn">String</span>&gt; members = redis.<span class="fn2">smembers</span>(<span class="st">"group:"</span> + groupId + <span class="st">":members"</span>);
+
+    <span class="cm">// Write single message to Cassandra (shared storage)</span>
+    cassandra.<span class="fn2">write</span>(msg);
+
+    <span class="cm">// Publish routing event per member (Kafka for scale)</span>
+    <span class="kw">for</span> (<span class="cn">String</span> memberId : members) {
+        <span class="kw">if</span> (!memberId.<span class="fn2">equals</span>(msg.senderId)) {
+            kafka.<span class="fn2">publish</span>(<span class="st">"group-fanout"</span>, <span class="kw">new</span> <span class="cn">RoutingEvent</span>(memberId, msg));
+        }
+    }
+}
+<span class="cm">// Group of 1000 = 999 Kafka messages. Workers route each to WS or offline queue.</span></pre>
+  </div>
+</section>
+
+<!-- 8. Self Check -->
+<section id="self-check">
+  <div class="section-label">08</div>
+  <h2>Self Check</h2>
+  <p class="hint">Answer before revealing. These are real interview questions.</p>
+  <div class="sc-list">
+    <div class="sc-item" id="sc1">
+      <div class="sc-q" onclick="toggleSC('sc1')"><span>How does a message from Client A reach Client B when they're on different WebSocket servers?<span class="sc-tag">Cross-Server Routing</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>The key: Redis pub/sub as a message bus. When Client A sends a message, it arrives at WS Server 1. WS Server 1 forwards to Message Service, which looks up where Client B is connected via Redis: <code>GET user:{b}:server → "ws-server-42"</code>. Then publishes to <code>user:{b}:inbox</code> pub/sub channel. WS Server 42 subscribes to that channel and pushes the message to Client B's WebSocket.</p><p>If B is offline (Redis returns null), the message goes to Kafka's offline queue. When B reconnects, WS Server 42 registers B's presence in Redis and drains the offline queue.</p></div>
+    </div>
+    <div class="sc-item" id="sc2">
+      <div class="sc-q" onclick="toggleSC('sc2')"><span>How do you handle 250M concurrent WebSocket connections?<span class="sc-tag">Scale</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Each WebSocket server can maintain ~10K persistent connections (limited by file descriptors, memory, and event loop). 250M / 10K = 25,000 servers. Key design choices: (1) WS servers are stateful but connection-state only — they store no durable data. (2) Presence/routing state is externalized to Redis, not kept in process memory. (3) Each server subscribes to Redis pub/sub channels for each connected user. (4) When a server crashes, users reconnect and Redis state is rebuilt within 30s (heartbeat TTL).</p></div>
+    </div>
+    <div class="sc-item" id="sc3">
+      <div class="sc-q" onclick="toggleSC('sc3')"><span>What does "end-to-end encrypted" mean architecturally? How does it work?<span class="sc-tag">Security</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>E2EE means the server stores and routes ciphertext that it cannot decrypt. Each user generates a key pair on-device at registration. The public key is uploaded to the server. When Alice messages Bob: (1) Alice's app fetches Bob's public key from server. (2) Alice's app encrypts the message locally with a symmetric key, then encrypts that key with Bob's public key (Diffie-Hellman key exchange). (3) Only Bob's device, with his private key, can decrypt.</p><p>The WhatsApp server stores encrypted BLOB in Cassandra. Even with a government subpoena, WhatsApp can only hand over encrypted bytes — they cannot produce plaintext.</p></div>
+    </div>
+    <div class="sc-item" id="sc4">
+      <div class="sc-q" onclick="toggleSC('sc4')"><span>How are the three check marks (Sent ✓ / Delivered ✓✓ / Read ✓✓ blue) implemented?<span class="sc-tag">Feature Design</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p><strong>Sent ✓:</strong> Client A receives an ACK from WS Server 1 confirming the message reached the server and was written to Cassandra.</p><p><strong>Delivered ✓✓:</strong> When WS Server 2 pushes the message to Client B, it sends a receipt event back through the system: <code>{type:"receipt", msgId:X, status:"delivered"}</code>. This routes back to Client A via the same pub/sub mechanism.</p><p><strong>Read ✓✓ (blue):</strong> When Client B opens the conversation, the app sends a <code>{type:"read", chatId:X, lastReadMsgId:Y}</code> event. This routes back to Client A. All receipt events are written to Cassandra so they survive server restarts.</p></div>
+    </div>
+    <div class="sc-item" id="sc5">
+      <div class="sc-q" onclick="toggleSC('sc5')"><span>How do you partition Cassandra for 10 TB/day of messages?<span class="sc-tag">Data Model</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Partition key: <code>chat_id</code>. All messages in a conversation live on the same Cassandra node — enabling fast range scans for history: <code>WHERE chat_id = X ORDER BY msg_id DESC LIMIT 50</code>.</p><p>Hot partition problem: A group with 1M members and high message volume could overload one node. Solution: <code>(chat_id, bucket)</code> composite partition key where bucket = floor(msg_id / N) — distributes across nodes while keeping time ranges scannable.</p><p>Retention: Messages older than 5 years are archived to S3 via TTL or compaction. Recent messages stay in Cassandra for fast reads. Cassandra's SSTable compaction handles deletes efficiently.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="hld-index.html">All HLD Problems</a></span>
+  <span>SDE Interview Prep</span>
+</footer>
+</div>
+
+<script>
+/* Architecture nodes */
+const NODE_INFO = {
+  'client-a':{title:"Client A (Mobile/Web)",body:"The sending user. Maintains a persistent WebSocket connection to a WS Server. The app handles E2EE locally — encrypts messages before sending. Sends a heartbeat ping every 30 seconds to maintain presence registration in Redis.",stats:["WebSocket persistent conn","E2EE on device","30s heartbeat"],warn:null},
+  'ws1':{title:"WebSocket Server 1",body:"Maintains stateful WebSocket connections with clients. Each server handles ~10K concurrent connections. State: only which users are connected here. All durable state is externalized (Cassandra for messages, Redis for routing). When this server crashes, users reconnect to another server.",stats:["~10K connections each","Stateless durable data","Event-driven (epoll)"],warn:"If a WS server crashes: connected users see disconnect, reconnect within seconds. Redis TTL (35s) eventually expires the dead registrations. No message loss because messages are durably stored in Cassandra before routing."},
+  'ws2':{title:"WebSocket Server 2",body:"Client B is connected here. Subscribes to Redis pub/sub channel user:{B}:inbox. When a message is published to that channel, WS Server 2 pushes it down B's WebSocket. The path from WS1 to WS2 goes through Message Service → Redis pub/sub.",stats:["Delivers to Client B","Redis pub/sub subscriber","Routes receipts back"],warn:null},
+  'msg-svc':{title:"Message Service",body:"The routing brain. Receives messages from WS servers, assigns Snowflake IDs, deduplicates via client_msg_id (idempotent writes to Cassandra), persists to Cassandra, looks up recipient's WS server in Redis, and publishes to their Redis pub/sub channel or to Kafka offline queue.",stats:["Deduplication via client_msg_id","Snowflake ID assignment","Cassandra + Redis writes"],warn:null},
+  kafka:{title:"Kafka — Routing Bus",body:"Handles offline message queuing and group chat fan-out. When recipient is offline, message goes to Kafka offline queue. On reconnect, the online handler drains the queue. For group messages (up to 1000 members), Kafka fan-out workers route to each member's WS server or offline queue.",stats:["Offline message queue","Group fan-out","Durable, replayable"],warn:null},
+  cassandra:{title:"Cassandra (Messages)",body:"Stores all messages. Partition key: chat_id — all messages in a conversation on one node for fast history reads. Clustering key: msg_id DESC (Snowflake). Stores encrypted ciphertext — the server cannot read message content. TTL on old messages for retention.",stats:["Partition: chat_id","10 TB/day","E2EE ciphertext only","RF=3 per DC"],warn:null},
+  redis:{title:"Redis (Presence + Routing)",body:"Two critical uses: (1) Routing table: user:{id}:server → which WS server hostname. TTL 35 seconds, refreshed by 30s heartbeat. (2) Pub/sub: each WS server subscribes to user:{id}:inbox channels for its connected users. Messages published there are instantly pushed to the right WS server.",stats:["Routing: user→server","TTL 35s (heartbeat 30s)","Pub/sub for delivery","user:X:last_seen"],warn:null},
+  postgres:{title:"PostgreSQL (Users + Groups)",body:"Stores user profiles (phone hash, public key for E2EE, push token) and group metadata (name, members, admin). Relational data with ACID guarantees. Group member lists are also cached in Redis for hot groups. Phone numbers stored as SHA256 hash only.",stats:["User public keys","Group membership","ACID guarantees"],warn:null},
+  push:{title:"Push Service (FCM/APNs)",body:"When a user is offline (no WebSocket), messages can't be delivered in real-time. Push Service sends a push notification via FCM (Android) or APNs (iOS). The notification just says 'you have a new message' — it does NOT include the message content (E2EE constraint). User opens app, establishes WS, drains offline queue.",stats:["FCM for Android","APNs for iOS","Notification only — no content"],warn:null},
+  'client-b':{title:"Client B (Recipient)",body:"Receives delivered messages via WebSocket. The app decrypts messages locally using B's private key. If offline when message was sent, receives a push notification and drains Cassandra offline queue on reconnect. Sends read receipts back through the same WebSocket when the user opens the conversation.",stats:["Decrypts with private key","Push if offline","Sends read receipts"],warn:null}
+};
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g=>g.classList.remove('sel'));
+  const el=document.querySelector(`.arch-node[data-id="${id}"]`);
+  if(el) el.classList.add('sel');
+  const info=NODE_INFO[id];
+  const panel=document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  panel.innerHTML=`<div class="ap-title">${info.title}</div><div class="ap-body">${info.body}</div><div>${info.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>${info.warn?`<div class="ap-warn">${info.warn}</div>`:''}`;
+}
+
+/* Flow Stepper */
+const STEPS=[
+  {nodes:['fn-ca'],title:"Alice types a message",desc:"Alice types 'Hey Bob!' on her iPhone. Before the message leaves the device, WhatsApp encrypts it using Signal Protocol: the app generates a session key using Bob's public key (fetched at session start). The plaintext never leaves Alice's device.",code:"// Client-side encryption (never reaches server as plaintext)\nconst sessionKey = signalProtocol.deriveKey(alice.privateKey, bob.publicKey);\nconst ciphertext = encrypt(plaintext, sessionKey);\nws.send({ type:'message', chatId, content: btoa(ciphertext), clientMsgId: uuid() });"},
+  {nodes:['fn-ca','fn-ws1'],title:"WebSocket to WS Server 1",desc:"The encrypted message frame arrives at WS Server 1 over Alice's persistent WebSocket connection. WS Server 1 is stateless — it doesn't know or care about message content (it's encrypted). It validates Alice's auth and forwards to Message Service.",code:"// WS Server 1 forwards to Message Service\nmessageService.process({\n  senderId: alice.userId,\n  chatId: chatId,\n  content: ciphertext,    // opaque blob — server can't read\n  clientMsgId: clientMsgId // for idempotency\n});"},
+  {nodes:['fn-msgsvc','fn-cassandra'],title:"Message Service persists + ACKs",desc:"Message Service assigns a Snowflake msg_id (time-ordered, globally unique). Deduplication check: if clientMsgId already exists, return existing msgId (handles retries). Writes to Cassandra partitioned by chat_id.",code:"// Assign Snowflake ID + persist\nString msgId = snowflake.next();\nif (cassandra.exists(clientMsgId)) return existing(clientMsgId);\ncassandra.write({\n  chat_id, msg_id: msgId, sender_id, content: ciphertext,\n  status: 'SENT', ts: now()\n});\nreturn ACK(msgId);  // → triggers single ✓ on Alice's screen"},
+  {nodes:['fn-msgsvc','fn-redis'],title:"Route to Bob's WS Server",desc:"Message Service looks up which WS server Bob is connected to via Redis. Bob's phone sent a heartbeat 12 seconds ago, so Redis has: user:{bob}:server → 'ws-server-42' with TTL 35s. Message Service publishes to Bob's Redis pub/sub inbox channel.",code:'// Redis routing lookup\nString wsServer = redis.get("user:" + bob.userId + ":server");\nif (wsServer != null) {\n  // Bob online: pub/sub deliver\n  redis.publish("user:" + bob.userId + ":inbox", msgPayload);\n} else {\n  // Bob offline: Kafka queue\n  kafka.publish("offline-delivery", msgPayload);\n}'},
+  {nodes:['fn-redis','fn-ws2'],title:"WS Server 2 receives via pub/sub",desc:"WS Server 2 has an active Redis pub/sub subscription on user:{bob}:inbox (established when Bob connected). The message is delivered to WS Server 2's event loop, which pushes it down Bob's WebSocket connection.",code:'// WS Server 2 (subscribed since Bob connected)\nredis.subscribe("user:" + bob.userId + ":inbox", (msg) => {\n  WebSocket bobSocket = connectionMap.get(bob.userId);\n  bobSocket.send(msg);  // instant push to Bob\'s device\n  // Send delivery receipt back to Alice\n  notifyDelivered(msg.msgId, alice.userId);\n});'},
+  {nodes:['fn-ws2','fn-cb'],title:"Bob's device decrypts",desc:"Bob's iPhone receives the encrypted WebSocket frame. The Signal Protocol session derives the decryption key from Bob's private key + Alice's public key. Decrypted message appears on screen. App sends read receipt when Bob opens the conversation.",code:"// Client-side decryption (only possible on Bob's device)\nconst sessionKey = signalProtocol.deriveKey(bob.privateKey, alice.publicKey);\nconst plaintext = decrypt(msg.content, sessionKey);\nui.renderMessage(plaintext);\n\n// Send Delivered ✓✓ receipt\nws.send({ type:'receipt', msgId, status:'delivered' });"},
+  {nodes:['fn-ca'],title:"Alice sees ✓✓ (delivered)",desc:"The delivered receipt travels the reverse path: Bob's WS Server → Redis pub/sub on Alice's inbox → WS Server 1 → Alice's WebSocket. Alice sees single gray ✓ upgrade to double gray ✓✓. When Bob opens the conversation, blue ✓✓ receipt follows the same path.",code:"// Receipt event routing (reverse path)\n// Bob's WS Server 2 publishes:\nredis.publish('user:' + alice.userId + ':inbox', {\n  type: 'receipt', msgId, status: 'delivered'\n});\n// Alice's WS Server 1 delivers:\nalice.ws.send({ type:'receipt', msgId, status:'delivered' });\n// App updates ✓ → ✓✓"}
+];
+const FN_IDS=['fn-ca','fn-ws1','fn-msgsvc','fn-cassandra','fn-redis','fn-ws2','fn-cb'];
+let curStep=0;
+function renderStep(){
+  const s=STEPS[curStep];
+  const activeSet=new Set(s.nodes);
+  FN_IDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const idx=FN_IDS.indexOf(id);
+    const firstActive=FN_IDS.indexOf(s.nodes[0]);
+    el.className='fn'+(activeSet.has(id)?' act':(idx<firstActive?' done':''));
+  });
+  document.getElementById('flow-card').innerHTML=`<div class="fc-title">${s.title}</div><div class="fc-desc">${s.desc}</div>${s.code?`<pre class="fc-code">${s.code}</pre>`:''}`;
+  document.getElementById('fnav-counter').textContent=`Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('btn-prev').disabled=curStep===0;
+  document.getElementById('btn-next').disabled=curStep===STEPS.length-1;
+  document.querySelectorAll('.fdot').forEach((d,i)=>{d.className='fdot'+(i===curStep?' act':(i<curStep?' done':''));});
+}
+function nextStep(){if(curStep<STEPS.length-1){curStep++;renderStep();}}
+function prevStep(){if(curStep>0){curStep--;renderStep();}}
+function goStep(n){curStep=n;renderStep();}
+const dotsEl=document.getElementById('flow-dots');
+STEPS.forEach((_,i)=>{const d=document.createElement('div');d.className='fdot'+(i===0?' act':'');d.onclick=()=>goStep(i);dotsEl.appendChild(d);});
+renderStep();
+
+/* E2EE Simulator */
+const FAKE_CIPHER='AESGCMv2:Nonce=3f9a1c/CiphTxt=X9mK2p...7qRs+LvBnYw==';
+function e2eeStep(step) {
+  const msgs=['','Alice generates a shared session key using Bob\'s public key. The message is encrypted locally. The server only receives the ciphertext blob.','Server receives the ciphertext blob. It routes it to Bob based on Bob\'s public key ID — but cannot decrypt. It\'s just moving opaque bytes.','Bob\'s device uses his private key to decrypt. Only Bob can do this — not the server, not Alice (after the session).'];
+  if(step===0){
+    document.getElementById('alice-cipher-field').style.display='none';
+    document.getElementById('bob-cipher-field').style.display='none';
+    document.getElementById('bob-decrypted-field').style.display='none';
+    document.getElementById('server-sees').textContent='Waiting...';
+    document.getElementById('server-sees').style.color='var(--clay)';
+    document.getElementById('e2ee-msg').textContent='';
+    return;
+  }
+  if(step>=1){
+    document.getElementById('alice-cipher-field').style.display='block';
+    document.getElementById('alice-cipher').textContent=FAKE_CIPHER;
+    document.getElementById('e2ee-msg').textContent=msgs[step];
+  }
+  if(step>=2){
+    document.getElementById('server-sees').textContent=FAKE_CIPHER;
+    document.getElementById('server-sees').style.color='var(--g500)';
+    document.getElementById('bob-cipher-field').style.display='block';
+    document.getElementById('bob-cipher').textContent=FAKE_CIPHER;
+  }
+  if(step>=3){
+    document.getElementById('bob-decrypted-field').style.display='block';
+    document.getElementById('bob-decrypted').textContent='Hello Bob!';
+  }
+}
+
+/* Tab switcher */
+function switchTab(group,id){
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el=>el.classList.add('active'));
+}
+
+/* Self Check */
+function toggleSC(id){document.getElementById(id).classList.toggle('open');}
+</script>
+</body>
+</html>

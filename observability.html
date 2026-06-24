@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observability — SDE Interview Prep</title>
+<style>
+:root {
+  --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+  --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+  --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+  --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 100px; }
+
+.back { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); text-decoration: none; padding: 28px 0 0; }
+.back:hover { color: var(--slate); }
+
+header { padding: 44px 0 52px; border-bottom: 1.5px solid var(--g200); margin-bottom: 56px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--g500); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); }
+h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(32px, 5vw, 52px); line-height: 1.06; letter-spacing: -.022em; }
+h1 em { font-style: italic; color: var(--clay); }
+.sub { font-size: 16px; color: var(--g700); margin-top: 14px; max-width: 600px; line-height: 1.65; }
+.badge { display: inline-block; font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em; padding: 3px 10px; border-radius: 4px; background: rgba(217,119,87,.12); color: var(--clay-d); margin-top: 16px; }
+
+.page-body { display: grid; grid-template-columns: 200px 1fr; gap: 48px; align-items: start; }
+@media (max-width: 768px) { .page-body { grid-template-columns: 1fr; } }
+
+.toc { position: sticky; top: 32px; }
+.toc-title { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--g500); margin-bottom: 12px; }
+.toc a { display: block; font-size: 13px; color: var(--g500); text-decoration: none; padding: 5px 0; border-left: 2px solid var(--g200); padding-left: 12px; transition: color 120ms, border-color 120ms; }
+.toc a:hover { color: var(--slate); border-left-color: var(--clay); }
+
+section { margin-bottom: 64px; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 26px; letter-spacing: -.01em; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+h2 .sec-num { font-family: var(--mono); font-size: 11px; color: var(--clay); background: rgba(217,119,87,.1); padding: 2px 8px; border-radius: 4px; font-weight: 400; }
+h3 { font-size: 15px; font-weight: 600; margin: 28px 0 10px; color: var(--slate); }
+p { font-size: 15px; color: var(--g700); margin-bottom: 14px; line-height: 1.65; }
+code { font-family: var(--mono); font-size: 12.5px; background: var(--g100); padding: 1px 5px; border-radius: 3px; }
+
+.pillar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+@media (max-width: 680px) { .pillar-grid { grid-template-columns: 1fr; } }
+.pillar { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 14px; padding: 20px; }
+.pillar-icon { font-size: 24px; margin-bottom: 10px; }
+.pillar-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--clay); margin-bottom: 8px; }
+.pillar h4 { font-family: var(--serif); font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+.pillar p { font-size: 13px; margin-bottom: 0; }
+
+.diagram { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 16px; padding: 32px; margin: 24px 0; display: flex; justify-content: center; }
+.diagram svg { width: 100%; max-width: 640px; height: auto; }
+
+.detail-block { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 14px; padding: 20px 24px; margin-bottom: 16px; }
+.detail-block h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.detail-block p { font-size: 13.5px; color: var(--g700); margin: 0; }
+.detail-block ul { margin: 8px 0 0 18px; }
+.detail-block li { font-size: 13.5px; color: var(--g700); margin-bottom: 5px; }
+
+.slo-box { background: var(--slate); color: var(--paper); border-radius: 14px; padding: 24px 28px; margin: 20px 0; }
+.slo-box h4 { color: var(--clay); font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 16px; }
+.slo-row { display: flex; gap: 24px; flex-wrap: wrap; }
+.slo-item { flex: 1; min-width: 140px; }
+.slo-term { font-family: var(--mono); font-size: 11px; color: var(--clay); margin-bottom: 4px; }
+.slo-def { font-size: 13px; color: var(--g300); line-height: 1.5; }
+
+.t-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 16px; }
+.t-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--g200); background: var(--g100); }
+.t-table td { padding: 11px 14px; border-bottom: 1px solid var(--g200); color: var(--g700); vertical-align: top; }
+.t-table tr:last-child td { border-bottom: none; }
+.t-table tr:hover td { background: var(--g100); }
+.good { color: var(--olive); font-weight: 600; }
+.bad { color: #c94e4e; font-weight: 600; }
+.mid { color: var(--clay); font-weight: 600; }
+
+.tabs { margin-top: 20px; }
+.tab-bar { display: flex; gap: 4px; border-bottom: 2px solid var(--g200); flex-wrap: wrap; }
+.tab-btn { font-family: var(--mono); font-size: 11px; padding: 8px 16px; border: none; background: none; cursor: pointer; color: var(--g500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 120ms; }
+.tab-btn.active { color: var(--clay); border-bottom-color: var(--clay); }
+.tab-pane { display: none; background: #1e1e1e; border-radius: 0 0 12px 12px; padding: 20px 24px; overflow-x: auto; }
+.tab-pane.active { display: block; }
+pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: #d4d4d4; white-space: pre; }
+.kw { color: #569cd6; } .cn { color: #4ec9b0; } .cm { color: #6a9955; font-style: italic; }
+.st { color: #ce9178; } .nm { color: #b5cea8; } .fn { color: #dcdcaa; }
+
+.tip-grid { display: grid; gap: 12px; margin-top: 20px; }
+.tip { display: flex; gap: 14px; background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 16px 18px; }
+.tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.tip-q { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+.tip-a { font-size: 13px; color: var(--g700); line-height: 1.55; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 16px; }
+.card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 14px; padding: 18px 20px; }
+.card-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--clay); margin-bottom: 8px; }
+.card h4 { font-family: var(--serif); font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+.card p { font-size: 13px; color: var(--g700); margin: 0; }
+
+footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 28px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--g500); }
+footer a { color: var(--clay); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← Home</a>
+
+<header>
+  <div class="eyebrow">Advanced Concepts · Senior SDE</div>
+  <h1>Observability &amp;<br><em>Monitoring</em></h1>
+  <p class="sub">Metrics, logs, traces — the three pillars of observability. SLI/SLO/error budgets. The difference between knowing your system is broken and being able to understand why.</p>
+  <span class="badge">SDE II / III / Staff · SRE</span>
+</header>
+
+<div class="page-body">
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <a href="#what">1. What Is It</a>
+  <a href="#problem">2. The Problem</a>
+  <a href="#how">3. How It Works</a>
+  <a href="#types">4. The 3 Pillars</a>
+  <a href="#tradeoffs">5. Trade-offs</a>
+  <a href="#code">6. Code</a>
+  <a href="#real-world">7. Real-World</a>
+  <a href="#tips">8. Interview Tips</a>
+</nav>
+
+<main>
+
+<section id="what">
+  <h2><span class="sec-num">01</span> What Is It</h2>
+  <p>Observability is the ability to understand the internal state of a system from its external outputs — without having to deploy new code or SSH into a server. A system is observable if you can answer arbitrary questions about its behavior purely from the data it emits.</p>
+  <p><strong>Monitoring vs Observability:</strong> Monitoring tells you when something is wrong (known unknowns — dashboards, alerts). Observability lets you understand <em>why</em> it's wrong (unknown unknowns — you can explore any question from the data). Monitoring is a subset of observability.</p>
+  <div class="pillar-grid">
+    <div class="pillar">
+      <div class="pillar-icon">📊</div>
+      <div class="pillar-label">Pillar 1</div>
+      <h4>Metrics</h4>
+      <p>Aggregated numeric time-series. Cheap to store. Great for alerting and dashboards.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-icon">📋</div>
+      <div class="pillar-label">Pillar 2</div>
+      <h4>Logs</h4>
+      <p>Structured event records. High detail, high cost. Essential for debugging specific events.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-icon">🔗</div>
+      <div class="pillar-label">Pillar 3</div>
+      <h4>Traces</h4>
+      <p>Request flows across services. Shows exactly where time was spent in distributed calls.</p>
+    </div>
+  </div>
+</section>
+
+<section id="problem">
+  <h2><span class="sec-num">02</span> The Problem It Solves</h2>
+  <p>In a monolith, you can attach a debugger or add a print statement and redeploy. In a distributed system with 50 services, a single user request may touch 15 services. A user reports "it's slow." Without observability:</p>
+  <ul style="margin: 0 0 14px 20px; color: var(--g700); font-size: 15px;">
+    <li>You don't know which of 15 services is slow</li>
+    <li>You don't know if it's the DB, a downstream API, or GC pauses</li>
+    <li>You can't reproduce it because it only happens at peak load</li>
+    <li>By the time you SSH in, the incident is over</li>
+  </ul>
+  <p>With full observability: traces show the slow DB query, metrics show the query rate spike, logs show the specific query that timed out. MTTR drops from hours to minutes.</p>
+</section>
+
+<section id="how">
+  <h2><span class="sec-num">03</span> How It Works</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 640 280" fill="none">
+      <!-- Incoming request -->
+      <rect x="10" y="110" width="80" height="40" rx="6" fill="rgba(217,119,87,.15)" stroke="#D97757" stroke-width="1.5"/>
+      <text x="50" y="134" text-anchor="middle" font-family="monospace" font-size="10" fill="#B85C3E">Request</text>
+      <line x1="90" y1="130" x2="130" y2="130" stroke="#D97757" stroke-width="1.5"/>
+
+      <!-- Service -->
+      <rect x="130" y="90" width="140" height="80" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+      <text x="200" y="125" text-anchor="middle" font-family="monospace" font-size="11" fill="#141413">Your Service</text>
+      <text x="200" y="145" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">+ OTel SDK</text>
+      <line x1="270" y1="130" x2="310" y2="130" stroke="#D1CFC5" stroke-width="1.5"/>
+
+      <!-- OTel Collector -->
+      <rect x="310" y="110" width="100" height="40" rx="6" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+      <text x="360" y="134" text-anchor="middle" font-family="monospace" font-size="9" fill="#141413">OTel Collector</text>
+
+      <!-- Fan out to 3 backends -->
+      <line x1="410" y1="120" x2="460" y2="60" stroke="#D1CFC5" stroke-width="1.5"/>
+      <line x1="410" y1="130" x2="460" y2="130" stroke="#D1CFC5" stroke-width="1.5"/>
+      <line x1="410" y1="140" x2="460" y2="200" stroke="#D1CFC5" stroke-width="1.5"/>
+
+      <!-- Metrics -->
+      <rect x="460" y="36" width="120" height="48" rx="8" fill="rgba(74,111,165,.12)" stroke="rgba(74,111,165,.4)" stroke-width="1.5"/>
+      <text x="520" y="57" text-anchor="middle" font-family="monospace" font-size="10" fill="#4A6FA5" font-weight="700">Prometheus</text>
+      <text x="520" y="72" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Metrics / Grafana</text>
+
+      <!-- Traces -->
+      <rect x="460" y="106" width="120" height="48" rx="8" fill="rgba(120,140,93,.12)" stroke="rgba(120,140,93,.4)" stroke-width="1.5"/>
+      <text x="520" y="127" text-anchor="middle" font-family="monospace" font-size="10" fill="#788C5D" font-weight="700">Jaeger</text>
+      <text x="520" y="142" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Distributed Traces</text>
+
+      <!-- Logs -->
+      <rect x="460" y="176" width="120" height="48" rx="8" fill="rgba(217,119,87,.1)" stroke="rgba(217,119,87,.3)" stroke-width="1.5"/>
+      <text x="520" y="197" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">Elasticsearch</text>
+      <text x="520" y="212" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Logs / Kibana</text>
+
+      <!-- trace_id links -->
+      <text x="50" y="240" font-family="monospace" font-size="8" fill="#87867F">trace_id propagated via W3C traceparent header → correlates all 3 pillars</text>
+    </svg>
+  </div>
+  <p>The OpenTelemetry SDK instruments your service once. The OTel Collector receives all signals and exports to multiple backends. The key insight: a single <strong>trace_id</strong> propagated via HTTP headers ties together the metric spike, the trace showing which span was slow, and the log line with the error detail.</p>
+</section>
+
+<section id="types">
+  <h2><span class="sec-num">04</span> The Three Pillars + SLI/SLO</h2>
+
+  <h3>1. Metrics (Prometheus / Grafana)</h3>
+  <div class="detail-block">
+    <h4>Metric Types</h4>
+    <ul>
+      <li><strong>Counter:</strong> monotonically increasing (<code>http_requests_total</code>). Use <code>rate()</code> to get per-second rate.</li>
+      <li><strong>Gauge:</strong> can go up or down (<code>jvm_memory_used_bytes</code>, <code>active_connections</code>).</li>
+      <li><strong>Histogram:</strong> samples in configurable buckets (<code>http_request_duration_seconds_bucket</code>). Enables <code>histogram_quantile(0.99, ...)</code> across multiple instances.</li>
+      <li><strong>Summary:</strong> pre-computed quantiles on client. Can't aggregate across replicas — prefer Histogram.</li>
+    </ul>
+    <p style="margin-top:10px"><strong>Cardinality explosion:</strong> Each unique combination of label values is a separate time series. Labels like <code>user_id</code> or <code>session_id</code> create millions of series and kill Prometheus. Rule: labels should have bounded, low-cardinality values.</p>
+  </div>
+
+  <h3>2. Logs (ELK / Loki)</h3>
+  <div class="detail-block">
+    <h4>Structured vs Unstructured</h4>
+    <p>Always emit structured JSON logs. <code>{"level":"ERROR","trace_id":"abc123","msg":"DB timeout","duration_ms":5000}</code> is queryable. Plain text strings require fragile regex parsing.</p>
+    <p><strong>Correlation ID:</strong> Inject <code>trace_id</code> into MDC at request start. Every log line in that request thread automatically includes it → grep across 50 services for one request.</p>
+    <p><strong>ELK vs Loki:</strong> Elasticsearch indexes every field — expensive but powerful full-text search. Loki stores logs as compressed chunks indexed only by labels (like Prometheus) — 10x cheaper, but log content is not indexed.</p>
+  </div>
+
+  <h3>3. Distributed Tracing (OpenTelemetry / Jaeger)</h3>
+  <div class="detail-block">
+    <h4>Trace Anatomy</h4>
+    <p>A <strong>Trace</strong> is a tree of <strong>Spans</strong>. Each span represents one operation: an HTTP call, a DB query, a cache lookup. Spans have: start_time, duration, tags (key-value metadata), events (log lines within the span), status (OK/ERROR), and parent_span_id.</p>
+    <p><strong>Propagation:</strong> The W3C <code>traceparent</code> header carries trace_id + span_id through every HTTP call. Your service reads it, creates a child span, and passes it to downstream calls.</p>
+    <p><strong>Sampling strategies:</strong> Head-based (decide at request start — simple but misses rare errors). Tail-based (buffer all spans, decide after trace completes — catch errors and slow traces, but requires a stateful buffer like Tempo).</p>
+  </div>
+
+  <h3>SLI / SLO / SLA / Error Budget</h3>
+  <div class="slo-box">
+    <h4>SRE Reliability Framework</h4>
+    <div class="slo-row">
+      <div class="slo-item">
+        <div class="slo-term">SLI</div>
+        <div class="slo-def">Service Level Indicator — the metric you measure. E.g., "fraction of requests with latency &lt;200ms" or "error rate".</div>
+      </div>
+      <div class="slo-item">
+        <div class="slo-term">SLO</div>
+        <div class="slo-def">Target you commit to internally. E.g., "99.9% of requests succeed". Stricter than SLA — violation = stop feature work.</div>
+      </div>
+      <div class="slo-item">
+        <div class="slo-term">SLA</div>
+        <div class="slo-def">Contractual commitment with customers. Usually looser than SLO. Breach = credits/refunds.</div>
+      </div>
+      <div class="slo-item">
+        <div class="slo-term">Error Budget</div>
+        <div class="slo-def">SLO=99.9% → budget=0.1% of time = 43.8 min/month. Shared between dev and SRE. When exhausted → freeze risky deploys.</div>
+      </div>
+    </div>
+  </div>
+  <p><strong>Burn rate alerting:</strong> A 1x burn rate means you'll exhaust the budget at exactly the end of the period. Alert at 2x burn rate for a fast (1-hour) alert; 14.4x for a very fast (5-minute) alert. This avoids alert fatigue from transient blips.</p>
+</section>
+
+<section id="tradeoffs">
+  <h2><span class="sec-num">05</span> Trade-offs</h2>
+  <table class="t-table">
+    <thead>
+      <tr><th>Pillar</th><th>What It Tells You</th><th>Storage Cost</th><th>Query Power</th><th>Best Tool</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Metrics</strong></td><td>Is something wrong? Trends, rates, saturation</td><td class="good">Very Low</td><td class="mid">Aggregates only (no per-request)</td><td>Prometheus + Grafana</td></tr>
+      <tr><td><strong>Logs</strong></td><td>What exactly happened? Full event detail</td><td class="bad">High</td><td class="good">Full-text search (ELK)</td><td>Loki (cheap) / ELK (powerful)</td></tr>
+      <tr><td><strong>Traces</strong></td><td>Where did time go? Which service is slow?</td><td class="mid">Medium</td><td class="good">Per-request across services</td><td>Jaeger / Tempo / Datadog</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="code">
+  <h2><span class="sec-num">06</span> Code Examples</h2>
+  <div class="tabs">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-group="obs" onclick="switchTab('obs','metrics')">Prometheus Metrics</button>
+      <button class="tab-btn" data-group="obs" onclick="switchTab('obs','logs')">Structured Logging</button>
+      <button class="tab-btn" data-group="obs" onclick="switchTab('obs','traces')">OTel Tracing</button>
+      <button class="tab-btn" data-group="obs" onclick="switchTab('obs','slo')">SLO Alert (PromQL)</button>
+    </div>
+    <div class="tab-pane active" data-group="obs" data-tab="obs-metrics"><pre><span class="cm">// Micrometer metrics (Spring Boot auto-configures Prometheus)</span>
+<span class="kw">@Component</span>
+<span class="kw">public class</span> <span class="cn">OrderService</span> {
+    <span class="kw">private final</span> <span class="cn">Counter</span> orderCounter;
+    <span class="kw">private final</span> <span class="cn">Timer</span> checkoutTimer;
+    <span class="kw">private final</span> <span class="cn">AtomicLong</span> pendingOrders = <span class="kw">new</span> <span class="cn">AtomicLong</span>(<span class="nm">0</span>);
+
+    <span class="kw">public</span> <span class="cn">OrderService</span>(<span class="cn">MeterRegistry</span> registry) {
+        <span class="cm">// Counter: total orders by status</span>
+        orderCounter = <span class="cn">Counter</span>.<span class="fn">builder</span>(<span class="st">"orders.total"</span>)
+            .<span class="fn">tag</span>(<span class="st">"status"</span>, <span class="st">"created"</span>)
+            .<span class="fn">register</span>(registry);
+
+        <span class="cm">// Timer: checkout duration histogram</span>
+        checkoutTimer = <span class="cn">Timer</span>.<span class="fn">builder</span>(<span class="st">"checkout.duration"</span>)
+            .<span class="fn">publishPercentiles</span>(<span class="nm">0.5</span>, <span class="nm">0.95</span>, <span class="nm">0.99</span>)
+            .<span class="fn">register</span>(registry);
+
+        <span class="cm">// Gauge: current pending orders</span>
+        <span class="cn">Gauge</span>.<span class="fn">builder</span>(<span class="st">"orders.pending"</span>, pendingOrders, <span class="cn">AtomicLong</span>::<span class="fn">get</span>)
+            .<span class="fn">register</span>(registry);
+    }
+
+    <span class="kw">public</span> <span class="cn">Order</span> <span class="fn">checkout</span>(<span class="cn">Cart</span> cart) {
+        <span class="kw">return</span> checkoutTimer.<span class="fn">record</span>(() -> {
+            pendingOrders.<span class="fn">incrementAndGet</span>();
+            <span class="kw">try</span> {
+                <span class="cn">Order</span> order = <span class="fn">createOrder</span>(cart);
+                orderCounter.<span class="fn">increment</span>();
+                <span class="kw">return</span> order;
+            } <span class="kw">finally</span> { pendingOrders.<span class="fn">decrementAndGet</span>(); }
+        });
+    }
+}
+
+<span class="cm">// PromQL: p99 checkout latency over 5 min
+// histogram_quantile(0.99, rate(checkout_duration_seconds_bucket[5m]))</span></pre></div>
+    <div class="tab-pane" data-group="obs" data-tab="obs-logs"><pre><span class="cm">// Logback JSON + MDC for correlation IDs</span>
+
+<span class="cm">// Filter: inject trace context into MDC on every request</span>
+<span class="kw">@Component</span>
+<span class="kw">public class</span> <span class="cn">TraceContextFilter</span> <span class="kw">implements</span> <span class="cn">Filter</span> {
+    <span class="kw">public void</span> <span class="fn">doFilter</span>(<span class="cn">ServletRequest</span> req, ...) {
+        <span class="cn">String</span> traceId = <span class="fn">extractTraceId</span>(req)  <span class="cm">// from traceparent header</span>
+            .<span class="fn">orElse</span>(<span class="cn">UUID</span>.<span class="fn">randomUUID</span>().<span class="fn">toString</span>());
+        <span class="cn">MDC</span>.<span class="fn">put</span>(<span class="st">"trace_id"</span>, traceId);
+        <span class="cn">MDC</span>.<span class="fn">put</span>(<span class="st">"service"</span>, <span class="st">"order-service"</span>);
+        <span class="kw">try</span> { chain.<span class="fn">doFilter</span>(req, res); }
+        <span class="kw">finally</span> { <span class="cn">MDC</span>.<span class="fn">clear</span>(); }
+    }
+}
+
+<span class="cm">// Usage — MDC fields auto-appear in every log line</span>
+<span class="kw">private static final</span> <span class="cn">Logger</span> log = <span class="cn">LoggerFactory</span>.<span class="fn">getLogger</span>(<span class="cn">OrderService</span>.<span class="kw">class</span>);
+
+log.<span class="fn">info</span>(<span class="st">"Order created"</span>, <span class="cn">Map</span>.<span class="fn">of</span>(
+    <span class="st">"order_id"</span>, order.<span class="fn">getId</span>(),
+    <span class="st">"user_id"</span>, userId,
+    <span class="st">"amount_cents"</span>, amount  <span class="cm">// always integers, not floats</span>
+));
+
+<span class="cm">// JSON output:
+// {"level":"INFO","trace_id":"abc123","service":"order-service",
+//  "order_id":"ord-456","user_id":"u-789","amount_cents":4999,
+//  "msg":"Order created","timestamp":"2024-01-15T10:30:00.123Z"}</span></pre></div>
+    <div class="tab-pane" data-group="obs" data-tab="obs-traces"><pre><span class="cm">// OpenTelemetry Java SDK — manual instrumentation</span>
+<span class="kw">private static final</span> <span class="cn">Tracer</span> tracer =
+    <span class="cn">GlobalOpenTelemetry</span>.<span class="fn">getTracer</span>(<span class="st">"order-service"</span>, <span class="st">"1.0.0"</span>);
+
+<span class="kw">public</span> <span class="cn">Order</span> <span class="fn">processOrder</span>(<span class="cn">Cart</span> cart) {
+    <span class="cm">// Start span (child of incoming traceparent)</span>
+    <span class="cn">Span</span> span = tracer.<span class="fn">spanBuilder</span>(<span class="st">"processOrder"</span>)
+        .<span class="fn">setAttribute</span>(<span class="st">"cart.item_count"</span>, cart.<span class="fn">size</span>())
+        .<span class="fn">setAttribute</span>(<span class="st">"user.id"</span>, cart.<span class="fn">getUserId</span>())
+        .<span class="fn">startSpan</span>();
+
+    <span class="kw">try</span> (<span class="cn">Scope</span> scope = span.<span class="fn">makeCurrent</span>()) {
+        <span class="cn">Order</span> order = <span class="fn">createOrder</span>(cart);
+
+        <span class="cm">// Add event (annotate timeline)</span>
+        span.<span class="fn">addEvent</span>(<span class="st">"inventory_reserved"</span>);
+
+        <span class="cm">// Downstream call — context propagates automatically</span>
+        paymentClient.<span class="fn">charge</span>(order);  <span class="cm">// OTel injects traceparent header</span>
+
+        span.<span class="fn">setStatus</span>(<span class="cn">StatusCode</span>.OK);
+        <span class="kw">return</span> order;
+
+    } <span class="kw">catch</span> (<span class="cn">Exception</span> e) {
+        span.<span class="fn">recordException</span>(e);       <span class="cm">// attaches stack trace to span</span>
+        span.<span class="fn">setStatus</span>(<span class="cn">StatusCode</span>.ERROR, e.<span class="fn">getMessage</span>());
+        <span class="kw">throw</span> e;
+    } <span class="kw">finally</span> { span.<span class="fn">end</span>(); }
+}</pre></div>
+    <div class="tab-pane" data-group="obs" data-tab="obs-slo"><pre><span class="cm"># Prometheus alerting rules for SLO-based alerts</span>
+
+<span class="cm"># SLI: success rate = (total - errors) / total</span>
+<span class="cm"># SLO: 99.9% success rate</span>
+
+groups:
+  - name: slo-alerts
+    rules:
+      <span class="cm"># 1h burn rate > 2x → consume budget 2x fast</span>
+      - alert: SLOBurnRateFast
+        expr: |
+          (
+            <span class="fn">rate</span>(http_requests_total{code=~<span class="st">"5.."</span>}[<span class="nm">1</span>h])
+            /
+            <span class="fn">rate</span>(http_requests_total[<span class="nm">1</span>h])
+          ) > <span class="nm">0.002</span>   <span class="cm"># 0.1% budget × 2x burn rate</span>
+        annotations:
+          summary: <span class="st">"SLO burn rate >2x for 1h"</span>
+
+      <span class="cm"># Missing metric alert — alert if no data</span>
+      - alert: MetricsMissing
+        expr: <span class="fn">absent</span>(http_requests_total) == <span class="nm">1</span>
+        for: 5m
+
+      <span class="cm"># p99 latency SLO: 99th percentile < 500ms</span>
+      - alert: HighP99Latency
+        expr: |
+          <span class="fn">histogram_quantile</span>(<span class="nm">0.99</span>,
+            <span class="fn">rate</span>(http_request_duration_seconds_bucket[<span class="nm">5</span>m])
+          ) > <span class="nm">0.5</span>
+        for: 2m</pre></div>
+  </div>
+</section>
+
+<section id="real-world">
+  <h2><span class="sec-num">07</span> Real-World Usage</h2>
+  <div class="card-grid">
+    <div class="card"><div class="card-label">Google SRE</div><h4>Origin of SLI/SLO</h4><p>The SRE book coined error budgets. Google runs SLOs on every service. Error budget depletion triggers feature freeze.</p></div>
+    <div class="card"><div class="card-label">OpenTelemetry</div><h4>CNCF Standard</h4><p>Vendor-neutral SDK. Instrument once, export to Datadog, Jaeger, Honeycomb, or any OTLP-compatible backend.</p></div>
+    <div class="card"><div class="card-label">Honeycomb</div><h4>Event-Based Observability</h4><p>Stores every event (not pre-aggregated metrics). Query arbitrary high-cardinality dimensions after the fact. Invented by Charity Majors.</p></div>
+    <div class="card"><div class="card-label">Datadog</div><h4>All-in-One</h4><p>Metrics, logs, traces in one platform with automatic correlation. APM traces linked to logs via trace_id injection.</p></div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2><span class="sec-num">08</span> Interview Tips</h2>
+  <div class="tip-grid">
+    <div class="tip"><div class="tip-icon">🔍</div><div><div class="tip-q">"What's the difference between monitoring and observability?"</div><div class="tip-a">Monitoring = known unknowns. You define dashboards and alerts for failures you can predict. Observability = unknown unknowns. You can ask arbitrary questions about system behavior from the telemetry data, without deploying new instrumentation.</div></div></div>
+    <div class="tip"><div class="tip-icon">🐌</div><div><div class="tip-q">"How would you debug high p99 latency in production?"</div><div class="tip-a">1) Check distributed traces for the slow span — is it DB, external API, or serialization? 2) Check metrics for DB connection pool saturation, GC pause time, thread pool queue depth at the same timestamp. 3) Check structured logs for timeout/retry messages correlated by trace_id.</div></div></div>
+    <div class="tip"><div class="tip-icon">📈</div><div><div class="tip-q">"What is cardinality in Prometheus and why does it matter?"</div><div class="tip-a">Each unique label value combination creates a separate time series. A label with 1M unique user IDs × 10 metrics = 10M time series. Prometheus stores all active series in RAM. Cardinality explosion causes OOM crashes. Rule: never use user_id, request_id, or URLs as label values.</div></div></div>
+    <div class="tip"><div class="tip-icon">💰</div><div><div class="tip-q">"Why use error budgets instead of just setting SLAs?"</div><div class="tip-a">Error budgets quantify reliability as a shared resource. Devs want to ship features (consume budget), SREs want stability (preserve budget). When budget is healthy, move fast. When exhausted, freeze risky deploys. This creates aligned incentives instead of dev vs ops conflict.</div></div></div>
+    <div class="tip"><div class="tip-icon">🎯</div><div><div class="tip-q">"What is tail-based sampling in tracing?"</div><div class="tip-a">Head-based: decide to sample at request start (e.g., 1%). Cheap but misses rare errors. Tail-based: buffer all spans from a trace, decide after the trace completes — capture 100% of errors and slow traces. Requires a stateful collector (Grafana Tempo or Jaeger with adaptive sampling). Much more useful for debugging.</div></div></div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <span>← <a href="index.html">Home</a> · <a href="concepts-index.html">All Concepts</a></span>
+  <span>SDE Interview Prep · Senior Track</span>
+</footer>
+</div>
+
+<script>
+function switchTab(group, id) {
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el => el.classList.add('active'));
+}
+</script>
+</body>
+</html>

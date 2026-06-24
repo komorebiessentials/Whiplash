@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design URL Shortener — HLD</title>
+<style>
+:root {
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 100px}
+.top-bar{display:flex;align-items:center;gap:16px;padding:24px 0 0}
+.back{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none}
+.back:hover{color:var(--clay)}
+header{padding:48px 0 40px;border-bottom:1.5px solid var(--g300);margin-bottom:48px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:20px;height:1.5px;background:var(--clay)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,52px);line-height:1.08;letter-spacing:-.022em}
+h1 em{font-style:italic;color:var(--clay)}
+.sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:540px;line-height:1.65}
+.difficulty{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:4px;background:var(--g200);color:var(--g700)}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:48px}
+.toc a{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;padding:4px 12px;border-radius:20px;background:var(--paper);border:1.5px solid var(--g300);color:var(--g700);text-decoration:none;transition:border-color .15s,color .15s}
+.toc a:hover{border-color:var(--clay);color:var(--clay)}
+section{margin-bottom:56px;scroll-margin-top:24px}
+.section-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--clay);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-label::before{content:"";width:16px;height:1.5px;background:var(--clay)}
+h2{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:-.015em;margin-bottom:8px}
+.hint{font-size:13px;color:var(--g500);font-family:var(--mono);margin-bottom:20px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{padding:14px 18px;border-radius:10px;border-left:3px solid;font-size:14px;line-height:1.5}
+.req-item.func{background:rgba(120,140,93,.08);border-color:var(--olive)}
+.req-item.nfunc{background:rgba(217,119,87,.08);border-color:var(--clay)}
+.req-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.req-item.func .req-label{color:var(--olive)}
+.req-item.nfunc .req-label{color:var(--clay)}
+.est-table{width:100%;border-collapse:collapse;font-size:14px}
+.est-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300)}
+.est-table td{padding:10px 12px;border-bottom:1px solid var(--g200)}
+.est-table tr:last-child td{border-bottom:none}
+.est-table td:first-child{font-weight:500}
+.est-table td code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.highlight-row td{background:rgba(217,119,87,.06)}
+
+/* ── Interactive Architecture ── */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:720px){.arch-wrap{grid-template-columns:1fr}}
+.arch-box{background:var(--paper);border:1.5px solid var(--g300);border-radius:16px;padding:20px;overflow:auto}
+.arch-box svg{width:100%;height:auto;display:block}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px;transition:border-color .2s}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px 2px 2px 0;color:var(--g700)}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px;color:var(--g700);line-height:1.5}
+.ap-empty{color:var(--g500);font-size:13px;display:flex;height:120px;align-items:center;justify-content:center;text-align:center;line-height:1.6}
+
+/* ── Flow Stepper ── */
+.flow-diagram{display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:14px 18px;background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;margin-bottom:16px;overflow-x:auto}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);padding:0 5px;font-size:13px;flex-shrink:0}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin-bottom:14px;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:10px}
+.fnav-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:7px 16px;border-radius:6px;border:1.5px solid var(--g300);background:var(--paper);color:var(--g700);cursor:pointer;transition:all .15s}
+.fnav-btn:hover:not(:disabled){border-color:var(--clay);color:var(--clay)}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:11px;color:var(--g500);flex:1;text-align:center}
+.flow-dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+.fdot{width:7px;height:7px;border-radius:50%;background:var(--g200);cursor:pointer;transition:background .2s}
+.fdot.act{background:var(--clay)}
+.fdot.done{background:var(--g500);opacity:.5}
+
+/* ── API ── */
+.api-block{margin-bottom:20px}
+.api-block .endpoint{font-family:var(--mono);font-size:13px;padding:10px 16px;background:var(--slate);color:var(--oat);border-radius:8px 8px 0 0;display:flex;gap:12px;align-items:center}
+.method{font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px}
+.method.get{background:var(--olive);color:#fff}
+.method.post{background:var(--clay);color:#fff}
+.method.delete{background:#c0392b;color:#fff}
+.api-body{background:var(--g100);border:1.5px solid var(--g300);border-top:none;border-radius:0 0 8px 8px;padding:14px 16px}
+.api-body pre{font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--g700);white-space:pre-wrap}
+
+/* ── DB ── */
+.schema-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+.schema-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300);background:var(--g100)}
+.schema-table td{padding:8px 12px;border-bottom:1px solid var(--g200);font-family:var(--mono);font-size:12px}
+.schema-table td:first-child{color:var(--slate);font-weight:600}
+.schema-table td:nth-child(2){color:var(--clay)}
+.pk{font-size:9px;background:var(--clay);color:white;padding:1px 5px;border-radius:3px;margin-left:6px}
+.idx{font-size:9px;background:var(--olive);color:white;padding:1px 5px;border-radius:3px;margin-left:4px}
+.db-note{font-size:13px;color:var(--g700);padding:12px 16px;background:rgba(120,140,93,.07);border-left:3px solid var(--olive);border-radius:0 8px 8px 0;margin-top:8px}
+
+/* ── Code tabs ── */
+.tabs{margin-bottom:4px;display:flex;gap:4px;flex-wrap:wrap}
+.tab-btn{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:5px 12px;border-radius:6px 6px 0 0;border:1.5px solid var(--g300);border-bottom:none;background:var(--g100);color:var(--g500);cursor:pointer}
+.tab-btn.active{background:var(--slate);color:var(--oat);border-color:var(--slate)}
+.tab-pane{display:none;background:var(--slate);border-radius:0 8px 8px 8px;padding:20px;overflow-x:auto}
+.tab-pane.active{display:block}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.65;color:#cdd6f4}
+.kw{color:#89b4fa}.cn{color:#a6e3a1}.cm{color:#6c7086;font-style:italic}
+.st{color:#fab387}.nm{color:#cba6f7}.fn{color:#89dceb}
+
+/* ── Base62 Playground ── */
+.playground{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin:28px 0}
+.playground h3{font-family:var(--serif);font-size:19px;font-weight:500;margin-bottom:6px}
+.pg-sub{font-size:13px;color:var(--g500);margin-bottom:16px}
+.pg-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pg-input{font-family:var(--mono);font-size:14px;padding:8px 14px;border:1.5px solid var(--g300);border-radius:8px;background:var(--ivory);color:var(--slate);width:200px;outline:none}
+.pg-input:focus{border-color:var(--clay)}
+.pg-encode-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:8px 18px;background:var(--clay);color:white;border:none;border-radius:8px;cursor:pointer}
+.pg-encode-btn:hover{background:var(--clay-d)}
+.pg-pre{font-family:var(--mono);font-size:11px;color:var(--g500);cursor:pointer;padding:4px 10px;border-radius:4px;border:1px solid var(--g200);background:none}
+.pg-pre:hover{border-color:var(--clay);color:var(--clay)}
+.pg-result{margin-top:18px}
+.pg-encoded{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--clay);letter-spacing:.06em}
+.pg-enc-label{font-size:12px;color:var(--g500);margin-bottom:14px;font-family:var(--mono)}
+.pg-steps-head{display:grid;grid-template-columns:110px 1fr 60px 24px 40px;gap:8px;font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--g500);padding-bottom:4px;border-bottom:1.5px solid var(--g300);margin-bottom:2px}
+.pg-step{display:grid;grid-template-columns:110px 1fr 60px 24px 40px;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--g100);font-family:var(--mono);font-size:12px;color:var(--g700)}
+.pg-step:last-child{border-bottom:none}
+.pg-char{font-size:17px;font-weight:700;color:var(--clay)}
+.pg-rem{color:var(--olive)}
+.pg-op{color:var(--g300);text-align:center}
+.pg-note{font-size:11.5px;color:var(--g500);margin-top:8px;font-family:var(--mono)}
+
+/* ── 301 vs 302 ── */
+.redirect-compare{margin:28px 0}
+.redirect-compare h3{font-family:var(--serif);font-size:19px;font-weight:500;margin-bottom:6px}
+.rc-sub{font-size:13px;color:var(--g500);margin-bottom:14px}
+.rc-toggle{display:flex;border:1.5px solid var(--g300);border-radius:8px;overflow:hidden;width:fit-content;margin-bottom:16px}
+.rc-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:8px 22px;border:none;background:var(--g100);color:var(--g700);cursor:pointer;transition:all .15s}
+.rc-btn.on{background:var(--slate);color:white}
+.rc-panel{display:none}
+.rc-panel.on{display:block;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.rc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:550px){.rc-grid{grid-template-columns:1fr}}
+.rc-pro{background:rgba(120,140,93,.07);border:1.5px solid var(--olive);border-radius:10px;padding:14px 16px}
+.rc-con{background:rgba(217,119,87,.06);border:1.5px solid var(--clay);border-radius:10px;padding:14px 16px}
+.rc-list-title{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.rc-pro .rc-list-title{color:var(--olive)}
+.rc-con .rc-list-title{color:var(--clay)}
+.rc-item{font-size:13px;color:var(--g700);padding:3px 0;line-height:1.45}
+.rc-verdict{font-size:13.5px;background:var(--paper);border:1.5px solid var(--g200);border-radius:8px;padding:12px 16px;line-height:1.55;color:var(--g700)}
+.rc-verdict strong{color:var(--slate)}
+
+/* ── Algo cards ── */
+.algo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:28px}
+.algo-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;padding:18px}
+.algo-card .atitle{font-weight:600;font-size:14px;margin-bottom:6px}
+.algo-card .adesc{font-size:13px;color:var(--g700);line-height:1.55}
+.algo-card .abadge{font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--clay);margin-bottom:6px}
+
+/* ── Scaling ── */
+.scale-list{display:grid;gap:10px}
+.scale-item{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;background:var(--paper);border:1.5px solid var(--g300);border-radius:10px}
+.si-icon{font-size:18px;flex-shrink:0;margin-top:2px}
+.si-title{font-weight:600;font-size:14px;margin-bottom:3px}
+.si-desc{font-size:13px;color:var(--g700);line-height:1.5}
+
+/* ── Self Check ── */
+.sc-list{display:flex;flex-direction:column;gap:8px}
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-q:hover{background:var(--g100)}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s;font-family:var(--mono)}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-a p{margin-top:10px}
+.sc-a code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+
+/* ── Tips ── */
+.tip{display:flex;gap:14px;align-items:flex-start;padding:16px 20px;background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;margin-bottom:10px}
+.tip-icon{font-size:20px;flex-shrink:0}
+.tip-text{font-size:14px;line-height:1.6;color:var(--g700)}
+.tip-text strong{color:var(--slate)}
+
+footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--g500)}
+footer a{color:var(--g500);text-decoration:none}
+footer a:hover{color:var(--clay)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top-bar">
+  <a class="back" href="index.html">← Home</a>
+  <span style="color:var(--g300)">|</span>
+  <a class="back" href="hld-index.html">HLD Problems</a>
+</div>
+
+<header>
+  <div class="eyebrow">High Level Design</div>
+  <h1>Design a <em>URL Shortener</em></h1>
+  <p class="sub">Build a scalable system like TinyURL or Bitly that shortens long URLs, handles 120K redirects/sec, and serves requests in under 10ms.</p>
+  <span class="difficulty">Difficulty: SDE I–II · Classic Problem</span>
+</header>
+
+<nav class="toc">
+  <a href="#overview">Requirements</a>
+  <a href="#estimation">Estimation</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Request Flow</a>
+  <a href="#api">API Design</a>
+  <a href="#database">Database</a>
+  <a href="#deep-dive">Key Decisions</a>
+  <a href="#scaling">Scaling</a>
+  <a href="#self-check">Self Check</a>
+</nav>
+
+<!-- 1. Requirements -->
+<section id="overview">
+  <div class="section-label">01</div>
+  <h2>What We're Building</h2>
+  <div class="req-grid">
+    <div class="req-item func"><div class="req-label">Functional</div>Shorten any long URL to a unique 8-char alias</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Redirect short URL → original URL (301 or 302)</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Custom alias support (user-chosen short code)</div>
+    <div class="req-item func"><div class="req-label">Functional</div>URL expiration — TTL set at creation</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>100M DAU, 100:1 read-to-write ratio</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Redirect latency &lt;10ms p99 (cache-first)</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>High availability 99.99% — no single point of failure</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Short codes must be globally unique — no collisions</div>
+  </div>
+</section>
+
+<!-- 2. Estimation -->
+<section id="estimation">
+  <div class="section-label">02</div>
+  <h2>Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>DAU</td><td>Given</td><td><code>100M users</code></td></tr>
+      <tr><td>Write QPS</td><td>100M / 86,400s</td><td><code>~1,200 writes/sec</code></td></tr>
+      <tr class="highlight-row"><td>Read QPS</td><td>1,200 × 100 (read:write ratio)</td><td><code>~120,000 reads/sec</code></td></tr>
+      <tr><td>URL Storage</td><td>500M URLs × 500 bytes avg</td><td><code>~250 GB total</code></td></tr>
+      <tr><td>Cache Size</td><td>20% hot URLs → 80% of traffic</td><td><code>~50M entries (25 GB RAM)</code></td></tr>
+      <tr><td>Short code space</td><td>Base62, 8 chars: 62⁸</td><td><code>~218 trillion URLs</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 3. Architecture — INTERACTIVE -->
+<section id="architecture">
+  <div class="section-label">03</div>
+  <h2>High-Level Architecture</h2>
+  <p class="hint">Click any component to learn why it's here and what happens if it fails.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 800 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="20" y="140" width="90" height="48" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="65" y="159" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">Client</text>
+          <text x="65" y="175" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Browser/App</text>
+        </g>
+        <g class="arch-node" data-id="cdn" onclick="showNode('cdn')">
+          <rect x="150" y="80" width="100" height="48" rx="8" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="200" y="99" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">CDN</text>
+          <text x="200" y="115" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Cached Redirects</text>
+        </g>
+        <g class="arch-node" data-id="lb" onclick="showNode('lb')">
+          <rect x="150" y="200" width="100" height="48" rx="8" fill="#FAF9F5" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="200" y="219" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">Load Balancer</text>
+          <text x="200" y="235" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Round Robin</text>
+        </g>
+        <g class="arch-node" data-id="api" onclick="showNode('api')">
+          <rect x="300" y="140" width="110" height="68" rx="8" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="355" y="167" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#FAF9F5">API Servers</text>
+          <text x="355" y="183" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Stateless (×N)</text>
+        </g>
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="470" y="60" width="110" height="48" rx="8" fill="#FAF9F5" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="525" y="79" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">Redis Cache</text>
+          <text x="525" y="95" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D">shortCode → longUrl</text>
+        </g>
+        <g class="arch-node" data-id="idgen" onclick="showNode('idgen')">
+          <rect x="470" y="150" width="110" height="48" rx="8" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="525" y="169" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">ID Generator</text>
+          <text x="525" y="185" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Snowflake IDs</text>
+        </g>
+        <g class="arch-node" data-id="postgres" onclick="showNode('postgres')">
+          <rect x="470" y="240" width="110" height="48" rx="8" fill="#FAF9F5" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="525" y="259" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">PostgreSQL</text>
+          <text x="525" y="275" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">urls, users tables</text>
+        </g>
+        <g class="arch-node" data-id="replicas" onclick="showNode('replicas')">
+          <rect x="640" y="240" width="110" height="48" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="695" y="259" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#141413">Read Replicas</text>
+          <text x="695" y="275" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Redirect reads</text>
+        </g>
+        <line x1="110" y1="152" x2="148" y2="116" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="122" y="125" font-family="monospace" font-size="9" fill="#87867F">GET /{code}</text>
+        <line x1="110" y1="160" x2="148" y2="222" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="114" y="200" font-family="monospace" font-size="9" fill="#87867F">POST /urls</text>
+        <line x1="250" y1="104" x2="298" y2="155" stroke="#D97757" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrc)"/>
+        <text x="262" y="130" font-family="monospace" font-size="8" fill="#D97757">cache miss</text>
+        <line x1="250" y1="224" x2="298" y2="195" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="410" y1="160" x2="468" y2="90" stroke="#788C5D" stroke-width="1.5" marker-end="url(#arrog)"/>
+        <text x="420" y="120" font-family="monospace" font-size="9" fill="#788C5D">read cache</text>
+        <line x1="410" y1="174" x2="468" y2="174" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrc)"/>
+        <line x1="410" y1="195" x2="468" y2="250" stroke="#4A6FA5" stroke-width="1.5" marker-end="url(#arrb)"/>
+        <text x="420" y="235" font-family="monospace" font-size="9" fill="#4A6FA5">write</text>
+        <line x1="580" y1="264" x2="638" y2="264" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+        <text x="594" y="257" font-family="monospace" font-size="8" fill="#87867F">replicate</text>
+        <defs>
+          <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#D1CFC5"/></marker>
+          <marker id="arrc" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#D97757"/></marker>
+          <marker id="arrog" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#788C5D"/></marker>
+          <marker id="arrb" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#4A6FA5"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <div class="arch-panel" id="arch-panel">
+      <div class="ap-empty">Click any component<br>to learn why it's there →</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Request Flow Stepper — INTERACTIVE -->
+<section id="flow">
+  <div class="section-label">04</div>
+  <h2>Walk Through a Request</h2>
+  <p class="hint">Step through a GET /abc123 redirect — from click to response.</p>
+
+  <div class="flow-diagram">
+    <div class="fn act" id="fn-client">Client</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-cdn">CDN</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-lb">Load Balancer</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-api">API Server</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-redis">Redis</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-db">Read Replica</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-resp">Response</div>
+  </div>
+
+  <div class="flow-card" id="flow-card"></div>
+
+  <div class="flow-nav">
+    <button class="fnav-btn" id="btn-prev" onclick="prevStep()" disabled>← Prev</button>
+    <span class="fnav-counter" id="fnav-counter">Step 1 of 7</span>
+    <button class="fnav-btn" id="btn-next" onclick="nextStep()">Next →</button>
+  </div>
+  <div class="flow-dots" id="flow-dots"></div>
+</section>
+
+<!-- 5. API Design -->
+<section id="api">
+  <div class="section-label">05</div>
+  <h2>API Design</h2>
+  <div class="api-block">
+    <div class="endpoint"><span class="method post">POST</span><span>/api/v1/urls</span></div>
+    <div class="api-body"><pre>// Request
+{
+  "longUrl":   "https://example.com/very/long/path?q=something",
+  "alias":     "my-link",        // optional custom short code
+  "expiresAt": "2025-12-31T00:00:00Z"  // optional
+}
+
+// Response 201
+{
+  "shortUrl":  "https://tinyurl.com/my-link",
+  "shortCode": "my-link",
+  "expiresAt": "2025-12-31T00:00:00Z"
+}</pre></div>
+  </div>
+  <div class="api-block">
+    <div class="endpoint"><span class="method get">GET</span><span>/{shortCode}</span></div>
+    <div class="api-body"><pre>// Response 301 Moved Permanently  (or 302 Found)
+Location: https://example.com/very/long/path?q=something
+
+// Response 404 if not found or expired
+{ "error": "URL not found or has expired" }</pre></div>
+  </div>
+  <div class="api-block">
+    <div class="endpoint"><span class="method delete">DELETE</span><span>/api/v1/urls/{shortCode}</span></div>
+    <div class="api-body"><pre>// Authorization: Bearer &lt;token&gt;
+// Response 204 No Content (success)
+// Response 403 Forbidden (not owner)</pre></div>
+  </div>
+</section>
+
+<!-- 6. Database -->
+<section id="database">
+  <div class="section-label">06</div>
+  <h2>Database Design</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:16px;"><strong>urls</strong> — primary table</p>
+  <table class="schema-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>id<span class="pk">PK</span></td><td>BIGINT</td><td>Snowflake-generated distributed ID</td></tr>
+      <tr><td>short_code<span class="idx">IDX</span></td><td>VARCHAR(16)</td><td>UNIQUE constraint; Base62-encoded ID or custom alias</td></tr>
+      <tr><td>long_url</td><td>TEXT</td><td>Original URL, max ~2048 chars</td></tr>
+      <tr><td>user_id<span class="idx">IDX</span></td><td>BIGINT</td><td>FK to users table; NULL for anonymous</td></tr>
+      <tr><td>created_at</td><td>TIMESTAMPTZ</td><td>Creation timestamp</td></tr>
+      <tr><td>expires_at<span class="idx">IDX</span></td><td>TIMESTAMPTZ</td><td>NULL = never expires; indexed for cleanup jobs</td></tr>
+      <tr><td>click_count</td><td>BIGINT</td><td>Approximate counter (use Redis INCR, flush periodically)</td></tr>
+    </tbody>
+  </table>
+  <div class="db-note"><strong>Why PostgreSQL?</strong> ACID guarantees enforce unique short_code constraint atomically. 250 GB of URL data easily fits on a single Postgres primary with read replicas. For analytics clicks (high write volume), consider ClickHouse or stream to Kafka → data warehouse.</div>
+</section>
+
+<!-- 7. Key Decisions — ENHANCED -->
+<section id="deep-dive">
+  <div class="section-label">07</div>
+  <h2>Key Design Decisions</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:20px;">The core challenge: how do we generate globally unique, short, collision-free codes at 1200 writes/sec?</p>
+
+  <div class="algo-grid">
+    <div class="algo-card">
+      <div class="abadge">Option 1</div>
+      <div class="atitle">MD5 Hash + Truncate</div>
+      <div class="adesc">MD5(longUrl) → take first 8 chars. Fast. But collision-prone: two different URLs could produce the same prefix. Requires collision detection + retry loop on every write.</div>
+    </div>
+    <div class="algo-card">
+      <div class="abadge">Option 2 — Recommended</div>
+      <div class="atitle">Snowflake ID → Base62</div>
+      <div class="adesc">Generate a unique 64-bit Snowflake ID → encode to Base62 string. Globally unique by construction. 8 chars covers 218 trillion URLs. No collision possible.</div>
+    </div>
+    <div class="algo-card">
+      <div class="abadge">Option 3</div>
+      <div class="atitle">Pre-generated Code Pool</div>
+      <div class="adesc">Pre-generate short codes offline, store in an available_codes table. Pop one on each write request. Zero collision risk. Slow startup; complex ops.</div>
+    </div>
+  </div>
+
+  <!-- Base62 Playground -->
+  <div class="playground">
+    <h3>Base62 Encoder — Try It</h3>
+    <p class="pg-sub">Enter any number to see exactly how it becomes a short code. Hover a step to understand the algorithm.</p>
+    <div class="pg-row">
+      <input class="pg-input" type="number" id="pg-num" placeholder="e.g. 1234567890" min="1" oninput="runB62()">
+      <button class="pg-encode-btn" onclick="runB62()">Encode</button>
+      <button class="pg-pre" onclick="pgPreset(1609459200001)">Snowflake</button>
+      <button class="pg-pre" onclick="pgPreset(62)">62</button>
+      <button class="pg-pre" onclick="pgPreset(3844)">62²</button>
+      <button class="pg-pre" onclick="pgPreset(218340105584896)">62⁸</button>
+    </div>
+    <div id="pg-result" style="display:none" class="pg-result"></div>
+  </div>
+
+  <!-- 301 vs 302 Interactive Toggle -->
+  <div class="redirect-compare">
+    <h3>301 vs 302 — The #1 Question</h3>
+    <p class="rc-sub">Every URL shortener interview asks this. Toggle to understand what actually changes.</p>
+    <div class="rc-toggle">
+      <button class="rc-btn on" id="rcb301" onclick="setRedir(301)">301 Permanent</button>
+      <button class="rc-btn" id="rcb302" onclick="setRedir(302)">302 Temporary</button>
+    </div>
+    <div class="rc-panel on" id="rcp301">
+      <div class="rc-grid">
+        <div class="rc-pro">
+          <div class="rc-list-title">Advantages</div>
+          <div class="rc-item">Browser caches it — no repeat server hits</div>
+          <div class="rc-item">CDN caches at edge — viral links cost ~$0 compute</div>
+          <div class="rc-item">Fastest possible redirect after first visit</div>
+        </div>
+        <div class="rc-con">
+          <div class="rc-list-title">Disadvantages</div>
+          <div class="rc-item">Cannot count clicks — browser serves locally</div>
+          <div class="rc-item">Destination change ignored — browsers cache forever</div>
+          <div class="rc-item">No A/B testing possible</div>
+        </div>
+      </div>
+      <div class="rc-verdict"><strong>Use when:</strong> Destination never changes and analytics don't matter. CDN absorbs all repeat traffic. Not suitable for marketing campaigns where you need click data.</div>
+    </div>
+    <div class="rc-panel" id="rcp302">
+      <div class="rc-grid">
+        <div class="rc-pro">
+          <div class="rc-list-title">Advantages</div>
+          <div class="rc-item">Every click hits your server — fully trackable</div>
+          <div class="rc-item">Destination can be changed anytime</div>
+          <div class="rc-item">A/B testing: same short URL, different destinations</div>
+        </div>
+        <div class="rc-con">
+          <div class="rc-list-title">Disadvantages</div>
+          <div class="rc-item">Every click = 1 server request — 120K QPS sustained</div>
+          <div class="rc-item">No browser/CDN caching — Redis is now essential</div>
+          <div class="rc-item">Cache miss on cold start → DB spike</div>
+        </div>
+      </div>
+      <div class="rc-verdict"><strong>Use when:</strong> Analytics matter (marketing, campaigns, A/B tests). This is what Bitly, Branch.io use. Requires Redis to serve 120K QPS within the 10ms p99 budget.</div>
+    </div>
+  </div>
+
+  <!-- Code tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-group="algo" onclick="switchTab('algo','base62')">Base62 Encoding</button>
+    <button class="tab-btn" data-group="algo" onclick="switchTab('algo','redirect')">Redirect Handler</button>
+  </div>
+  <div class="tab-pane active" data-tab="algo-base62">
+    <pre><span class="kw">private static final</span> <span class="cn">String</span> BASE62 = <span class="st">"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"</span>;
+
+<span class="kw">public</span> <span class="cn">String</span> <span class="fn">encode</span>(<span class="kw">long</span> id) {
+    <span class="cn">StringBuilder</span> sb = <span class="kw">new</span> <span class="cn">StringBuilder</span>();
+    <span class="kw">while</span> (id > <span class="nm">0</span>) {
+        sb.<span class="fn">append</span>(BASE62.<span class="fn">charAt</span>((<span class="kw">int</span>) (id % <span class="nm">62</span>)));
+        id /= <span class="nm">62</span>;
+    }
+    <span class="kw">return</span> sb.<span class="fn">reverse</span>().<span class="fn">toString</span>(); <span class="cm">// e.g. 1234567 → "5ban"</span>
+}
+
+<span class="cm">// Snowflake ID: timestamp(41) | machineId(10) | sequence(12)</span>
+<span class="kw">public long</span> <span class="fn">nextId</span>() {
+    <span class="kw">long</span> timestamp = <span class="cn">System</span>.<span class="fn">currentTimeMillis</span>() - EPOCH;
+    <span class="kw">return</span> (timestamp &lt;&lt; <span class="nm">22</span>) | (machineId &lt;&lt; <span class="nm">12</span>) | sequenceNum++;
+}</pre>
+  </div>
+  <div class="tab-pane" data-tab="algo-redirect">
+    <pre><span class="cm">// Redirect handler — optimized for &lt;10ms p99</span>
+<span class="kw">public</span> <span class="cn">ResponseEntity</span>&lt;?&gt; <span class="fn">redirect</span>(<span class="cn">String</span> shortCode) {
+    <span class="cm">// 1. Check Redis cache first (~0.5ms)</span>
+    <span class="cn">String</span> longUrl = redis.<span class="fn">get</span>(<span class="st">"url:"</span> + shortCode);
+
+    <span class="kw">if</span> (longUrl == <span class="kw">null</span>) {
+        <span class="cm">// 2. Cache miss → query read replica (~2–5ms)</span>
+        longUrl = urlRepo.<span class="fn">findLongUrl</span>(shortCode);
+        <span class="kw">if</span> (longUrl == <span class="kw">null</span>) {
+            <span class="kw">return</span> <span class="cn">ResponseEntity</span>.<span class="fn">notFound</span>().<span class="fn">build</span>();
+        }
+        <span class="cm">// 3. Write-through: populate cache</span>
+        redis.<span class="fn">setex</span>(<span class="st">"url:"</span> + shortCode, <span class="nm">86400</span>, longUrl); <span class="cm">// TTL 1 day</span>
+    }
+
+    <span class="cm">// 4. Fire-and-forget analytics — does NOT block response</span>
+    eventBus.<span class="fn">publishAsync</span>(<span class="kw">new</span> <span class="cn">ClickEvent</span>(shortCode, request));
+
+    <span class="kw">return</span> <span class="cn">ResponseEntity</span>.<span class="fn">status</span>(<span class="nm">302</span>)
+        .<span class="fn">header</span>(<span class="st">"Location"</span>, longUrl).<span class="fn">build</span>();
+}</pre>
+  </div>
+</section>
+
+<!-- 8. Scaling -->
+<section id="scaling">
+  <div class="section-label">08</div>
+  <h2>Scaling &amp; Bottlenecks</h2>
+  <div class="scale-list">
+    <div class="scale-item"><div class="si-icon">⚡</div><div><div class="si-title">Redis Cache — Handle 120K reads/sec</div><div class="si-desc">Cache shortCode→longUrl mappings with 24h TTL. 80% of traffic hits hot URLs. With 25GB RAM, cache 50M entries. Redis cluster for HA. Use SETNX to prevent cache stampede.</div></div></div>
+    <div class="scale-item"><div class="si-icon">🌐</div><div><div class="si-title">CDN for 301 Redirects — Zero-latency hot URLs</div><div class="si-desc">301 responses are cacheable by browsers and CDN edge nodes. Popular short links (e.g., in viral tweets) get resolved at CDN edge with ~0ms server involvement.</div></div></div>
+    <div class="scale-item"><div class="si-icon">🗄️</div><div><div class="si-title">Read Replicas — Scale DB reads</div><div class="si-desc">Redirect lookups (cache misses) go to read replicas. Writes (URL creation) go to primary. 3–5 replicas handle 120K QPS with 95%+ cache hit rate meaning only ~6K QPS to DB.</div></div></div>
+    <div class="scale-item"><div class="si-icon">🔀</div><div><div class="si-title">Horizontal Sharding — Beyond 1B URLs</div><div class="si-desc">Shard by hash(shortCode) if URL count exceeds single-node capacity. Consistent hashing ensures even distribution and minimal resharding on node addition.</div></div></div>
+    <div class="scale-item"><div class="si-icon">🧹</div><div><div class="si-title">Expiration Cleanup — Lazy + Cron</div><div class="si-desc">Lazy deletion: check expires_at on every redirect read. Background cron: DELETE FROM urls WHERE expires_at &lt; NOW() — run nightly during low traffic. Index on expires_at.</div></div></div>
+  </div>
+</section>
+
+<!-- 9. Self Check — INTERACTIVE -->
+<section id="self-check">
+  <div class="section-label">09</div>
+  <h2>Self Check</h2>
+  <p class="hint">Answer before revealing. These are real interview questions.</p>
+  <div class="sc-list">
+
+    <div class="sc-item" id="sc1">
+      <div class="sc-q" onclick="toggleSC('sc1')">
+        <span>Why do we need Redis? Can't we just query PostgreSQL for every redirect?<span class="sc-tag">Most Asked</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>We have 120,000 reads/sec. Even with 5 read replicas, that's 24,000 QPS per replica — right at the PostgreSQL limit, with no headroom for bursts or slow queries.</p>
+        <p>Redis handles 100,000+ ops/sec per node at ~0.5ms latency (vs PostgreSQL's 2–5ms for an indexed lookup). By caching <code>shortCode → longUrl</code> with 24h TTL, 80–90% of reads never reach the database. The DB only sees cache misses — roughly 6–12K QPS — leaving plenty of headroom.</p>
+        <p>The other reason is the 10ms p99 requirement. Cache-miss path: ~0.5ms Redis + ~3ms DB = ~5ms. Cache-hit path: ~0.5ms total. Without Redis, every request costs 3–5ms just for the DB, and bursty load pushes you past 10ms easily.</p>
+      </div>
+    </div>
+
+    <div class="sc-item" id="sc2">
+      <div class="sc-q" onclick="toggleSC('sc2')">
+        <span>What happens when Redis goes down?<span class="sc-tag">Failure Mode</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>Redirects degrade but don't fail. All 120K QPS falls through to the DB read replicas. Latency jumps from ~1ms to ~5ms. Under high load, DB becomes the bottleneck.</p>
+        <p>Mitigations: (1) <strong>Redis Cluster or Sentinel</strong> for automatic failover — a replica becomes primary within seconds. (2) <strong>Circuit breaker</strong> on the cache client: if Redis times out, skip to DB immediately rather than waiting per-request. (3) On restart, the cache is cold — implement a <strong>gradual warm-up</strong> strategy: pre-populate hot keys from the DB on startup, or add a short-circuit randomised sleep to spread DB load ("thundering herd" prevention).</p>
+      </div>
+    </div>
+
+    <div class="sc-item" id="sc3">
+      <div class="sc-q" onclick="toggleSC('sc3')">
+        <span>Why use Snowflake ID + Base62 instead of MD5-hashing the URL?<span class="sc-tag">Core Algorithm</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>With MD5 truncation: <code>shortCode = MD5(longUrl)[0:8]</code>, collisions are a real problem. With 500M URLs and only 4 billion possible 8-hex-char codes (16⁸), you hit ~6% collision probability by the birthday paradox. Every collision requires a retry — a different prefix length, append a counter, etc. This adds latency and complexity to every write.</p>
+        <p>Snowflake IDs are unique by construction: <code>timestamp(41 bits) | machineId(10 bits) | sequence(12 bits)</code>. Two requests in the same millisecond on the same machine get different sequence numbers. Two machines get different machine IDs. Globally unique, no coordination needed, no collisions. Base62 encoding then maps these to human-readable strings (62⁸ ≈ 218 trillion capacity).</p>
+        <p>Bonus: Snowflake IDs are monotonically increasing — B-tree index inserts are always at the right end, avoiding the "random write" fragmentation problem UUID primary keys cause.</p>
+      </div>
+    </div>
+
+    <div class="sc-item" id="sc4">
+      <div class="sc-q" onclick="toggleSC('sc4')">
+        <span>Two users request the same custom alias simultaneously. What happens?<span class="sc-tag">Race Condition</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>Both requests hit separate stateless API server instances. Both try to <code>INSERT INTO urls (short_code, ...) VALUES ('my-brand', ...)</code> at roughly the same time.</p>
+        <p>PostgreSQL's <code>UNIQUE</code> constraint on <code>short_code</code> is the serialization point. Postgres acquires a row-level lock on the unique index page. One INSERT wins. The other gets a <strong>constraint violation (error code 23505)</strong>. The API server catches this specific exception and returns <strong>HTTP 409 Conflict</strong> with <code>"Alias 'my-brand' is already taken."</code></p>
+        <p>No application-level locking or distributed lock needed — the database handles it atomically. This is one reason to prefer PostgreSQL over a NoSQL store that lacks atomic unique guarantees.</p>
+      </div>
+    </div>
+
+    <div class="sc-item" id="sc5">
+      <div class="sc-q" onclick="toggleSC('sc5')">
+        <span>How do you count 120,000 clicks/sec without thrashing the database?<span class="sc-tag">Scale Challenge</span></span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>Naive: <code>UPDATE urls SET click_count = click_count + 1 WHERE short_code = 'abc'</code>. At 120K QPS for a hot link, this causes constant row-level lock contention. The single row becomes a serialization bottleneck — updates queue behind each other and the DB is overwhelmed.</p>
+        <p><strong>Solution 1 — Redis INCR:</strong> <code>INCR click:abc123</code> is an atomic O(1) in-memory operation with no locking. Redis handles 100K ops/sec. A background job flushes counts to PostgreSQL every 5 minutes: <code>UPDATE urls SET click_count = click_count + ? WHERE short_code = ?</code>. You lose up to 5 min of data if Redis crashes — acceptable for analytics.</p>
+        <p><strong>Solution 2 — Kafka event stream:</strong> On each redirect, publish a <code>ClickEvent</code> to Kafka asynchronously (fire-and-forget, doesn't block the response). A consumer batch-processes into ClickHouse or a data warehouse. This supports rich analytics (country, device, referrer, time series) completely decoupled from the hot path. This is what production analytics-focused URL shorteners use.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="hld-index.html">All HLD Problems</a></span>
+  <span>SDE Interview Prep</span>
+</footer>
+</div>
+
+<script>
+/* ── Architecture: clickable nodes ── */
+const NODE_INFO = {
+  client:{title:"Client (Browser / App)",body:"Sends two request types: <code>POST /api/v1/urls</code> to create short links, and <code>GET /{code}</code> to follow them. On a second visit to a 301 link, the browser serves the redirect from its local cache — your servers are never involved.",stats:["GET /{code} — redirect","POST /urls — create","DNS resolves to CDN/LB"],warn:null},
+  cdn:{title:"CDN Edge Cache",body:"CDN edge nodes (CloudFront, Fastly, Cloudflare) cache redirect responses close to users globally. A viral tweet with your short link can generate 1M clicks — CDN absorbs all of them. Only caches <strong>301 (Permanent)</strong> responses; 302 responses bypass caching entirely.",stats:["~20ms latency to any user","0 compute cost for cached hits","Only works with 301 redirect"],warn:"302 redirects are NOT cached by CDN. If you use 302 for analytics, all 120K req/sec hit your origin servers — which is why Redis becomes non-negotiable."},
+  lb:{title:"Load Balancer",body:"Distributes incoming requests across API server instances using round-robin. Works because API servers are stateless — any server can handle any request with no coordination. Also terminates SSL/TLS, so app servers don't need to handle certificate management. Performs health checks and routes around failed instances within seconds.",stats:["Round-robin routing","SSL/TLS termination","Health check every 5s"],warn:null},
+  api:{title:"API Servers (Stateless ×N)",body:"Stateless: no in-memory session or cache data. Any request can go to any server — this is what enables horizontal scaling. Add instances behind the load balancer as QPS grows. Handles two paths: write path (POST: generate ID → encode Base62 → write DB) and read path (GET: check Redis → fallback to DB → return redirect).",stats:["Horizontally scalable","No coordination between servers","Stateless = simple scaling"],warn:null},
+  redis:{title:"Redis Cache — The Most Critical Component",body:"Stores <code>shortCode → longUrl</code> mappings in memory with 24h TTL. At ~0.5ms lookup latency (vs DB's 2–5ms), Redis serves 80–90% of redirect traffic entirely in memory. 25GB RAM holds ~50M hot entries. This is what makes 10ms p99 achievable at 120K QPS.",stats:["~0.5ms lookup latency","100K ops/sec per node","25GB → 50M cached URLs","TTL: 24h"],warn:"If Redis goes down: all 120K QPS hits the DB. Latency jumps from 1ms to 5ms. DB load spikes 10×. Always run Redis Cluster (3+ shards) or Redis Sentinel for HA. Add a circuit breaker to fall back to DB within 50ms rather than waiting for Redis timeout on every request."},
+  idgen:{title:"Snowflake ID Generator",body:"Generates globally unique 64-bit integers using: 41-bit timestamp + 10-bit machineId + 12-bit sequence = up to 4,096 unique IDs per millisecond per machine. Multiple ID generator instances need no central coordination — machine IDs ensure uniqueness. These integers are then Base62-encoded into short code strings.",stats:["4,096 IDs/ms per machine","Monotonically increasing","No central coordinator"],warn:null},
+  postgres:{title:"PostgreSQL (Primary — Writes Only)",body:"Handles all writes. The <code>UNIQUE</code> constraint on <code>short_code</code> is the system's atomic serialization point — even if two API servers race to insert the same custom alias simultaneously, Postgres handles it atomically. WAL-based streaming replication keeps read replicas in sync within milliseconds.",stats:["All writes go here","UNIQUE constraint on short_code","~250GB total data","WAL → replicas in <10ms"],warn:"The Postgres primary is a single write point. Mitigate with synchronous streaming replication to a hot standby (promoted on failover in <30s) or AWS RDS Multi-AZ with automatic failover."},
+  replicas:{title:"Read Replicas",body:"Handle redirect lookups for cache misses. At 95%+ cache hit rate, only ~6K QPS reaches these replicas — easily handled by 3–5 nodes. Replicas use async replication (lag ~10ms). A slightly stale replica means a cache miss gets an old redirect destination — acceptable since the correct value is still in the DB.",stats:["~6K QPS (95% cache hit)","3–5 replicas","~10ms replication lag","Async replication"],warn:null}
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  const el = document.querySelector(`.arch-node[data-id="${id}"]`);
+  if (el) el.classList.add('sel');
+  const info = NODE_INFO[id];
+  const panel = document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  panel.innerHTML = `
+    <div class="ap-title">${info.title}</div>
+    <div class="ap-body">${info.body}</div>
+    <div style="margin-bottom:${info.warn?'0':'0'}">${info.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>
+    ${info.warn?`<div class="ap-warn">${info.warn}</div>`:''}
+  `;
+}
+
+/* ── Request Flow Stepper ── */
+const STEPS = [
+  {nodes:['fn-client'],title:"User clicks the short link",desc:"A user clicks https://tny.sh/abc123 somewhere on the internet. The browser resolves the hostname via DNS and opens a connection. If this exact link was previously visited and returned a 301 Permanent redirect, the browser serves it from local cache — no server involved at all. This is a first-time visit.",code:"GET /abc123 HTTP/1.1\nHost: tny.sh\nAccept: text/html,application/xhtml+xml"},
+  {nodes:['fn-client','fn-cdn'],title:"CDN checks its edge cache",desc:"The request reaches the nearest CDN edge node (e.g., CloudFront in the user's region). The CDN checks if it has a cached redirect response for /abc123. First visit = MISS — CDN forwards to origin. If this was a 301 response seen before by the CDN, it would return it directly here without touching your servers.",code:"CDN Edge (us-east-1):\n  Cache lookup: GET /abc123\n  Result: MISS (first request)\n  Action: forward to origin\n\nNote: 302 responses are never cached here"},
+  {nodes:['fn-cdn','fn-lb'],title:"Request reaches the Load Balancer",desc:"CDN cache miss — the request hits the origin load balancer. The LB selects an available API server using round-robin. Because all API servers are stateless (no local cache, no session data), any server can handle any request. The LB also performs health checks and skips unhealthy instances.",code:"Load Balancer (ALB / Nginx):\n  Healthy servers: api-1, api-2, api-3, api-4\n  Algorithm: round-robin\n  Selected: api-3:8080\n  Forward: GET /abc123"},
+  {nodes:['fn-api','fn-redis'],title:"API server checks Redis (cache lookup)",desc:"The API server queries Redis with the short code as key. This lookup takes ~0.5ms — Redis is in-memory with no disk I/O. If Redis has the entry (CACHE HIT), we return the redirect immediately — total latency ~1ms. The cache hit path is the fast path that serves 90%+ of traffic.",code:'// Redis lookup (~0.5ms)\nString longUrl = redis.get("url:abc123");\n\nif (longUrl != null) {\n  // CACHE HIT → skip steps 5-6\n  // Return 302 Location: {longUrl}\n  // Total: ~1ms end-to-end\n}'},
+  {nodes:['fn-api','fn-db'],title:"Cache MISS — query the read replica",desc:"Redis doesn't have this key (first time, or TTL expired). The API server queries a PostgreSQL read replica using the UNIQUE index on short_code. This is a fast B-tree lookup: ~2–5ms including network round-trip. Reads go to replicas, not the primary, so writes are never blocked by read traffic.",code:"-- PostgreSQL Read Replica (~2-5ms)\nSELECT long_url, expires_at\nFROM urls\nWHERE short_code = 'abc123'\n  AND (expires_at IS NULL\n       OR expires_at > NOW());\n\n-- Returns: https://example.com/..."},
+  {nodes:['fn-api','fn-redis'],title:"Populate cache, fire analytics event",desc:"After the DB read, write the result back to Redis (write-through cache) so future lookups hit the cache. Then publish a ClickEvent to Kafka asynchronously — fire and forget. The response doesn't wait for analytics processing. This is the key to keeping latency low: the analytics path is completely off the critical path.",code:'// Write-through cache population\nredis.setex("url:abc123", 86400, longUrl); // 24h TTL\n\n// Fire-and-forget analytics\n// Does NOT block the response\neventBus.publishAsync(\n  new ClickEvent("abc123", ip, userAgent, Instant.now())\n);'},
+  {nodes:['fn-api','fn-resp'],title:"Return the redirect response",desc:"Return 302 Found (or 301 Permanent) with the Location header set to the original URL. The browser follows the redirect automatically — the user lands on the destination. Total latency: cache-hit path ~1ms, cache-miss path ~6–8ms. Both well within the 10ms p99 target.",code:"HTTP/1.1 302 Found\nLocation: https://example.com/very/long/path\nX-Cache-Status: MISS\nX-Response-Time: 7ms\nContent-Length: 0\n\n// Browser follows Location header\n// User reaches destination"}
+];
+
+const FN_IDS = ['fn-client','fn-cdn','fn-lb','fn-api','fn-redis','fn-db','fn-resp'];
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  FN_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const activeSet = new Set(s.nodes);
+    const idx = FN_IDS.indexOf(id);
+    const firstActive = FN_IDS.indexOf(s.nodes[0]);
+    el.className = 'fn' + (activeSet.has(id) ? ' act' : (idx < firstActive ? ' done' : ''));
+  });
+  document.getElementById('flow-card').innerHTML = `
+    <div class="fc-title">${s.title}</div>
+    <div class="fc-desc">${s.desc}</div>
+    ${s.code ? `<pre class="fc-code">${s.code}</pre>` : ''}
+  `;
+  document.getElementById('fnav-counter').textContent = `Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('btn-prev').disabled = curStep === 0;
+  document.getElementById('btn-next').disabled = curStep === STEPS.length - 1;
+  document.querySelectorAll('.fdot').forEach((d,i) => {
+    d.className = 'fdot' + (i === curStep ? ' act' : (i < curStep ? ' done' : ''));
+  });
+}
+function nextStep() { if (curStep < STEPS.length-1) { curStep++; renderStep(); } }
+function prevStep() { if (curStep > 0) { curStep--; renderStep(); } }
+function goStep(n) { curStep = n; renderStep(); }
+
+const dotsEl = document.getElementById('flow-dots');
+STEPS.forEach((_,i) => {
+  const d = document.createElement('div');
+  d.className = 'fdot' + (i===0?' act':'');
+  d.onclick = () => goStep(i);
+  dotsEl.appendChild(d);
+});
+renderStep();
+
+/* ── Base62 Playground ── */
+const B62 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+function pgPreset(n) { document.getElementById('pg-num').value = n; runB62(); }
+function runB62() {
+  let n = parseInt(document.getElementById('pg-num').value, 10);
+  const res = document.getElementById('pg-result');
+  if (isNaN(n) || n < 1) { res.style.display='none'; return; }
+  const steps = [];
+  let tmp = n;
+  while (tmp > 0) {
+    const rem = tmp % 62;
+    steps.push({dividend: tmp, quotient: Math.floor(tmp/62), rem, ch: B62[rem]});
+    tmp = Math.floor(tmp / 62);
+  }
+  const encoded = steps.map(s => s.ch).reverse().join('');
+  res.style.display = 'block';
+  res.innerHTML = `
+    <div class="pg-encoded">${encoded}</div>
+    <div class="pg-enc-label">= Base62 of ${n.toLocaleString()} &nbsp;·&nbsp; ${encoded.length} char${encoded.length!==1?'s':''}</div>
+    <div class="pg-steps-head"><span>Dividend</span><span>÷ 62</span><span>Remainder</span><span></span><span>Char</span></div>
+    ${steps.map(s=>`<div class="pg-step"><span>${s.dividend.toLocaleString()}</span><span style="color:var(--g500)">= ${s.quotient.toLocaleString()}</span><span class="pg-rem">r ${s.rem}</span><span class="pg-op">→</span><span class="pg-char">${s.ch}</span></div>`).join('')}
+    <div class="pg-note">Read characters bottom → top = "${encoded}"</div>
+  `;
+}
+
+/* ── 301 vs 302 Toggle ── */
+function setRedir(code) {
+  document.getElementById('rcb301').className = 'rc-btn' + (code===301?' on':'');
+  document.getElementById('rcb302').className = 'rc-btn' + (code===302?' on':'');
+  document.getElementById('rcp301').className = 'rc-panel' + (code===301?' on':'');
+  document.getElementById('rcp302').className = 'rc-panel' + (code===302?' on':'');
+}
+
+/* ── Code tabs ── */
+function switchTab(group, id) {
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el => el.classList.add('active'));
+}
+
+/* ── Self Check ── */
+function toggleSC(id) { document.getElementById(id).classList.toggle('open'); }
+</script>
+</body>
+</html>

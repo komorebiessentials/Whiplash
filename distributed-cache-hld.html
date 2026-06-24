@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design a Distributed Cache — HLD</title>
+<style>
+:root {
+  --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+  --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+  --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+  --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 0 28px 100px; }
+.top-nav { padding: 24px 0 0; display: flex; align-items: center; gap: 16px; }
+.back { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); text-decoration: none; display: flex; align-items: center; gap: 6px; }
+.back:hover { color: var(--clay); }
+header { padding: 48px 0 40px; border-bottom: 1.5px solid var(--g300); margin-bottom: 32px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--clay); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.eyebrow::before { content: ""; width: 20px; height: 1.5px; background: var(--clay); }
+h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(32px, 5vw, 52px); line-height: 1.06; letter-spacing: -.02em; margin-bottom: 12px; }
+.tagline { font-size: 16px; color: var(--g700); max-width: 560px; }
+nav.toc { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 48px; }
+nav.toc a { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); text-decoration: none; padding: 5px 12px; border: 1.5px solid var(--g200); border-radius: 20px; transition: all .15s; }
+nav.toc a:hover { color: var(--clay); border-color: var(--clay); }
+.section { margin-bottom: 64px; }
+.section-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--clay); margin-bottom: 6px; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 28px; letter-spacing: -.01em; margin-bottom: 24px; }
+.req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:600px){.req-grid{grid-template-columns:1fr;}}
+.req-item { padding: 14px 16px; border-radius: 10px; font-size: 14px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+.req-item.func { background: var(--paper); border: 1.5px solid var(--g300); }
+.req-item.nfunc { background: var(--g100); border: 1.5px solid var(--g200); }
+.req-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.req-item.func .req-dot { background: var(--clay); }
+.req-item.nfunc .req-dot { background: var(--olive); }
+.est-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.est-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); padding: 8px 12px; text-align: left; border-bottom: 1.5px solid var(--g300); }
+.est-table td { padding: 10px 12px; border-bottom: 1px solid var(--g200); }
+.est-table tr:last-child td { border-bottom: none; }
+.est-table td:first-child { font-weight: 500; color: var(--g700); }
+.est-table td:last-child { font-family: var(--mono); font-size: 13px; color: var(--clay); }
+.arch-box { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 14px; padding: 28px; overflow-x: auto; }
+.arch-box svg { display: block; margin: 0 auto; }
+.api-block { background: var(--slate); border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; overflow-x: auto; }
+.api-block pre { font-family: var(--mono); font-size: 13px; color: #e8e6e0; line-height: 1.7; white-space: pre; }
+.api-method { color: var(--clay); font-weight: 700; }
+.api-path { color: #a8d8b4; }
+.api-comment { color: var(--g500); }
+.schema-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 12px; padding: 20px 22px; margin-bottom: 14px; }
+.schema-name { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--clay); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.schema-fields { font-family: var(--mono); font-size: 13px; color: var(--g700); line-height: 1.9; }
+.schema-fields .field-name { color: var(--slate); font-weight: 600; }
+.schema-fields .field-type { color: var(--olive); }
+.schema-note { font-size: 13px; color: var(--g500); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--g200); }
+.dive-card { background: var(--paper); border-left: 3px solid var(--clay); border-radius: 0 10px 10px 0; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+.dive-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: var(--slate); }
+.dive-body { font-size: 14px; color: var(--g700); line-height: 1.6; }
+.dive-body ul { margin: 6px 0 0 16px; }
+.dive-body li { margin-bottom: 4px; }
+.dive-body code { font-family: var(--mono); font-size: 12px; background: var(--g100); padding: 1px 5px; border-radius: 4px; color: var(--clay); }
+.scale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:600px){.scale-grid{grid-template-columns:1fr;}}
+.scale-card { background: var(--g100); border-radius: 10px; padding: 16px 18px; }
+.scale-card h4 { font-size: 13px; font-weight: 600; color: var(--clay); margin-bottom: 6px; }
+.scale-card p { font-size: 13px; color: var(--g700); line-height: 1.5; }
+.eviction-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+.eviction-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); padding: 8px 10px; text-align: left; border-bottom: 1.5px solid var(--g300); }
+.eviction-table td { padding: 9px 10px; border-bottom: 1px solid var(--g200); font-size: 13px; }
+.eviction-table tr:last-child td { border-bottom: none; }
+.eviction-table td:first-child { font-family: var(--mono); font-weight: 600; color: var(--clay); }
+.tip { display: flex; gap: 14px; align-items: flex-start; background: var(--paper); border: 1.5px solid var(--g300); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+.tip-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.tip-text { font-size: 14px; color: var(--g700); line-height: 1.55; }
+.tip-text strong { color: var(--slate); }
+footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 24px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--g500); }
+footer a { color: var(--clay); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+/* ── Interactive arch ── */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:700px){.arch-wrap{grid-template-columns:1fr}}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px}
+.ap-empty{color:var(--g500);font-size:13px;text-align:center;padding-top:40px}
+/* ── Flow stepper ── */
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);font-size:14px;margin:0 2px}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin:16px 0;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.65;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:12px;margin-top:8px}
+.fnav-btn{padding:7px 18px;border-radius:7px;border:1.5px solid var(--g300);font-size:13px;font-weight:500;background:var(--g100);cursor:pointer;transition:all .15s}
+.fnav-btn:hover:not(:disabled){background:var(--clay);border-color:var(--clay);color:white}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:12px;color:var(--g500)}
+.flow-dots{display:flex;gap:6px;margin-left:auto}
+.fdot{width:8px;height:8px;border-radius:50%;background:var(--g300);cursor:pointer;transition:background .15s}
+.fdot.on{background:var(--clay)}
+/* ── Self-check ── */
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden;margin-bottom:8px}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+/* ── Hash Ring Playground ── */
+.playground{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin:28px 0}
+.pg-ring-wrap{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.pg-ring-svg{flex-shrink:0}
+.pg-ring-info{flex:1;min-width:200px}
+.pg-input{width:100%;padding:10px 14px;font-family:var(--mono);font-size:14px;border:1.5px solid var(--g300);border-radius:8px;background:var(--g100);color:var(--slate);outline:none;margin-bottom:12px}
+.pg-input:focus{border-color:var(--clay)}
+.pg-result{font-size:13px;color:var(--g700);line-height:1.7}
+.pg-result .hash-val{font-family:var(--mono);color:var(--clay);font-size:13px}
+.pg-result .shard-name{font-family:var(--mono);font-weight:700;font-size:14px}
+.pg-shard-N1{color:#D97757}
+.pg-shard-N2{color:#788C5D}
+.pg-shard-N3{color:#4A6FA5}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top-nav">
+  <a class="back" href="index.html">← Home</a>
+  <span style="color:var(--g300)">|</span>
+  <a class="back" href="hld-index.html">HLD Problems</a>
+</div>
+
+<header>
+  <div class="eyebrow">High Level Design</div>
+  <h1>Distributed Cache</h1>
+  <p class="tagline">Design a Redis-like distributed cache handling 1M ops/sec at sub-millisecond latency, with consistent hashing, replication, and automatic failover.</p>
+</header>
+
+<nav class="toc">
+  <a href="#overview">Requirements</a>
+  <a href="#estimation">Estimation</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Request Flow</a>
+  <a href="#api">API</a>
+  <a href="#database">Data Model</a>
+  <a href="#deep-dive">Deep Dive</a>
+  <a href="#playground">Hash Ring</a>
+  <a href="#self-check">Self-Check</a>
+  <a href="#tips">Interview Tips</a>
+</nav>
+
+<!-- 1. Requirements -->
+<div class="section" id="overview">
+  <div class="section-label">Section 01</div>
+  <h2>Requirements</h2>
+  <div style="margin-bottom:16px"><strong style="font-size:13px;color:var(--clay)">Functional</strong></div>
+  <div class="req-grid" style="margin-bottom:20px">
+    <div class="req-item func"><span class="req-dot"></span>GET / SET / DELETE key-value pairs with optional TTL expiration</div>
+    <div class="req-item func"><span class="req-dot"></span>Rich data structures: strings, lists, hashes, sorted sets, pub/sub</div>
+    <div class="req-item func"><span class="req-dot"></span>Configurable eviction policies: LRU, LFU, volatile-LRU, TTL-based</div>
+    <div class="req-item func"><span class="req-dot"></span>Replication: each primary shard has N replicas</div>
+    <div class="req-item func"><span class="req-dot"></span>Persistence options: RDB snapshots and/or AOF append-only log</div>
+    <div class="req-item func"><span class="req-dot"></span>Atomic operations: INCR/DECR, SETNX, CAS, Lua scripting</div>
+  </div>
+  <div style="margin-bottom:16px"><strong style="font-size:13px;color:var(--olive)">Non-Functional</strong></div>
+  <div class="req-grid">
+    <div class="req-item nfunc"><span class="req-dot"></span>Sub-millisecond latency (&lt;1ms p99) for GET/SET operations</div>
+    <div class="req-item nfunc"><span class="req-dot"></span>1M operations/sec sustained throughput</div>
+    <div class="req-item nfunc"><span class="req-dot"></span>99.99% availability with automatic primary failover</div>
+    <div class="req-item nfunc"><span class="req-dot"></span>Horizontal scalability — add nodes with zero-downtime resharding</div>
+  </div>
+</div>
+
+<!-- 2. Scale Estimation -->
+<div class="section" id="estimation">
+  <div class="section-label">Section 02</div>
+  <h2>Scale Estimation</h2>
+  <table class="est-table">
+    <tr><th>Metric</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Target throughput</td><td>Given</td><td>1M ops/sec</td></tr>
+    <tr><td>Single Redis node throughput</td><td>~100K simple ops/sec</td><td>need 10+ nodes</td></tr>
+    <tr><td>Total cache data</td><td>Given target</td><td>10 TB</td></tr>
+    <tr><td>Nodes needed (1 TB RAM each)</td><td>10 TB / 1 TB</td><td>10 primary nodes</td></tr>
+    <tr><td>With replicas (factor 2)</td><td>10 × 3 (1P + 2R)</td><td>30 total nodes</td></tr>
+    <tr><td>Network bandwidth</td><td>1M × 100 bytes avg</td><td>~800 Mbps/node (need 10Gbps NICs)</td></tr>
+    <tr><td>Hash slots per node</td><td>16384 / 10</td><td>~1638 slots each</td></tr>
+  </table>
+</div>
+
+<!-- 3. Architecture -->
+<div class="section" id="architecture">
+  <div class="section-label">Section 03</div>
+  <h2>High-Level Architecture</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:14px">Click any component to learn more.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 680 320" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width:640px;width:100%">
+        <!-- Clients -->
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="10" y="130" width="80" height="60" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="50" y="156" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">CLIENTS</text>
+          <text x="50" y="170" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">connection</text>
+          <text x="50" y="181" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">pool</text>
+        </g>
+
+        <!-- Proxy / Cluster Bus -->
+        <g class="arch-node" data-id="lb" onclick="showNode('lb')">
+          <rect x="140" y="120" width="110" height="80" rx="8" fill="#FFFFFF" stroke="#D97757" stroke-width="2"/>
+          <text x="195" y="148" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">REDIS PROXY</text>
+          <text x="195" y="163" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">CRC16(key) % 16384</text>
+          <text x="195" y="176" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">→ route to shard</text>
+          <text x="195" y="192" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">pipeline batching</text>
+        </g>
+
+        <!-- Arrow Client → Proxy -->
+        <line x1="90" y1="160" x2="139" y2="160" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="139,160 133,156 133,164" fill="#D1CFC5"/>
+
+        <!-- Shard 1 -->
+        <g class="arch-node" data-id="node1" onclick="showNode('node1')">
+          <rect x="310" y="30" width="150" height="80" rx="8" fill="#141413" stroke="#D97757" stroke-width="2"/>
+          <text x="385" y="54" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">SHARD 1</text>
+          <text x="385" y="68" text-anchor="middle" font-family="monospace" font-size="8" fill="#E3DACC">Primary (slots 0–5460)</text>
+          <rect x="320" y="76" width="60" height="20" rx="4" fill="#D97757" opacity=".2"/>
+          <text x="350" y="89" text-anchor="middle" font-family="monospace" font-size="7" fill="#D97757">replica 1</text>
+          <rect x="388" y="76" width="60" height="20" rx="4" fill="#D97757" opacity=".12"/>
+          <text x="418" y="89" text-anchor="middle" font-family="monospace" font-size="7" fill="#D97757">replica 2</text>
+        </g>
+
+        <!-- Shard 2 -->
+        <g class="arch-node" data-id="node2" onclick="showNode('node2')">
+          <rect x="310" y="130" width="150" height="80" rx="8" fill="#141413" stroke="#788C5D" stroke-width="2"/>
+          <text x="385" y="154" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D" font-weight="700">SHARD 2</text>
+          <text x="385" y="168" text-anchor="middle" font-family="monospace" font-size="8" fill="#E3DACC">Primary (slots 5461–10922)</text>
+          <rect x="320" y="176" width="60" height="20" rx="4" fill="#788C5D" opacity=".2"/>
+          <text x="350" y="189" text-anchor="middle" font-family="monospace" font-size="7" fill="#788C5D">replica 1</text>
+          <rect x="388" y="176" width="60" height="20" rx="4" fill="#788C5D" opacity=".12"/>
+          <text x="418" y="189" text-anchor="middle" font-family="monospace" font-size="7" fill="#788C5D">replica 2</text>
+        </g>
+
+        <!-- Shard 3 -->
+        <g class="arch-node" data-id="node3" onclick="showNode('node3')">
+          <rect x="310" y="230" width="150" height="80" rx="8" fill="#141413" stroke="#4A6FA5" stroke-width="2"/>
+          <text x="385" y="254" text-anchor="middle" font-family="monospace" font-size="9" fill="#9ab4d4" font-weight="700">SHARD 3</text>
+          <text x="385" y="268" text-anchor="middle" font-family="monospace" font-size="8" fill="#E3DACC">Primary (slots 10923–16383)</text>
+          <rect x="320" y="276" width="60" height="20" rx="4" fill="#4A6FA5" opacity=".2"/>
+          <text x="350" y="289" text-anchor="middle" font-family="monospace" font-size="7" fill="#9ab4d4">replica 1</text>
+          <rect x="388" y="276" width="60" height="20" rx="4" fill="#4A6FA5" opacity=".12"/>
+          <text x="418" y="289" text-anchor="middle" font-family="monospace" font-size="7" fill="#9ab4d4">replica 2</text>
+        </g>
+
+        <!-- Arrows Proxy → Shards -->
+        <line x1="250" y1="150" x2="309" y2="70" stroke="#D97757" stroke-width="1.5" opacity=".6"/>
+        <polygon points="309,70 304,76 312,76" fill="#D97757" opacity=".6"/>
+        <line x1="250" y1="160" x2="309" y2="170" stroke="#788C5D" stroke-width="1.5" opacity=".6"/>
+        <polygon points="309,170 303,166 303,174" fill="#788C5D" opacity=".6"/>
+        <line x1="250" y1="172" x2="309" y2="270" stroke="#4A6FA5" stroke-width="1.5" opacity=".6"/>
+        <polygon points="309,270 304,264 312,266" fill="#4A6FA5" opacity=".6"/>
+
+        <!-- Cluster Manager -->
+        <g class="arch-node" data-id="db" onclick="showNode('db')">
+          <rect x="530" y="100" width="120" height="60" rx="8" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="590" y="124" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">CLUSTER MGR</text>
+          <text x="590" y="138" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">failover &amp; election</text>
+          <text x="590" y="151" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">gossip protocol</text>
+        </g>
+
+        <!-- Disk -->
+        <rect x="530" y="210" width="120" height="50" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text x="590" y="232" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">DISK</text>
+        <text x="590" y="246" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">RDB / AOF</text>
+        <text x="590" y="257" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">persistence</text>
+
+        <!-- Arrows to right side -->
+        <line x1="460" y1="170" x2="529" y2="140" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="460" y1="250" x2="529" y2="235" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="4,3"/>
+      </svg>
+    </div>
+    <div id="arch-panel" class="arch-panel">
+      <p class="ap-empty">Click any component to learn more</p>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Request Flow -->
+<section class="section" id="flow">
+  <div class="section-label">Section 04</div>
+  <h2>Request Flow — Cache Lookup</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">
+    <span id="fn-client" class="fn">Client</span>
+    <span class="farr">→</span>
+    <span id="fn-lb" class="fn">Proxy</span>
+    <span class="farr">→</span>
+    <span id="fn-node1" class="fn">Shard 1</span>
+    <span class="farr">/</span>
+    <span id="fn-node2" class="fn">Shard 2</span>
+    <span class="farr">/</span>
+    <span id="fn-node3" class="fn">Shard 3</span>
+    <span class="farr">→</span>
+    <span id="fn-db" class="fn">DB Fallback</span>
+  </div>
+  <div id="flow-card" class="flow-card">
+    <div class="fc-title" id="fc-title"></div>
+    <div class="fc-desc" id="fc-desc"></div>
+    <pre class="fc-code" id="fc-code"></pre>
+  </div>
+  <div class="flow-nav">
+    <button class="fnav-btn" id="flow-prev" onclick="prevStep()">← Prev</button>
+    <button class="fnav-btn" id="flow-next" onclick="nextStep()">Next →</button>
+    <span class="fnav-counter" id="flow-counter"></span>
+    <div class="flow-dots" id="flow-dots"></div>
+  </div>
+</section>
+
+<!-- 5. API Design -->
+<div class="section" id="api">
+  <div class="section-label">Section 05</div>
+  <h2>API Design (Redis Protocol)</h2>
+  <div class="api-block">
+    <pre><span class="api-comment">-- Core key-value operations --</span>
+<span class="api-method">GET</span>    key                        → value | nil
+<span class="api-method">SET</span>    key value [EX sec] [NX|XX] → OK | nil
+<span class="api-method">DEL</span>    key [key...]               → count deleted
+<span class="api-method">INCR</span>   key                        → new integer value
+<span class="api-method">EXPIRE</span> key seconds               → 1 (success) | 0 (key not found)</pre>
+  </div>
+  <div class="api-block">
+    <pre><span class="api-comment">-- Sorted set (leaderboard, rate limiting, timelines) --</span>
+<span class="api-method">ZADD</span>        key score member        → count added
+<span class="api-method">ZRANGE</span>      key start stop [WITHSCORES]
+<span class="api-method">ZRANGEBYSCORE</span> key min max
+
+<span class="api-comment">-- Atomic check-and-set (distributed lock) --</span>
+<span class="api-method">SET</span>  lock:resource value NX EX 30  → OK (acquired) | nil (already locked)
+<span class="api-method">DEL</span>  lock:resource                  → release lock (use Lua for safety)
+
+<span class="api-comment">-- Pub/Sub --</span>
+<span class="api-method">PUBLISH</span>   channel message
+<span class="api-method">SUBSCRIBE</span> channel</pre>
+  </div>
+</div>
+
+<!-- 6. Internal Data Structures -->
+<div class="section" id="database">
+  <div class="section-label">Section 06</div>
+  <h2>Internal Data Structures</h2>
+  <div class="schema-card">
+    <div class="schema-name">String (most common)</div>
+    <div class="schema-fields">
+      <span class="field-name">key</span>       → <span class="field-type">SDS (Simple Dynamic String)</span><br>
+      <span class="field-name">value</span>     → <span class="field-type">bytes (raw, int, embstr)</span><br>
+      <span class="field-name">ttl</span>       → <span class="field-type">UNIX timestamp (ms) or -1</span><br>
+      <span class="field-name">lru_clock</span> → <span class="field-type">uint24 — for LRU eviction sampling</span>
+    </div>
+    <div class="schema-note">Integers stored as actual int (not string) for INCR/DECR atomicity. Strings &lt;44 bytes use embstr (single allocation).</div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">Sorted Set (ZADD/ZRANGE)</div>
+    <div class="schema-fields">
+      Small (&lt;128 members): <span class="field-type">ziplist</span> — compact, sequential scan<br>
+      Large: <span class="field-type">skiplist + hashtable</span><br>
+      — Skip list: O(log N) ZADD/ZRANGE<br>
+      — Hashtable: O(1) score lookup by member<br>
+      Both structures maintained in sync
+    </div>
+    <div class="schema-note">Used for leaderboards, rate limiting (sliding window), timeline ordered by timestamp, geo indexes.</div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">Hash Slot Distribution (Cluster)</div>
+    <div class="schema-fields">
+      slot = <span class="field-type">CRC16(key) % 16384</span><br>
+      Each node owns a slot range (e.g. 0–5460)<br>
+      Node map stored in cluster state (gossip)<br>
+      <span class="field-name">MOVED</span> redirect: if slot not on this node, return MOVED slot host:port
+    </div>
+    <div class="schema-note">16384 slots chosen for balance: enough granularity to distribute evenly across 1000 nodes, but small enough to store slot-to-node map in 2KB (16384 bits).</div>
+  </div>
+  <div style="margin-top: 20px">
+    <strong style="font-size:14px;color:var(--slate)">Eviction Policies</strong>
+    <table class="eviction-table" style="margin-top:12px">
+      <tr><th>Policy</th><th>Evicts</th><th>Algorithm</th><th>Use When</th></tr>
+      <tr><td>allkeys-lru</td><td>Any key</td><td>Approx LRU (sample 5)</td><td>General caching</td></tr>
+      <tr><td>volatile-lru</td><td>Keys with TTL</td><td>Approx LRU</td><td>Mixed: some persistent, some cache</td></tr>
+      <tr><td>allkeys-lfu</td><td>Any key</td><td>Least Frequently Used</td><td>Long-tail access patterns</td></tr>
+      <tr><td>volatile-ttl</td><td>Keys with TTL</td><td>Nearest expiry first</td><td>Time-sensitive data</td></tr>
+      <tr><td>noeviction</td><td>Nothing</td><td>Return error on OOM</td><td>Primary data store (not cache)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- 7. Deep Dive -->
+<div class="section" id="deep-dive">
+  <div class="section-label">Section 07</div>
+  <h2>Key Design Decisions</h2>
+  <div class="dive-card">
+    <div class="dive-title">Why Single-Threaded Command Processing</div>
+    <div class="dive-body">
+      Redis processes commands on a single thread (I/O multiplexed via epoll/kqueue). This eliminates mutex overhead and makes all operations atomically ordered — no race conditions on data structures.<br><br>
+      How is 1M ops/sec possible single-threaded? Most commands are sub-microsecond memory operations. The bottleneck is network I/O, not CPU. Redis 6.0+ uses multi-threaded I/O for reading/writing network buffers while keeping command execution single-threaded.
+    </div>
+  </div>
+  <div class="dive-card">
+    <div class="dive-title">Consistent Hashing with 16384 Hash Slots</div>
+    <div class="dive-body">
+      Redis Cluster maps keyspace to 16384 slots. <code>slot = CRC16(key) % 16384</code>. Each primary node owns a contiguous range.<br><br>
+      <strong>Adding a node:</strong> Cluster migrates a subset of slots from existing nodes to new node — zero downtime. Keys move one by one, atomically. Requests for migrating keys get <code>ASK</code> redirect.<br><br>
+      <strong>Hash tags:</strong> <code>{user:123}:session</code> and <code>{user:123}:cart</code> share the same slot (CRC16 of the {} content). Ensures related keys co-locate on one shard for multi-key atomicity.
+    </div>
+  </div>
+  <div class="dive-card">
+    <div class="dive-title">Replication &amp; Automatic Failover</div>
+    <div class="dive-body">
+      <ul>
+        <li>Writes go to primary → async replicated to replicas (configurable semi-sync with WAIT command)</li>
+        <li>Replicas serve read requests (scale read throughput) — may serve slightly stale data</li>
+        <li>If primary unreachable for cluster-node-timeout (default 15s): replicas hold an election via RAFT-like vote</li>
+        <li>Replica with most up-to-date replication offset wins → promoted to primary</li>
+        <li>Cluster reconfigures and clients reconnect — typically &lt;30s downtime</li>
+      </ul>
+    </div>
+  </div>
+  <div class="dive-card">
+    <div class="dive-title">Persistence: RDB vs AOF</div>
+    <div class="dive-body">
+      <strong>RDB (Redis Database Snapshot):</strong> fork() the process, child writes binary snapshot to disk. Compact, fast restart, but may lose up to minutes of writes.<br><br>
+      <strong>AOF (Append-Only File):</strong> log every write command. <code>fsync=always</code> for durability (slow), <code>fsync=everysec</code> for balance (lose max 1 second). AOF rewrite compacts the log periodically.<br><br>
+      <strong>Best practice:</strong> enable both. Use RDB for backups (compact), AOF for durability. On restart, load AOF (more complete) over RDB.
+    </div>
+  </div>
+</div>
+
+<!-- 8. Hash Ring Playground -->
+<section class="section" id="playground">
+  <div class="section-label">Section 08</div>
+  <h2>Consistent Hash Ring</h2>
+  <div class="playground">
+    <p style="font-size:13px;color:var(--g700);margin-bottom:16px">Type a cache key below to see which shard it maps to. The ring has 3 virtual nodes at positions 0°, 120°, and 240°. The key hashes to a ring position and routes to the next node clockwise.</p>
+    <div class="pg-ring-wrap">
+      <svg id="ring-svg" class="pg-ring-svg" viewBox="0 0 200 200" width="180" height="180">
+        <!-- Ring circle -->
+        <circle cx="100" cy="100" r="76" stroke="#E6E3DA" stroke-width="2" fill="none"/>
+        <!-- Node 1 at 270° (top) -->
+        <circle id="ring-N1" cx="100" cy="24" r="11" fill="#D97757" opacity=".9"/>
+        <text x="100" y="8" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757" font-weight="600">N1</text>
+        <!-- Node 2 at 30° (120° clockwise from top) -->
+        <circle id="ring-N2" cx="165.8" cy="138" r="11" fill="#788C5D" opacity=".9"/>
+        <text x="176" y="156" text-anchor="middle" font-family="monospace" font-size="8" fill="#788C5D" font-weight="600">N2</text>
+        <!-- Node 3 at 150° (240° clockwise from top) -->
+        <circle id="ring-N3" cx="34.2" cy="138" r="11" fill="#4A6FA5" opacity=".9"/>
+        <text x="22" y="156" text-anchor="middle" font-family="monospace" font-size="8" fill="#9ab4d4" font-weight="600">N3</text>
+        <!-- Key dot (hidden by default) -->
+        <circle id="ring-dot" cx="100" cy="24" r="6" fill="#FFD700" stroke="#fff" stroke-width="2" opacity="0" style="transition:cx .3s,cy .3s,opacity .3s"/>
+        <line id="ring-line" x1="100" y1="100" x2="100" y2="24" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="3,3" opacity="0" style="transition:opacity .3s"/>
+      </svg>
+      <div class="pg-ring-info">
+        <input id="pg-key" class="pg-input" type="text" placeholder="e.g. user:12345" oninput="hashKey()" autocomplete="off" spellcheck="false">
+        <div id="pg-result" class="pg-result">
+          <span style="color:var(--g500);font-size:13px">Enter a key to compute its ring position…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Self-check -->
+<section class="section" id="self-check">
+  <div class="section-label">Section 09</div>
+  <h2>Self-Check: Interview Questions</h2>
+  <div class="sc-item" id="sc-1">
+    <div class="sc-q" onclick="toggleSC('sc-1')">
+      <span>What are the 3 cache failure modes and how do you handle each? <span class="sc-tag">Reliability</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p><strong>Cache penetration:</strong> requests for keys that never exist (e.g. user:99999999). DB is hit every time since cache always misses. Fix: (1) cache null values with short TTL, (2) Bloom filter at cache layer to reject clearly-absent keys.<br><br><strong>Cache stampede:</strong> popular key expires, thousands of requests hit DB simultaneously. Fix: (1) probabilistic early expiry — recompute cache slightly before TTL with some probability, (2) mutex-based refresh — one request acquires a lock to rebuild, others wait on a short sleep + retry.<br><br><strong>Cache avalanche:</strong> many keys expire at the same time (e.g. all keys set with same TTL during load). DB overwhelmed. Fix: (1) add random jitter to TTLs (±10-20%), (2) use rolling expiry instead of absolute TTL, (3) circuit breaker to shed load from DB.</p></div>
+  </div>
+  <div class="sc-item" id="sc-2">
+    <div class="sc-q" onclick="toggleSC('sc-2')">
+      <span>Why does Redis use approx LRU instead of exact LRU? <span class="sc-tag">Eviction</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Exact LRU requires a doubly-linked list where every GET moves the accessed node to the head — this means every read operation involves pointer manipulation, which is expensive and cache-unfriendly. For a cache handling 1M ops/sec, this overhead is unacceptable.<br><br>Redis's approximation: sample 5 (configurable) random keys, evict the one with the oldest LRU clock. This achieves 95%+ of the effectiveness of exact LRU at &lt;1% of the cost. The LRU clock is just a 24-bit integer stored with each value — no linked list needed. Redis 4.0+ also has LFU (Least Frequently Used) which tracks access frequency in the same 24-bit field using a Morris counter.</p></div>
+  </div>
+  <div class="sc-item" id="sc-3">
+    <div class="sc-q" onclick="toggleSC('sc-3')">
+      <span>How do hash tags enable co-location of related keys? <span class="sc-tag">Sharding</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Normally, related keys like <code>user:123:session</code> and <code>user:123:cart</code> hash to different slots and live on different shards. Multi-key operations like MGET or transactions (MULTI/EXEC) require all keys to be on the same shard — otherwise Redis returns a CROSSSLOT error.<br><br>Hash tags solve this: if a key contains <code>{...}</code>, only the content inside braces is used for slot computation. So <code>{user:123}:session</code> and <code>{user:123}:cart</code> both hash based on <code>user:123</code> → same slot → same shard. This enables atomic multi-key operations on logically related data. Trade-off: overuse of hash tags can create hot shards if all keys use the same tag.</p></div>
+  </div>
+  <div class="sc-item" id="sc-4">
+    <div class="sc-q" onclick="toggleSC('sc-4')">
+      <span>Cache-aside vs write-through vs write-back — when to use each? <span class="sc-tag">Patterns</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p><strong>Cache-aside (lazy loading):</strong> App reads cache → miss → reads DB → populates cache → returns. Most common. Pros: only hot data enters cache. Cons: cold start, first-request latency, stale data until TTL expires.<br><br><strong>Write-through:</strong> Every write goes to cache AND DB synchronously. Pros: cache always fresh, never stale. Cons: write latency = cache + DB latency (both synchronous), wasted cache space for data never read.<br><br><strong>Write-back (write-behind):</strong> Write to cache only, flush to DB async. Pros: very fast writes. Cons: risk of data loss if cache crashes before flush, complex to implement correctly. Used for write-heavy workloads (counters, session state) where some loss is acceptable.</p></div>
+  </div>
+  <div class="sc-item" id="sc-5">
+    <div class="sc-q" onclick="toggleSC('sc-5')">
+      <span>How does Redis implement a distributed lock? <span class="sc-tag">Concurrency</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Basic distributed lock: <code>SET lock:resource random_value NX EX 30</code>. NX = only set if not exists (atomic acquire), EX 30 = auto-expire after 30 seconds (prevents deadlock if holder crashes).<br><br>To release safely: use a Lua script to check-and-delete atomically — prevents releasing someone else's lock if yours expired: <code>if redis.call("GET",KEYS[1])==ARGV[1] then return redis.call("DEL",KEYS[1]) else return 0 end</code>.<br><br>Redlock (Martin Kleppmann algorithm): acquire lock on N/2+1 of N independent Redis instances. Majority quorum tolerates node failures. Controversial — some argue it's unsafe under GC pauses or clock skew. For most use cases (session locks, rate limiting), single-node Redis lock is sufficient.</p></div>
+  </div>
+</section>
+
+<!-- 10. Scaling -->
+<div class="section" id="scaling">
+  <div class="section-label">Section 10</div>
+  <h2>Scaling &amp; Bottlenecks</h2>
+  <div class="scale-grid">
+    <div class="scale-card">
+      <h4>Pipelining</h4>
+      <p>Batch multiple GET/SET commands in one TCP round-trip. 10 pipelined commands = 1 RTT instead of 10. 10x throughput improvement for batch workloads. Client libraries support this natively.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Connection Pooling</h4>
+      <p>Each Redis connection is lightweight but not free. Application servers maintain a pool of 10–50 connections per Redis shard. Avoids TCP handshake on every request. Use Jedis pool / Lettuce.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Hot Key Problem</h4>
+      <p>A viral key (e.g. a celebrity's profile) hammers one shard. Solution: append a random suffix <code>key:{0-9}</code>, write to all, read from random suffix. Distributes hot key across 10 slots.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Cache Stampede</h4>
+      <p>On expiry, thousands of requests hit DB simultaneously. Solution: probabilistic early expiry (recompute before TTL), or mutex-based refresh (only one request rebuilds, rest wait in Redis).</p>
+    </div>
+    <div class="scale-card">
+      <h4>Cache Penetration</h4>
+      <p>Requests for non-existent keys bypass cache and hit DB every time. Solution: cache null values with short TTL (60s), or use a Bloom filter to reject clearly-missing keys before Redis lookup.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Memory Optimization</h4>
+      <p>Use appropriate data structures: hash instead of many small strings for user objects. Enable hash-max-ziplist-entries for small hashes. Use OBJECT ENCODING to verify actual encoding used.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 11. Interview Tips -->
+<div class="section" id="tips">
+  <div class="section-label">Section 11</div>
+  <h2>Interview Tips</h2>
+  <div class="tip"><div class="tip-icon">🎯</div><div class="tip-text"><strong>Cache-aside vs write-through vs write-back:</strong> Cache-aside = app reads cache, on miss reads DB and populates cache. Write-through = every write goes to cache AND DB. Write-back = write to cache only, async flush to DB (risk of loss). Know all three and their trade-offs.</div></div>
+  <div class="tip"><div class="tip-icon">⚡</div><div class="tip-text"><strong>Single-threaded is a feature, not a bug:</strong> Redis is single-threaded for command execution — this is why all operations are atomic and why you can use INCR safely without locks. The interviewer may challenge this — explain I/O multiplexing and why CPU isn't the bottleneck.</div></div>
+  <div class="tip"><div class="tip-icon">🔀</div><div class="tip-text"><strong>Consistent hashing with 16384 slots:</strong> Explain why 16384 (2^14) — deliberate choice for balance. Every key maps deterministically to a slot, slots map to nodes. Adding a node only migrates a fraction of slots.</div></div>
+  <div class="tip"><div class="tip-icon">💀</div><div class="tip-text"><strong>Three cache failure modes:</strong> Cache penetration (non-existent keys), cache stampede (mass expiry), cache avalanche (many keys expire at once, overwhelming DB). Have a solution ready for each: null caching/Bloom filter, mutex refresh, staggered TTLs.</div></div>
+  <div class="tip"><div class="tip-icon">💾</div><div class="tip-text"><strong>Persistence trade-offs matter:</strong> If the interviewer asks "what if a Redis node crashes?", discuss RDB vs AOF. If it's a pure cache, you can skip AOF (just rebuild from DB). If Redis is primary store (sessions, rate limit counters), AOF with fsync=everysec is essential.</div></div>
+</div>
+
+<footer>
+  <span style="font-family:var(--serif);font-style:italic;font-size:14px;color:var(--g700)">SDE Interview Prep</span>
+  <a href="hld-index.html">← Back to HLD Problems</a>
+</footer>
+
+</div>
+
+<script>
+// ── NODE_INFO ──
+const NODE_INFO = {
+  client: {
+    title: "Clients (Application Servers)",
+    body: "Application servers connect to the Redis Proxy via a persistent connection pool (typically 10–50 connections per app server). They use the RESP protocol. Client libraries (Jedis, Lettuce, redis-py) handle connection management, retry logic, and pipelining automatically.",
+    stats: ["RESP binary protocol","10–50 connections per server","Libraries: Jedis / Lettuce","Auto-retry on MOVED redirect"],
+    warn: null
+  },
+  lb: {
+    title: "Redis Proxy (Smart Router)",
+    body: "Computes the hash slot for each key using CRC16(key) % 16384 and routes to the correct shard's primary. Maintains a routing table of slot → node mappings. On slot migration (when adding/removing nodes), handles ASK/MOVED redirects transparently. Also handles pipelining and multi-key commands.",
+    stats: ["CRC16(key) % 16384","16384 total slots","MOVED: wrong node redirect","ASK: slot migrating redirect"],
+    warn: "Multi-key operations (MGET, MSET, DEL) require all keys to be on the same slot. Use hash tags {key} to force co-location. Without hash tags, CROSSSLOT error is returned."
+  },
+  node1: {
+    title: "Shard 1 — Primary (Slots 0–5460)",
+    body: "Owns 5461 hash slots (~1/3 of keyspace). All writes go to the primary. Two replicas async-mirror all operations. If the primary fails, one replica is promoted automatically. Each shard runs on dedicated hardware with 1TB+ RAM and 10Gbps NIC.",
+    stats: ["Slots 0–5460","2 async replicas","~100K ops/sec single-thread","1TB RAM, 10Gbps NIC"],
+    warn: null
+  },
+  node2: {
+    title: "Shard 2 — Primary (Slots 5461–10922)",
+    body: "Owns the middle third of the keyspace. Fully independent from Shard 1 — separate memory, separate event loop, separate replicas. Clients can read from replicas to scale read throughput, accepting slightly stale data.",
+    stats: ["Slots 5461–10922","2 async replicas","Replicas serve reads","~33% of total write load"],
+    warn: null
+  },
+  node3: {
+    title: "Shard 3 — Primary (Slots 10923–16383)",
+    body: "Owns the last third of the keyspace. If this shard goes down and has no reachable replicas, the entire cluster is considered unavailable for the affected slots (fail-open or fail-close, configurable). Redis Cluster requires majority of shards to be up.",
+    stats: ["Slots 10923–16383","2 async replicas","Cluster quorum required","Gossip health check 100ms"],
+    warn: null
+  },
+  db: {
+    title: "Cluster Manager (Sentinel)",
+    body: "A set of independent Sentinel/cluster-bus nodes monitor all Redis primaries and replicas via heartbeat. If a primary misses cluster-node-timeout (default 15s), Sentinel triggers a leader election. The replica with the most up-to-date replication offset is promoted. Clients auto-discover the new primary.",
+    stats: ["Gossip every 100ms","Failover in <30s","RAFT-like election","Zero manual intervention"],
+    warn: null
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  document.querySelectorAll(`.arch-node[data-id="${id}"]`).forEach(g => g.classList.add('sel'));
+  const info = NODE_INFO[id];
+  if (!info) return;
+  const panel = document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  panel.innerHTML = `
+    <div class="ap-title">${info.title}</div>
+    <div class="ap-body">${info.body}</div>
+    <div>${info.stats.map(s => `<span class="ap-stat">${s}</span>`).join('')}</div>
+    ${info.warn ? `<div class="ap-warn">${info.warn}</div>` : ''}
+  `;
+}
+
+// ── FLOW STEPPER ──
+const STEPS = [
+  {
+    nodes: ['fn-client'],
+    title: "App server issues GET command",
+    desc: "Application server picks a connection from the Redis connection pool. It serializes the GET command in RESP format and sends it to the Redis Proxy. No DNS lookup or new TCP connection — the connection is pre-established and reused.",
+    code: "// Client library (e.g. Jedis)\nString value = redis.get(\"user:session:abc123\");\n// Serialized to RESP:\n// *2\\r\\n$3\\r\\nGET\\r\\n$20\\r\\nuser:session:abc123\\r\\n"
+  },
+  {
+    nodes: ['fn-client','fn-lb'],
+    title: "Proxy computes hash slot and routes",
+    desc: "Redis Proxy applies CRC16 to the key and takes modulo 16384. It looks up which shard owns that slot in its routing table. Routes the command directly to that shard's primary. The entire routing decision takes microseconds.",
+    code: "// Proxy routing logic\nint slot = CRC16(\"user:session:abc123\") % 16384;\n// slot = 8241 → owned by SHARD 2 (5461–10922)\nproxy.routeTo(shard2Primary, command);"
+  },
+  {
+    nodes: ['fn-lb','fn-node2'],
+    title: "Shard 2 primary processes GET",
+    desc: "The command lands on Shard 2's single-threaded event loop. It looks up the key in the in-memory hash table — O(1) lookup. If key exists and TTL hasn't expired, returns the value. If TTL is set and has expired, performs lazy deletion and returns nil.",
+    code: "// Inside Redis single-threaded event loop\nif (key.ttl > 0 && now > key.ttl) {\n  delete(key); // lazy expiry\n  return NIL;\n}\nreturn hashTable.get(key); // O(1), ~0.1μs"
+  },
+  {
+    nodes: ['fn-node2'],
+    title: "Cache miss — LRU eviction check",
+    desc: "Key not found. If memory is near max (maxmemory policy reached), Redis runs approximate LRU: samples 5 random keys, evicts the one with oldest LRU clock. Then the app must fall back to the database to fetch the value.",
+    code: "// Approximate LRU eviction (if memory full)\nList<Key> sample = randomSample(5);\nKey victim = minByLRUClock(sample);\nevict(victim); // makes room for new entry\n\n// App then falls back to database..."
+  },
+  {
+    nodes: ['fn-node2','fn-db'],
+    title: "App fetches from DB and populates cache",
+    desc: "App server queries the database (cache-aside pattern). Gets the value, then writes it back to Redis: SET user:session:abc123 <value> EX 3600. Next request will hit cache. SET also triggers async replication to the 2 replicas of Shard 2.",
+    code: "// Cache-aside: populate on miss\nString value = database.query(\n  \"SELECT data FROM sessions WHERE id=?\", sessionId\n);\nredis.setex(\"user:session:abc123\", 3600, value);\n// Replicated async to node2-replica1, node2-replica2"
+  },
+  {
+    nodes: ['fn-db','fn-node1','fn-node3'],
+    title: "Shard failover — automatic recovery",
+    desc: "If Shard 2's primary goes down, Cluster Manager detects the failure within cluster-node-timeout (15s). It promotes the replica with the most up-to-date replication offset to primary. Updates the routing table. Clients receive MOVED responses and reconnect — total downtime typically under 30s.",
+    code: "// Cluster Manager failover sequence\n// 1. Primary unreachable for 15s\n// 2. Replicas vote — highest replication offset wins\n// 3. Winner promoted: CLUSTER FAILOVER\n// 4. Proxy routing table updated\n// 5. Clients: MOVED 8241 new-shard2-primary:6379"
+  }
+];
+
+const FN_IDS = ['fn-client','fn-lb','fn-node1','fn-node2','fn-node3','fn-db'];
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  FN_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'fn';
+    if (s.nodes.includes(id)) el.classList.add('act');
+    else if (STEPS.slice(0, curStep).some(st => st.nodes.includes(id))) el.classList.add('done');
+  });
+  document.getElementById('fc-title').textContent = s.title;
+  document.getElementById('fc-desc').textContent = s.desc;
+  document.getElementById('fc-code').textContent = s.code;
+  document.getElementById('flow-counter').textContent = `Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('flow-prev').disabled = curStep === 0;
+  document.getElementById('flow-next').disabled = curStep === STEPS.length - 1;
+  const dots = document.getElementById('flow-dots');
+  dots.innerHTML = STEPS.map((_, i) => `<div class="fdot${i===curStep?' on':''}" onclick="goStep(${i})"></div>`).join('');
+}
+function nextStep() { if (curStep < STEPS.length-1) { curStep++; renderStep(); } }
+function prevStep() { if (curStep > 0) { curStep--; renderStep(); } }
+function goStep(n) { curStep = n; renderStep(); }
+
+// ── SELF-CHECK ──
+function toggleSC(id) { document.getElementById(id).classList.toggle('open'); }
+
+// ── HASH RING VISUALIZER ──
+function crc16(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
+      else crc <<= 1;
+    }
+    crc &= 0xFFFF;
+  }
+  return crc;
+}
+
+function hashKey() {
+  const key = document.getElementById('pg-key').value.trim();
+  const result = document.getElementById('pg-result');
+  const dot = document.getElementById('ring-dot');
+  const line = document.getElementById('ring-line');
+  if (!key) {
+    result.innerHTML = '<span style="color:var(--g500);font-size:13px">Enter a key to compute its ring position…</span>';
+    dot.setAttribute('opacity','0');
+    line.setAttribute('opacity','0');
+    return;
+  }
+  const hash = crc16(key);
+  const slot = hash % 16384;
+  let shard, shardColor, shardClass, nodePos;
+  if (slot <= 5460)       { shard='Shard 1'; shardColor='#D97757'; shardClass='pg-shard-N1'; nodePos={x:100,y:24}; }
+  else if (slot <= 10922) { shard='Shard 2'; shardColor='#788C5D'; shardClass='pg-shard-N2'; nodePos={x:165.8,y:138}; }
+  else                    { shard='Shard 3'; shardColor='#4A6FA5'; shardClass='pg-shard-N3'; nodePos={x:34.2,y:138}; }
+
+  // Compute angle on ring: slot / 16384 = fraction, then to degrees (start at top = -90°)
+  const angle = (slot / 16384) * 2 * Math.PI - Math.PI / 2;
+  const cx = 100 + 76 * Math.cos(angle);
+  const cy = 100 + 76 * Math.sin(angle);
+
+  dot.setAttribute('cx', cx);
+  dot.setAttribute('cy', cy);
+  dot.setAttribute('opacity', '1');
+  line.setAttribute('x1', cx); line.setAttribute('y1', cy);
+  line.setAttribute('x2', nodePos.x); line.setAttribute('y2', nodePos.y);
+  line.setAttribute('opacity', '0.7');
+
+  result.innerHTML = `
+    <div style="margin-bottom:8px"><strong>Key:</strong> <span class="hash-val">${key}</span></div>
+    <div style="margin-bottom:4px">CRC16 hash: <span class="hash-val">${hash.toString(16).toUpperCase().padStart(4,'0')}</span> (${hash})</div>
+    <div style="margin-bottom:4px">Slot: <span class="hash-val">${hash} % 16384 = <strong>${slot}</strong></span></div>
+    <div style="margin-top:10px;font-size:15px">Routes to → <span class="shard-name ${shardClass}">${shard}</span></div>
+  `;
+}
+
+// Init
+renderStep();
+</script>
+</body>
+</html>

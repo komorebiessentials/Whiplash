@@ -1,0 +1,1113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parking Lot — LLD Deep Dive</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 120px; }
+
+  /* masthead */
+  header.masthead {
+    padding: 72px 0 48px;
+    border-bottom: 1.5px solid var(--g300);
+    margin-bottom: 8px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before { content:""; width:24px; height:1.5px; background:var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(34px, 5vw, 56px);
+    line-height: 1.06;
+    letter-spacing: -0.018em;
+    margin-bottom: 8px;
+  }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro { font-size: 15.5px; color: var(--g700); margin-top: 18px; max-width: 600px; }
+
+  /* toc */
+  nav.toc {
+    display: flex; flex-wrap: wrap; gap: 8px; padding-top: 28px;
+  }
+  nav.toc a {
+    font-size: 12px;
+    padding: 6px 14px;
+    border: 1.5px solid var(--g300);
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--g700);
+    background: var(--paper);
+    transition: border-color 120ms, color 120ms;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  nav.toc a .n { font-family: var(--mono); font-size: 10px; color: var(--g500); }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+
+  /* sections */
+  section { margin-top: 64px; scroll-margin-top: 24px; }
+  .sec-head {
+    display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px;
+  }
+  .sec-head .idx { font-family: var(--mono); font-size: 12px; color: var(--clay); font-weight: 600; width: 30px; flex-shrink: 0; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 500; font-size: 25px; letter-spacing: -0.012em; }
+  .sec-intro { font-size: 14px; color: var(--g700); max-width: 680px; margin: 0 0 22px 44px; }
+
+  .content-block { margin-left: 44px; }
+  @media (max-width: 600px) { .content-block, .sec-intro { margin-left: 0; } }
+
+  /* cards */
+  .card {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1.5px solid transparent;
+    transition: background 120ms;
+  }
+  .card-header:hover { background: var(--g100); }
+  .card-header.open { border-bottom-color: var(--g200); }
+  .card-header .tag {
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 3px 8px; border-radius: 6px;
+    background: var(--g100); color: var(--g500); flex-shrink: 0;
+  }
+  .card-header .tag.must { background: #FEF3EE; color: var(--clay); }
+  .card-header .tag.pattern { background: #EEF3E8; color: var(--olive); }
+  .card-header .tag.code { background: #EEF1F8; color: #4A6FA5; }
+  .card-header .title { font-size: 15px; font-weight: 500; flex: 1; }
+  .card-header .chevron { color: var(--g300); font-size: 12px; transition: transform 200ms; }
+  .card-header.open .chevron { transform: rotate(90deg); color: var(--clay); }
+  .card-body { display: none; padding: 20px 20px 20px 20px; }
+  .card-body.visible { display: block; }
+
+  /* requirement pills */
+  .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .req-grid { grid-template-columns: 1fr; } }
+  .req-item {
+    background: var(--g100); border-radius: 8px; padding: 12px 14px;
+    border-left: 3px solid var(--g300);
+  }
+  .req-item.func { border-left-color: var(--clay); }
+  .req-item.nfunc { border-left-color: var(--olive); }
+  .req-item .req-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); margin-bottom: 4px; }
+  .req-item p { font-size: 13.5px; color: var(--g700); }
+
+  /* class diagram */
+  .diagram-wrap { overflow-x: auto; padding: 4px 0 8px; }
+  .class-box {
+    display: inline-block;
+    border: 2px solid var(--g300);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 13px;
+    min-width: 170px;
+    background: var(--paper);
+    vertical-align: top;
+    margin: 6px;
+  }
+  .class-box .class-name {
+    background: var(--slate); color: var(--paper);
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    padding: 7px 12px; letter-spacing: 0.04em;
+  }
+  .class-box .class-name.interface { background: var(--olive); }
+  .class-box .class-name.enum { background: #4A6FA5; }
+  .class-box .class-name.abstract { background: var(--clay); }
+  .class-box .field { padding: 3px 12px; color: var(--g700); font-family: var(--mono); font-size: 11.5px; border-bottom: 1px solid var(--g100); }
+  .class-box .field.method { color: var(--clay-d); }
+  .class-box .field.enum-val { color: #4A6FA5; }
+  .class-box .divider { height: 1.5px; background: var(--g200); margin: 4px 0; }
+
+  /* flow steps */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step {
+    display: flex; gap: 0; align-items: stretch;
+  }
+  .flow-left {
+    display: flex; flex-direction: column; align-items: center;
+    width: 40px; flex-shrink: 0;
+  }
+  .flow-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--clay); flex-shrink: 0; margin-top: 3px;
+    border: 2px solid var(--ivory);
+    box-shadow: 0 0 0 2px var(--clay);
+  }
+  .flow-dot.green { background: var(--olive); box-shadow: 0 0 0 2px var(--olive); }
+  .flow-dot.gray { background: var(--g300); box-shadow: 0 0 0 2px var(--g300); }
+  .flow-line { flex: 1; width: 2px; background: var(--g200); margin: 2px 0; }
+  .flow-content { padding: 0 0 20px 0; flex: 1; }
+  .flow-step-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .flow-step-desc { font-size: 13.5px; color: var(--g700); }
+  .flow-step:last-child .flow-line { display: none; }
+
+  /* code blocks */
+  pre {
+    background: #1A1A18;
+    color: #E8E6DF;
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+  pre .kw { color: #CF9F6E; }   /* keywords */
+  pre .cn { color: #88C0A0; }   /* class names */
+  pre .cm { color: #5F5F5A; }   /* comments */
+  pre .st { color: #A8C97A; }   /* strings */
+  pre .nm { color: #7AABD4; }   /* numbers/consts */
+  pre .fn { color: #D97757; }   /* function names */
+
+  /* interview tips */
+  .tip { display: flex; gap: 12px; background: var(--g100); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .tip .tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tip .tip-text { font-size: 13.5px; color: var(--g700); }
+  .tip .tip-text strong { color: var(--slate); }
+
+  /* pattern cards */
+  .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .pattern-card {
+    background: var(--paper); border: 1.5px solid var(--g300); border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .pattern-card .p-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--olive); margin-bottom: 6px; }
+  .pattern-card .p-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .pattern-card .p-desc { font-size: 12.5px; color: var(--g700); }
+
+  /* tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: -1px; }
+  .tab-btn {
+    font-family: var(--mono); font-size: 11.5px; padding: 7px 14px;
+    border: 1.5px solid var(--g300); border-bottom: none;
+    border-radius: 7px 7px 0 0;
+    background: var(--g100); color: var(--g500);
+    cursor: pointer; transition: background 120ms, color 120ms;
+  }
+  .tab-btn.active { background: var(--paper); color: var(--slate); border-color: var(--g300); }
+  .tab-pane { display: none; border: 1.5px solid var(--g300); border-radius: 0 8px 8px 8px; }
+  .tab-pane.active { display: block; }
+  .tab-pane pre { border-radius: 0 0 6px 6px; margin: 0; border-radius: 0 6px 6px 6px; }
+
+  /* question box */
+  .q-list { list-style: none; }
+  .q-list li {
+    display: flex; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--g200); font-size: 13.5px;
+  }
+  .q-list li:last-child { border-bottom: none; }
+  .q-list li .q-icon { color: var(--clay); flex-shrink: 0; font-weight: 700; }
+  .q-list li .q-text strong { display: block; color: var(--slate); margin-bottom: 2px; }
+  .q-list li .q-text span { color: var(--g700); }
+
+  /* entity relationship diagram */
+  .erd svg { max-width: 100%; height: auto; }
+
+  /* relation badges */
+  .rel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rel-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); text-align: left; padding: 6px 10px; border-bottom: 1.5px solid var(--g300); }
+  .rel-table td { padding: 8px 10px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .rel-table td:first-child { font-family: var(--mono); font-size: 11.5px; color: var(--slate); white-space: nowrap; }
+  .rel-table td .badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--g100); color: var(--g500); margin-right: 4px; }
+  .rel-table td .badge.has { background: #EEF3E8; color: var(--olive); }
+  .rel-table td .badge.uses { background: #FEF3EE; color: var(--clay); }
+  .rel-table td .badge.impl { background: #EEF1F8; color: #4A6FA5; }
+
+  footer {
+    margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 30px;
+    font-size: 12.5px; color: var(--g500); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 14px; }
+
+  .inline-badge {
+    display: inline-block; font-family: var(--mono); font-size: 10.5px;
+    padding: 1px 7px; border-radius: 5px; background: var(--g100); color: var(--g700);
+    vertical-align: middle; margin: 0 2px;
+  }
+
+  ul.bullet { padding-left: 18px; }
+  ul.bullet li { font-size: 13.5px; color: var(--g700); margin-bottom: 5px; }
+  ul.bullet li strong { color: var(--slate); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+  .small-note { font-size: 12px; color: var(--g500); margin-top: 8px; font-family: var(--mono); }
+
+  .highlight-box {
+    background: #FEF3EE; border-left: 3px solid var(--clay);
+    border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0;
+    font-size: 13.5px; color: var(--g700);
+  }
+  .highlight-box strong { color: var(--clay-d); }
+
+  .thread-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .thread-table th { background: var(--g100); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); padding: 8px 12px; text-align: left; }
+  .thread-table td { padding: 9px 12px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .thread-table td:first-child { font-weight: 600; color: var(--slate); }
+  .risk-high { color: #C0392B; font-weight: 600; }
+  .risk-med  { color: #E67E22; font-weight: 600; }
+  .risk-low  { color: var(--olive); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">LLD Interview Prep — System Design</div>
+  <h1>Design a <em>Parking Lot</em></h1>
+  <p class="intro">
+    A complete end-to-end guide: from clarifying questions through class design, key code, design patterns, and concurrency — everything you need to nail this in an interview.
+  </p>
+  <nav class="toc">
+    <a href="#requirements">Requirements <span class="n">01</span></a>
+    <a href="#clarifications">Clarifying Qs <span class="n">02</span></a>
+    <a href="#entities">Entities <span class="n">03</span></a>
+    <a href="#relations">Relationships <span class="n">04</span></a>
+    <a href="#flows">Key Flows <span class="n">05</span></a>
+    <a href="#code">Code <span class="n">06</span></a>
+    <a href="#patterns">Patterns <span class="n">07</span></a>
+    <a href="#concurrency">Concurrency <span class="n">08</span></a>
+    <a href="#tips">Interview Tips <span class="n">09</span></a>
+  </nav>
+</header>
+
+<!-- ===== 01 REQUIREMENTS ===== -->
+<section id="requirements">
+  <div class="sec-head"><span class="idx">01</span><h2>Requirements</h2></div>
+  <p class="sec-intro">Nail these before drawing a single class. In an interview, state them out loud — shows you think before you code.</p>
+  <div class="content-block">
+    <div class="req-grid">
+      <div class="req-item func">
+        <div class="req-label">Functional</div>
+        <p>Multiple floors, each with multiple spots</p>
+      </div>
+      <div class="req-item func">
+        <div class="req-label">Functional</div>
+        <p>Vehicle types: Motorcycle, Car, Truck</p>
+      </div>
+      <div class="req-item func">
+        <div class="req-label">Functional</div>
+        <p>Spot sizes: Small, Medium, Large — with fit rules</p>
+      </div>
+      <div class="req-item func">
+        <div class="req-label">Functional</div>
+        <p>Entry: find nearest available spot → issue ticket</p>
+      </div>
+      <div class="req-item func">
+        <div class="req-label">Functional</div>
+        <p>Exit: calculate fee by time + vehicle type → process payment</p>
+      </div>
+      <div class="req-item func">
+        <div class="req-label">Functional</div>
+        <p>Query availability: spots per floor, per type</p>
+      </div>
+      <div class="req-item nfunc">
+        <div class="req-label">Non-Functional</div>
+        <p>Thread-safe: concurrent entries and exits</p>
+      </div>
+      <div class="req-item nfunc">
+        <div class="req-label">Non-Functional</div>
+        <p>Extensible: new vehicle types and pricing strategies</p>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <strong style="font-size:13.5px; color:var(--slate);">Spot fit rules</strong>
+      <table class="rel-table" style="margin-top:8px;">
+        <thead><tr><th>Vehicle</th><th>Can fit in</th><th>Cannot fit in</th></tr></thead>
+        <tbody>
+          <tr><td>Motorcycle</td><td>Small, Medium, Large</td><td>—</td></tr>
+          <tr><td>Car</td><td>Medium, Large</td><td>Small</td></tr>
+          <tr><td>Truck</td><td>Large only</td><td>Small, Medium</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 02 CLARIFYING QUESTIONS ===== -->
+<section id="clarifications">
+  <div class="sec-head"><span class="idx">02</span><h2>Clarifying Questions</h2></div>
+  <p class="sec-intro">Ask these in an interview — it shows you understand the problem space, not just the surface.</p>
+  <div class="content-block">
+    <ul class="q-list">
+      <li>
+        <span class="q-icon">?</span>
+        <span class="q-text">
+          <strong>How is "nearest" defined?</strong>
+          <span>Nearest by floor first, then by spot number? Or straight-line distance? Affects the spot-search algorithm.</span>
+        </span>
+      </li>
+      <li>
+        <span class="q-icon">?</span>
+        <span class="q-text">
+          <strong>How is pricing structured?</strong>
+          <span>Flat rate per hour? First hour free? Differential by vehicle type? Defines the pricing strategy interface.</span>
+        </span>
+      </li>
+      <li>
+        <span class="q-icon">?</span>
+        <span class="q-text">
+          <strong>What payment methods?</strong>
+          <span>Cash, card, UPI? This determines whether we need a payment gateway abstraction.</span>
+        </span>
+      </li>
+      <li>
+        <span class="q-icon">?</span>
+        <span class="q-text">
+          <strong>Multiple vehicles per spot?</strong>
+          <span>Can two motorcycles share a large spot? Simplest answer: no, 1 vehicle per spot.</span>
+        </span>
+      </li>
+      <li>
+        <span class="q-icon">?</span>
+        <span class="q-text">
+          <strong>Reserved spots?</strong>
+          <span>Monthly passes, handicapped spots? Adds a reservation concept to the model.</span>
+        </span>
+      </li>
+      <li>
+        <span class="q-icon">?</span>
+        <span class="q-text">
+          <strong>Persistence required?</strong>
+          <span>In-memory is fine for an interview; note where you'd add a DB layer if asked.</span>
+        </span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== 03 ENTITIES ===== -->
+<section id="entities">
+  <div class="sec-head"><span class="idx">03</span><h2>Core Entities</h2></div>
+  <p class="sec-intro">These are your classes. Group into enums, models, services, and strategies before coding anything.</p>
+  <div class="content-block">
+
+    <!-- Enums -->
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Enums</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name enum">VehicleType</div>
+        <div class="field enum-val">MOTORCYCLE</div>
+        <div class="field enum-val">CAR</div>
+        <div class="field enum-val">TRUCK</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name enum">SpotSize</div>
+        <div class="field enum-val">SMALL</div>
+        <div class="field enum-val">MEDIUM</div>
+        <div class="field enum-val">LARGE</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name enum">PaymentStatus</div>
+        <div class="field enum-val">PENDING</div>
+        <div class="field enum-val">PAID</div>
+        <div class="field enum-val">FAILED</div>
+      </div>
+    </div>
+
+    <!-- Interfaces -->
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Interfaces / Abstract</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name interface">«interface» PricingStrategy</div>
+        <div class="divider"></div>
+        <div class="field method">+ calculateFee(ticket): double</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name interface">«interface» PaymentProcessor</div>
+        <div class="divider"></div>
+        <div class="field method">+ process(amount): boolean</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name abstract">«abstract» Vehicle</div>
+        <div class="field">- licensePlate: String</div>
+        <div class="field">- type: VehicleType</div>
+        <div class="divider"></div>
+        <div class="field method">+ canFitIn(size): boolean</div>
+      </div>
+    </div>
+
+    <!-- Core Models -->
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Core Models</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name">ParkingSpot</div>
+        <div class="field">- spotId: String</div>
+        <div class="field">- size: SpotSize</div>
+        <div class="field">- isOccupied: boolean</div>
+        <div class="field">- vehicle: Vehicle</div>
+        <div class="divider"></div>
+        <div class="field method">+ isAvailableFor(v): boolean</div>
+        <div class="field method">+ park(vehicle): void</div>
+        <div class="field method">+ unpark(): void</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">ParkingFloor</div>
+        <div class="field">- floorNumber: int</div>
+        <div class="field">- spots: List&lt;ParkingSpot&gt;</div>
+        <div class="divider"></div>
+        <div class="field method">+ findSpot(vehicle): Optional</div>
+        <div class="field method">+ getAvailable(size): int</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">ParkingTicket</div>
+        <div class="field">- ticketId: String</div>
+        <div class="field">- vehicle: Vehicle</div>
+        <div class="field">- spot: ParkingSpot</div>
+        <div class="field">- entryTime: LocalDateTime</div>
+        <div class="field">- exitTime: LocalDateTime</div>
+        <div class="field">- fee: double</div>
+        <div class="field">- status: PaymentStatus</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Payment</div>
+        <div class="field">- paymentId: String</div>
+        <div class="field">- ticket: ParkingTicket</div>
+        <div class="field">- amount: double</div>
+        <div class="field">- processor: PaymentProcessor</div>
+        <div class="divider"></div>
+        <div class="field method">+ process(): boolean</div>
+      </div>
+    </div>
+
+    <!-- Vehicle subclasses -->
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Vehicle Subclasses</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name">Motorcycle</div>
+        <div class="field" style="color:var(--g500);font-style:italic;">extends Vehicle</div>
+        <div class="divider"></div>
+        <div class="field method">+ canFitIn(size): boolean</div>
+        <div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ always true</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Car</div>
+        <div class="field" style="color:var(--g500);font-style:italic;">extends Vehicle</div>
+        <div class="divider"></div>
+        <div class="field method">+ canFitIn(size): boolean</div>
+        <div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ MEDIUM or LARGE</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Truck</div>
+        <div class="field" style="color:var(--g500);font-style:italic;">extends Vehicle</div>
+        <div class="divider"></div>
+        <div class="field method">+ canFitIn(size): boolean</div>
+        <div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ LARGE only</div>
+      </div>
+    </div>
+
+    <!-- Orchestrator -->
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Orchestrator (Singleton)</p>
+    <div class="diagram-wrap">
+      <div class="class-box" style="min-width:240px;">
+        <div class="class-name">ParkingLot</div>
+        <div class="field">- instance: ParkingLot <em style="color:var(--g500)">(static)</em></div>
+        <div class="field">- floors: List&lt;ParkingFloor&gt;</div>
+        <div class="field">- activeTickets: Map&lt;String, Ticket&gt;</div>
+        <div class="field">- pricingStrategy: PricingStrategy</div>
+        <div class="divider"></div>
+        <div class="field method">+ getInstance(): ParkingLot</div>
+        <div class="field method">+ parkVehicle(vehicle): ParkingTicket</div>
+        <div class="field method">+ unparkVehicle(ticket): Payment</div>
+        <div class="field method">+ getAvailability(): Map</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 04 RELATIONSHIPS ===== -->
+<section id="relations">
+  <div class="sec-head"><span class="idx">04</span><h2>Relationships</h2></div>
+  <p class="sec-intro">How entities connect — this is what gets drawn in a UML class diagram.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>From</th><th>To</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>ParkingLot</td>
+          <td>ParkingFloor</td>
+          <td><span class="badge has">HAS</span></td>
+          <td>Composition — lot owns floors (1 to many)</td>
+        </tr>
+        <tr>
+          <td>ParkingFloor</td>
+          <td>ParkingSpot</td>
+          <td><span class="badge has">HAS</span></td>
+          <td>Composition — floor owns spots (1 to many)</td>
+        </tr>
+        <tr>
+          <td>ParkingSpot</td>
+          <td>Vehicle</td>
+          <td><span class="badge has">HAS</span></td>
+          <td>Association — spot holds 0 or 1 vehicle</td>
+        </tr>
+        <tr>
+          <td>ParkingTicket</td>
+          <td>Vehicle</td>
+          <td><span class="badge has">HAS</span></td>
+          <td>Association — ticket records the vehicle</td>
+        </tr>
+        <tr>
+          <td>ParkingTicket</td>
+          <td>ParkingSpot</td>
+          <td><span class="badge has">HAS</span></td>
+          <td>Association — ticket records the assigned spot</td>
+        </tr>
+        <tr>
+          <td>Motorcycle / Car / Truck</td>
+          <td>Vehicle</td>
+          <td><span class="badge impl">EXTENDS</span></td>
+          <td>Inheritance — each implements canFitIn()</td>
+        </tr>
+        <tr>
+          <td>HourlyPricing / TieredPricing</td>
+          <td>PricingStrategy</td>
+          <td><span class="badge impl">IMPLEMENTS</span></td>
+          <td>Strategy pattern — pluggable fee calculation</td>
+        </tr>
+        <tr>
+          <td>ParkingLot</td>
+          <td>PricingStrategy</td>
+          <td><span class="badge uses">USES</span></td>
+          <td>Dependency injection — strategy swappable at runtime</td>
+        </tr>
+        <tr>
+          <td>Payment</td>
+          <td>PaymentProcessor</td>
+          <td><span class="badge uses">USES</span></td>
+          <td>Delegates to processor (cash, card, etc.)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 05 KEY FLOWS ===== -->
+<section id="flows">
+  <div class="sec-head"><span class="idx">05</span><h2>Key Flows</h2></div>
+  <p class="sec-intro">Walk through these step-by-step in your interview — it shows you understand data flow, not just class diagrams.</p>
+  <div class="content-block">
+    <div class="two-col">
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;color:var(--slate);">Entry Flow</p>
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">Vehicle arrives at entry gate</div>
+              <div class="flow-step-desc">System reads license plate. Creates a <code>Vehicle</code> object with type.</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">Search for nearest available spot</div>
+              <div class="flow-step-desc">ParkingLot iterates floors in order. Each floor scans spots for one where <code>isAvailableFor(vehicle)</code> returns true.</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">Reserve the spot (thread-safe)</div>
+              <div class="flow-step-desc">Spot is marked occupied atomically. Vehicle reference stored on spot.</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot green"></div><div class="flow-line"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">Issue ticket</div>
+              <div class="flow-step-desc">ParkingTicket created with UUID, entryTime=now, spot reference. Stored in activeTickets map. Printed/displayed to user.</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot gray"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">No spot available?</div>
+              <div class="flow-step-desc">Throw <code>ParkingLotFullException</code>. Gate stays closed.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;color:var(--slate);">Exit Flow</p>
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">Vehicle presents ticket</div>
+              <div class="flow-step-desc">Ticket ID scanned. Lookup in <code>activeTickets</code> map to retrieve ticket.</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">Calculate fee</div>
+              <div class="flow-step-desc">Set <code>exitTime = now</code>. Delegate to <code>pricingStrategy.calculateFee(ticket)</code>.</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">Process payment</div>
+              <div class="flow-step-desc">Create <code>Payment</code> object. Call <code>paymentProcessor.process(amount)</code>. Mark ticket PAID on success.</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot green"></div><div class="flow-line"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">Free the spot</div>
+              <div class="flow-step-desc"><code>spot.unpark()</code> clears vehicle reference and sets isOccupied=false. Remove from activeTickets. Gate opens.</div>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot gray"></div></div>
+            <div class="flow-content">
+              <div class="flow-step-title">Payment fails?</div>
+              <div class="flow-step-desc">Spot stays occupied. Ticket remains active. Ticket marked FAILED.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 06 CODE ===== -->
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">Key implementations — focus on these in the interview. Don't write getters/setters, focus on the logic.</p>
+  <div class="content-block">
+
+    <!-- Tab set 1 -->
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;color:var(--slate);">Enums &amp; Vehicle hierarchy</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this, 'enums')">Enums</button>
+        <button class="tab-btn" onclick="switchTab(this, 'vehicle')">Vehicle</button>
+      </div>
+      <div class="tab-pane active" id="enums">
+<pre><span class="kw">enum</span> <span class="cn">VehicleType</span> { MOTORCYCLE, CAR, TRUCK }
+<span class="kw">enum</span> <span class="cn">SpotSize</span>    { SMALL, MEDIUM, LARGE }
+<span class="kw">enum</span> <span class="cn">PaymentStatus</span> { PENDING, PAID, FAILED }</pre>
+      </div>
+      <div class="tab-pane" id="vehicle">
+<pre><span class="kw">abstract class</span> <span class="cn">Vehicle</span> {
+    <span class="kw">protected final</span> String licensePlate;
+    <span class="kw">protected final</span> <span class="cn">VehicleType</span> type;
+
+    <span class="kw">public abstract boolean</span> <span class="fn">canFitIn</span>(<span class="cn">SpotSize</span> size);
+}
+
+<span class="kw">class</span> <span class="cn">Motorcycle</span> <span class="kw">extends</span> <span class="cn">Vehicle</span> {
+    <span class="kw">public boolean</span> <span class="fn">canFitIn</span>(<span class="cn">SpotSize</span> size) { <span class="kw">return true</span>; }
+}
+
+<span class="kw">class</span> <span class="cn">Car</span> <span class="kw">extends</span> <span class="cn">Vehicle</span> {
+    <span class="kw">public boolean</span> <span class="fn">canFitIn</span>(<span class="cn">SpotSize</span> size) {
+        <span class="kw">return</span> size == <span class="cn">SpotSize</span>.MEDIUM || size == <span class="cn">SpotSize</span>.LARGE;
+    }
+}
+
+<span class="kw">class</span> <span class="cn">Truck</span> <span class="kw">extends</span> <span class="cn">Vehicle</span> {
+    <span class="kw">public boolean</span> <span class="fn">canFitIn</span>(<span class="cn">SpotSize</span> size) {
+        <span class="kw">return</span> size == <span class="cn">SpotSize</span>.LARGE;
+    }
+}</pre>
+      </div>
+    </div>
+
+    <!-- Tab set 2: ParkingSpot -->
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;color:var(--slate);">ParkingSpot — thread-safe park/unpark</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this, 'spot-fields')">Fields</button>
+        <button class="tab-btn" onclick="switchTab(this, 'spot-park')">park / unpark</button>
+      </div>
+      <div class="tab-pane active" id="spot-fields">
+<pre><span class="kw">class</span> <span class="cn">ParkingSpot</span> {
+    <span class="kw">private final</span> String spotId;
+    <span class="kw">private final</span> <span class="cn">SpotSize</span> size;
+    <span class="kw">private volatile boolean</span> isOccupied = <span class="kw">false</span>;
+    <span class="kw">private</span> <span class="cn">Vehicle</span> vehicle;
+
+    <span class="kw">public boolean</span> <span class="fn">isAvailableFor</span>(<span class="cn">Vehicle</span> v) {
+        <span class="kw">return</span> !isOccupied && v.<span class="fn">canFitIn</span>(size);
+    }
+}</pre>
+      </div>
+      <div class="tab-pane" id="spot-park">
+<pre><span class="cm">// synchronized so two threads can't double-book the same spot</span>
+<span class="kw">public synchronized void</span> <span class="fn">park</span>(<span class="cn">Vehicle</span> v) {
+    <span class="kw">if</span> (isOccupied) <span class="kw">throw new</span> <span class="cn">SpotAlreadyOccupiedException</span>();
+    isOccupied = <span class="kw">true</span>;
+    vehicle = v;
+}
+
+<span class="kw">public synchronized void</span> <span class="fn">unpark</span>() {
+    isOccupied = <span class="kw">false</span>;
+    vehicle = <span class="kw">null</span>;
+}</pre>
+      </div>
+    </div>
+
+    <!-- Tab set 3: ParkingLot core -->
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;color:var(--slate);">ParkingLot — Singleton + entry/exit</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this, 'lot-singleton')">Singleton</button>
+        <button class="tab-btn" onclick="switchTab(this, 'lot-entry')">parkVehicle</button>
+        <button class="tab-btn" onclick="switchTab(this, 'lot-exit')">unparkVehicle</button>
+      </div>
+      <div class="tab-pane active" id="lot-singleton">
+<pre><span class="kw">class</span> <span class="cn">ParkingLot</span> {
+    <span class="kw">private static volatile</span> <span class="cn">ParkingLot</span> instance;
+    <span class="kw">private final</span> List&lt;<span class="cn">ParkingFloor</span>&gt; floors;
+    <span class="kw">private final</span> Map&lt;String, <span class="cn">ParkingTicket</span>&gt; activeTickets;
+    <span class="kw">private</span> <span class="cn">PricingStrategy</span> pricingStrategy;
+
+    <span class="kw">private</span> <span class="fn">ParkingLot</span>() {
+        floors = <span class="kw">new</span> ArrayList&lt;&gt;();
+        activeTickets = <span class="kw">new</span> ConcurrentHashMap&lt;&gt;();
+    }
+
+    <span class="cm">// Double-checked locking</span>
+    <span class="kw">public static</span> <span class="cn">ParkingLot</span> <span class="fn">getInstance</span>() {
+        <span class="kw">if</span> (instance == <span class="kw">null</span>) {
+            <span class="kw">synchronized</span> (<span class="cn">ParkingLot</span>.<span class="kw">class</span>) {
+                <span class="kw">if</span> (instance == <span class="kw">null</span>) instance = <span class="kw">new</span> <span class="cn">ParkingLot</span>();
+            }
+        }
+        <span class="kw">return</span> instance;
+    }
+}</pre>
+      </div>
+      <div class="tab-pane" id="lot-entry">
+<pre><span class="kw">public</span> <span class="cn">ParkingTicket</span> <span class="fn">parkVehicle</span>(<span class="cn">Vehicle</span> vehicle) {
+    <span class="kw">for</span> (<span class="cn">ParkingFloor</span> floor : floors) {
+        Optional&lt;<span class="cn">ParkingSpot</span>&gt; spot = floor.<span class="fn">findSpot</span>(vehicle);
+        <span class="kw">if</span> (spot.<span class="fn">isPresent</span>()) {
+            spot.get().<span class="fn">park</span>(vehicle);    <span class="cm">// atomic</span>
+            <span class="cn">ParkingTicket</span> ticket = <span class="kw">new</span> <span class="cn">ParkingTicket</span>(
+                <span class="cn">UUID</span>.<span class="fn">randomUUID</span>().toString(),
+                vehicle,
+                spot.get(),
+                <span class="cn">LocalDateTime</span>.<span class="fn">now</span>()
+            );
+            activeTickets.<span class="fn">put</span>(ticket.getId(), ticket);
+            <span class="kw">return</span> ticket;
+        }
+    }
+    <span class="kw">throw new</span> <span class="cn">ParkingLotFullException</span>(<span class="st">"No spot available for "</span> + vehicle.getType());
+}</pre>
+      </div>
+      <div class="tab-pane" id="lot-exit">
+<pre><span class="kw">public</span> <span class="cn">Payment</span> <span class="fn">unparkVehicle</span>(String ticketId) {
+    <span class="cn">ParkingTicket</span> ticket = activeTickets.<span class="fn">get</span>(ticketId);
+    <span class="kw">if</span> (ticket == <span class="kw">null</span>) <span class="kw">throw new</span> <span class="cn">InvalidTicketException</span>();
+
+    ticket.<span class="fn">setExitTime</span>(<span class="cn">LocalDateTime</span>.<span class="fn">now</span>());
+    <span class="kw">double</span> fee = pricingStrategy.<span class="fn">calculateFee</span>(ticket);
+    ticket.<span class="fn">setFee</span>(fee);
+
+    <span class="cn">Payment</span> payment = <span class="kw">new</span> <span class="cn">Payment</span>(ticket, fee, paymentProcessor);
+    <span class="kw">if</span> (payment.<span class="fn">process</span>()) {
+        ticket.<span class="fn">setStatus</span>(<span class="cn">PaymentStatus</span>.PAID);
+        ticket.getSpot().<span class="fn">unpark</span>();
+        activeTickets.<span class="fn">remove</span>(ticketId);
+    } <span class="kw">else</span> {
+        ticket.<span class="fn">setStatus</span>(<span class="cn">PaymentStatus</span>.FAILED);
+    }
+    <span class="kw">return</span> payment;
+}</pre>
+      </div>
+    </div>
+
+    <!-- Pricing strategy -->
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;color:var(--slate);">Pricing Strategy</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this, 'pricing-interface')">Interface</button>
+        <button class="tab-btn" onclick="switchTab(this, 'pricing-hourly')">Hourly</button>
+        <button class="tab-btn" onclick="switchTab(this, 'pricing-tiered')">Tiered</button>
+      </div>
+      <div class="tab-pane active" id="pricing-interface">
+<pre><span class="kw">interface</span> <span class="cn">PricingStrategy</span> {
+    <span class="kw">double</span> <span class="fn">calculateFee</span>(<span class="cn">ParkingTicket</span> ticket);
+}</pre>
+      </div>
+      <div class="tab-pane" id="pricing-hourly">
+<pre><span class="kw">class</span> <span class="cn">HourlyPricingStrategy</span> <span class="kw">implements</span> <span class="cn">PricingStrategy</span> {
+    <span class="kw">private final</span> Map&lt;<span class="cn">VehicleType</span>, Double&gt; rates = Map.of(
+        <span class="cn">VehicleType</span>.MOTORCYCLE, <span class="nm">20.0</span>,
+        <span class="cn">VehicleType</span>.CAR,        <span class="nm">40.0</span>,
+        <span class="cn">VehicleType</span>.TRUCK,      <span class="nm">80.0</span>
+    );
+
+    <span class="kw">public double</span> <span class="fn">calculateFee</span>(<span class="cn">ParkingTicket</span> ticket) {
+        <span class="kw">long</span> hours = <span class="cn">ChronoUnit</span>.HOURS.<span class="fn">between</span>(
+            ticket.<span class="fn">getEntryTime</span>(), ticket.<span class="fn">getExitTime</span>()
+        );
+        <span class="kw">double</span> rate = rates.<span class="fn">get</span>(ticket.getVehicle().getType());
+        <span class="kw">return</span> Math.<span class="fn">max</span>(<span class="nm">1</span>, hours) * rate; <span class="cm">// minimum 1 hour</span>
+    }
+}</pre>
+      </div>
+      <div class="tab-pane" id="pricing-tiered">
+<pre><span class="kw">class</span> <span class="cn">TieredPricingStrategy</span> <span class="kw">implements</span> <span class="cn">PricingStrategy</span> {
+    <span class="kw">public double</span> <span class="fn">calculateFee</span>(<span class="cn">ParkingTicket</span> ticket) {
+        <span class="kw">long</span> mins = <span class="cn">ChronoUnit</span>.MINUTES.<span class="fn">between</span>(
+            ticket.<span class="fn">getEntryTime</span>(), ticket.<span class="fn">getExitTime</span>()
+        );
+        <span class="kw">if</span> (mins &lt;= <span class="nm">30</span>)  <span class="kw">return</span> <span class="nm">0</span>;    <span class="cm">// grace period</span>
+        <span class="kw">if</span> (mins &lt;= <span class="nm">60</span>)  <span class="kw">return</span> <span class="nm">30</span>;
+        <span class="kw">if</span> (mins &lt;= <span class="nm">120</span>) <span class="kw">return</span> <span class="nm">50</span>;
+        <span class="kw">return</span> <span class="nm">50</span> + ((mins - <span class="nm">120</span>) / <span class="nm">60.0</span>) * <span class="nm">20</span>; <span class="cm">// ₹20/hr after 2h</span>
+    }
+}</pre>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== 07 DESIGN PATTERNS ===== -->
+<section id="patterns">
+  <div class="sec-head"><span class="idx">07</span><h2>Design Patterns Used</h2></div>
+  <p class="sec-intro">Name these explicitly in the interview — interviewers want to hear the vocabulary.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="p-name">Creational</div>
+        <div class="p-title">Singleton</div>
+        <div class="p-desc">ParkingLot is a single shared instance. Use double-checked locking with <code>volatile</code> for thread safety.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Behavioral</div>
+        <div class="p-title">Strategy</div>
+        <div class="p-desc">PricingStrategy interface lets you swap HourlyPricing vs TieredPricing without touching the lot code.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Structural</div>
+        <div class="p-title">Composite</div>
+        <div class="p-desc">ParkingLot → ParkingFloor → ParkingSpot forms a tree. You can query availability at any level uniformly.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Creational</div>
+        <div class="p-title">Factory</div>
+        <div class="p-desc">VehicleFactory creates the right Vehicle subclass from a type enum, keeping creation logic in one place.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Behavioral</div>
+        <div class="p-title">Template Method</div>
+        <div class="p-desc">Abstract Vehicle defines the contract; each subclass implements canFitIn() — the algorithm skeleton is fixed, the step varies.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Structural</div>
+        <div class="p-title">Facade</div>
+        <div class="p-desc">ParkingLot is a facade: clients call parkVehicle/unparkVehicle without knowing about floors, spots, or pricing internals.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 08 CONCURRENCY ===== -->
+<section id="concurrency">
+  <div class="sec-head"><span class="idx">08</span><h2>Concurrency &amp; Thread Safety</h2></div>
+  <p class="sec-intro">Most candidates skip this. Bring it up — it shows senior-level thinking.</p>
+  <div class="content-block">
+
+    <div class="highlight-box">
+      <strong>The core race condition:</strong> two threads find the same spot available simultaneously and both try to park. Without synchronization, both succeed — double booking.
+    </div>
+
+    <table class="thread-table" style="margin-top:16px;margin-bottom:16px;">
+      <thead>
+        <tr><th>Risk</th><th>Location</th><th>Severity</th><th>Fix</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Double-book a spot</td>
+          <td>ParkingSpot.park()</td>
+          <td class="risk-high">HIGH</td>
+          <td><code>synchronized</code> on the spot object</td>
+        </tr>
+        <tr>
+          <td>Stale singleton instance</td>
+          <td>ParkingLot.getInstance()</td>
+          <td class="risk-high">HIGH</td>
+          <td><code>volatile</code> + double-checked locking</td>
+        </tr>
+        <tr>
+          <td>ConcurrentModification on activeTickets</td>
+          <td>ParkingLot</td>
+          <td class="risk-med">MED</td>
+          <td>Use <code>ConcurrentHashMap</code></td>
+        </tr>
+        <tr>
+          <td>Floor-level spot search races</td>
+          <td>ParkingFloor.findSpot()</td>
+          <td class="risk-med">MED</td>
+          <td>Lock at spot level, not floor level — better throughput</td>
+        </tr>
+        <tr>
+          <td>Fee calculation on stale exitTime</td>
+          <td>ParkingTicket</td>
+          <td class="risk-low">LOW</td>
+          <td>Set exitTime once atomically before calculating</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-bottom:10px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;color:var(--slate);">Advanced: ReentrantLock per spot (better throughput)</p>
+<pre><span class="kw">class</span> <span class="cn">ParkingSpot</span> {
+    <span class="kw">private final</span> <span class="cn">ReentrantLock</span> lock = <span class="kw">new</span> <span class="cn">ReentrantLock</span>();
+
+    <span class="kw">public boolean</span> <span class="fn">tryPark</span>(<span class="cn">Vehicle</span> v) {
+        <span class="kw">if</span> (lock.<span class="fn">tryLock</span>()) {         <span class="cm">// non-blocking attempt</span>
+            <span class="kw">try</span> {
+                <span class="kw">if</span> (!isOccupied && v.<span class="fn">canFitIn</span>(size)) {
+                    isOccupied = <span class="kw">true</span>;
+                    vehicle = v;
+                    <span class="kw">return true</span>;
+                }
+            } <span class="kw">finally</span> {
+                lock.<span class="fn">unlock</span>();
+            }
+        }
+        <span class="kw">return false</span>;
+    }
+}</pre>
+      <p class="small-note">→ tryLock() avoids blocking the whole floor while one spot is being parked. Each spot locks independently = O(1) contention per spot.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 09 INTERVIEW TIPS ===== -->
+<section id="tips">
+  <div class="sec-head"><span class="idx">09</span><h2>Interview Tips</h2></div>
+  <p class="sec-intro">What separates a good answer from a great one.</p>
+  <div class="content-block">
+    <div class="tip">
+      <div class="tip-icon">1</div>
+      <div class="tip-text"><strong>Start with requirements, not code.</strong> Spend 3-5 minutes asking clarifying questions. Interviewers score this as signal that you don't jump to implementation before you understand the problem.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">2</div>
+      <div class="tip-text"><strong>Name your design patterns out loud.</strong> Say "I'm using the Strategy pattern here so we can swap pricing without touching the Lot" — not just "I made an interface." Vocabulary matters.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">3</div>
+      <div class="tip-text"><strong>Lead with classes, not methods.</strong> Draw the entities first. Interviewers want to see that you can identify the nouns (domain model) before the verbs (behavior).</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">4</div>
+      <div class="tip-text"><strong>Bring up concurrency unprompted.</strong> Say "Since we can have concurrent entries, ParkingSpot.park() must be synchronized." This differentiates you — most candidates ignore threading entirely.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">5</div>
+      <div class="tip-text"><strong>canFitIn() on Vehicle, not on Spot.</strong> A common mistake is putting the fit logic on ParkingSpot. But the vehicle knows its own constraints — putting it there keeps Spot dumb and extensible to new vehicle types.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">6</div>
+      <div class="tip-text"><strong>Mention extensibility explicitly.</strong> "If we add a new vehicle type — say an E-Rickshaw — we just add a subclass and implement canFitIn(). No changes to ParkingLot or ParkingSpot." This is the Open/Closed Principle — say it.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">7</div>
+      <div class="tip-text"><strong>ParkingLot is a Facade, not a God class.</strong> If you end up putting all logic in ParkingLot, flag it: "In production I'd split search, pricing, and payment into separate services." Shows architectural awareness.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">8</div>
+      <div class="tip-text"><strong>The ticket is the source of truth.</strong> EntryTime lives on the ticket, not on the spot. The spot only knows if it's occupied — the ticket carries all audit information needed for billing.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span class="k">Parking Lot — Low Level Design</span>
+  <span>Software Engineering Interview Prep</span>
+</footer>
+
+</div>
+
+<script>
+  function switchTab(btn, id) {
+    const parent = btn.closest('.content-block') || btn.closest('div[style]') || btn.parentElement.parentElement;
+    const allBtns = btn.parentElement.querySelectorAll('.tab-btn');
+    const allPanes = btn.parentElement.nextElementSibling
+      ? btn.parentElement.parentElement.querySelectorAll('.tab-pane')
+      : [];
+
+    // deactivate all buttons in this tab group
+    allBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // find all tab panes in same container
+    const container = btn.closest('[style*="margin-bottom"]') || btn.closest('section') || btn.parentElement.parentElement;
+    const panes = container.querySelectorAll('.tab-pane');
+    panes.forEach(p => p.classList.remove('active'));
+
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+  }
+
+  // Collapsible cards
+  document.querySelectorAll('.card-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const body = header.nextElementSibling;
+      const isOpen = body.classList.contains('visible');
+      body.classList.toggle('visible', !isOpen);
+      header.classList.toggle('open', !isOpen);
+    });
+  });
+</script>
+</body>
+</html>

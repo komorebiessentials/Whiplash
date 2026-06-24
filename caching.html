@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caching Strategies — Key Concept</title>
+<style>
+  :root{--ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;--clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;--g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;--serif:ui-serif,Georgia,"Times New Roman",Times,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;}
+  *{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}
+  body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px 120px;}
+  header.masthead{padding:72px 0 48px;border-bottom:1.5px solid var(--g300);margin-bottom:8px;}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--g500);margin-bottom:16px;display:flex;align-items:center;gap:10px;}.eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay);}
+  .back{font-family:var(--mono);font-size:11px;text-decoration:none;color:var(--g500);margin-right:14px;transition:color 120ms;}.back:hover{color:var(--clay);}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5vw,54px);line-height:1.06;letter-spacing:-.018em;margin-bottom:8px;}h1 em{font-style:italic;color:var(--clay);}
+  .intro{font-size:15px;color:var(--g700);margin-top:16px;max-width:600px;}
+  nav.toc{display:flex;flex-wrap:wrap;gap:8px;padding-top:24px;}
+  nav.toc a{font-size:12px;padding:6px 14px;border:1.5px solid var(--g300);border-radius:999px;text-decoration:none;color:var(--g700);background:var(--paper);transition:border-color 120ms,color 120ms;}nav.toc a:hover{border-color:var(--slate);color:var(--slate);}
+  section{margin-top:60px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px;}.sec-head .idx{font-family:var(--mono);font-size:12px;color:var(--clay);font-weight:600;width:30px;flex-shrink:0;}.sec-head h2{font-family:var(--serif);font-weight:500;font-size:24px;letter-spacing:-.012em;}
+  .sec-intro{font-size:14px;color:var(--g700);max-width:680px;margin:0 0 20px 44px;}.content-block{margin-left:44px;}
+  @media(max-width:600px){.content-block,.sec-intro{margin-left:0;}}
+  .strategy-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+  .strategy-card .s-name{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--clay);margin-bottom:6px;}
+  .strategy-card .s-title{font-size:15px;font-weight:600;margin-bottom:8px;}
+  .strategy-card .s-desc{font-size:13px;color:var(--g700);margin-bottom:10px;}
+  .pros-cons{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12.5px;}
+  .pros-cons .pro{color:var(--olive);}.pros-cons .con{color:var(--clay);}
+  .pros-cons li{margin-left:14px;margin-bottom:3px;}
+  pre{background:#1A1A18;color:#E8E6DF;border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;margin:10px 0;}
+  pre .kw{color:#CF9F6E;}pre .cn{color:#88C0A0;}pre .cm{color:#5F5F5A;}pre .st{color:#A8C97A;}pre .fn{color:#D97757;}
+  .tabs{display:flex;gap:4px;margin-bottom:-1px;}.tab-btn{font-family:var(--mono);font-size:11.5px;padding:7px 14px;border:1.5px solid var(--g300);border-bottom:none;border-radius:7px 7px 0 0;background:var(--g100);color:var(--g500);cursor:pointer;transition:background 120ms,color 120ms;}.tab-btn.active{background:var(--paper);color:var(--slate);}.tab-pane{display:none;border:1.5px solid var(--g300);}.tab-pane.active{display:block;}.tab-pane pre{border-radius:0 6px 6px 6px;margin:0;}
+  .rel-table{width:100%;border-collapse:collapse;font-size:13px;}.rel-table th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);text-align:left;padding:6px 10px;border-bottom:1.5px solid var(--g300);}.rel-table td{padding:8px 10px;border-bottom:1px solid var(--g100);color:var(--g700);vertical-align:top;}.rel-table td:first-child{font-weight:600;color:var(--slate);}
+  .tip{display:flex;gap:12px;background:var(--g100);border-radius:8px;padding:12px 14px;margin-bottom:10px;}.tip .tip-icon{font-size:15px;flex-shrink:0;font-weight:700;color:var(--clay);}.tip .tip-text{font-size:13.5px;color:var(--g700);}.tip .tip-text strong{color:var(--slate);}
+  .pattern-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}.pattern-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:10px;padding:14px 16px;}.pattern-card .p-name{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--olive);margin-bottom:6px;}.pattern-card .p-title{font-size:14px;font-weight:600;margin-bottom:5px;}.pattern-card .p-desc{font-size:12.5px;color:var(--g700);}
+  footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:28px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:16px;font-size:12.5px;color:var(--g500);}footer .k{font-family:var(--serif);font-style:italic;color:var(--g700);font-size:14px;}footer a{color:var(--clay);text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="masthead">
+  <div class="eyebrow"><a class="back" href="index.html">← Home</a> Performance · Key Concept</div>
+  <h1>Caching <em>Strategies</em></h1>
+  <p class="intro">Cache strategies define when data enters and leaves a cache. Eviction policies decide what to remove when it's full. Together they determine latency, consistency, and cost.</p>
+  <nav class="toc">
+    <a href="#what">What Is It</a><a href="#problem">The Problem</a><a href="#strategies">Strategies</a>
+    <a href="#eviction">Eviction</a><a href="#code">Code</a><a href="#tradeoffs">Trade-offs</a>
+    <a href="#realworld">Real World</a><a href="#tips">Interview Tips</a>
+  </nav>
+</header>
+
+<section id="what">
+  <div class="sec-head"><span class="idx">01</span><h2>What Is It</h2></div>
+  <p class="sec-intro">A cache is a fast, in-memory store that sits in front of a slower data store. A cache hit (<1ms) vs a cache miss (DB query: 50-200ms) is a 100-1000× latency difference.</p>
+  <div class="content-block">
+    <div style="text-align:center;">
+      <svg viewBox="0 0 480 100" style="max-width:480px;width:100%;height:auto;">
+        <rect x="10" y="30" width="80" height="40" rx="6" fill="var(--paper)" stroke="var(--g300)" stroke-width="2"/>
+        <text x="50" y="53" text-anchor="middle" font-family="monospace" font-size="11" fill="var(--g700)">CLIENT</text>
+        <rect x="150" y="20" width="80" height="60" rx="6" fill="var(--clay)" opacity=".9"/>
+        <text x="190" y="47" text-anchor="middle" font-family="monospace" font-size="11" fill="white" font-weight="700">CACHE</text>
+        <text x="190" y="63" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.7)">&lt;1ms</text>
+        <rect x="350" y="30" width="80" height="40" rx="6" fill="var(--paper)" stroke="var(--g300)" stroke-width="2"/>
+        <text x="390" y="48" text-anchor="middle" font-family="monospace" font-size="11" fill="var(--g700)">DATABASE</text>
+        <text x="390" y="62" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--g500)">50-200ms</text>
+        <line x1="90" y1="50" x2="150" y2="50" stroke="var(--olive)" stroke-width="2" stroke-linecap="round"/>
+        <polygon fill="var(--olive)" points="148,46 154,50 148,54"/>
+        <text x="120" y="44" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--olive)">HIT →</text>
+        <line x1="230" y1="50" x2="350" y2="50" stroke="var(--g500)" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"/>
+        <text x="290" y="44" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--g500)">MISS →</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section id="problem">
+  <div class="sec-head"><span class="idx">02</span><h2>The Problem It Solves</h2></div>
+  <p class="sec-intro">Without caching: every request hits the database. A single server can handle ~1,000 DB queries/sec. With caching: the same server handles 100,000+ requests/sec for cached data.</p>
+  <div class="content-block">
+    <p style="font-size:13.5px;color:var(--g700);">The two hard problems in caching (Phil Karlton): <strong>"Cache invalidation and naming things."</strong> When the DB changes, how do you know which cache entries are now stale? This is the core challenge that each strategy addresses differently.</p>
+  </div>
+</section>
+
+<section id="strategies">
+  <div class="sec-head"><span class="idx">03</span><h2>Caching Strategies</h2></div>
+  <p class="sec-intro">Four strategies — each answers: when does data enter the cache, and how does it stay consistent with the DB?</p>
+  <div class="content-block">
+    <div class="strategy-card">
+      <div class="s-name">Most Common</div>
+      <div class="s-title">1. Cache-Aside (Lazy Loading)</div>
+      <div class="s-desc">App checks cache → HIT: return. MISS: load from DB, store in cache, return. Cache populated on demand.</div>
+      <div class="pros-cons">
+        <ul class="pro"><li>Only caches what's actually read</li><li>Cache failure doesn't break app</li><li>Simple to implement</li></ul>
+        <ul class="con"><li>First read always slow (cold cache)</li><li>Stale data until TTL expires</li><li>Cache stampede risk on miss</li></ul>
+      </div>
+    </div>
+    <div class="strategy-card">
+      <div class="s-name">Read-Heavy</div>
+      <div class="s-title">2. Write-Through</div>
+      <div class="s-desc">Write to cache AND DB simultaneously. Cache always mirrors DB. Reads always fast.</div>
+      <div class="pros-cons">
+        <ul class="pro"><li>No stale reads</li><li>Cache always warm</li></ul>
+        <ul class="con"><li>Write latency = cache + DB combined</li><li>Caches data that may never be read</li></ul>
+      </div>
+    </div>
+    <div class="strategy-card">
+      <div class="s-name">Write-Heavy</div>
+      <div class="s-title">3. Write-Back (Write-Behind)</div>
+      <div class="s-desc">Write to cache only. Cache asynchronously flushes to DB. Fastest write path.</div>
+      <div class="pros-cons">
+        <ul class="pro"><li>Fastest writes</li><li>Batches DB writes for efficiency</li></ul>
+        <ul class="con"><li>Data loss if cache crashes before flush</li><li>Complex implementation</li></ul>
+      </div>
+    </div>
+    <div class="strategy-card">
+      <div class="s-name">Write-Heavy, Rarely Read Back</div>
+      <div class="s-title">4. Write-Around</div>
+      <div class="s-desc">Writes go directly to DB (bypass cache). Cache populated only on reads. Good for data written once and rarely re-read.</div>
+      <div class="pros-cons">
+        <ul class="pro"><li>Avoids caching cold write data</li><li>Good for log/event data</li></ul>
+        <ul class="con"><li>First read after write is always a miss</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="eviction">
+  <div class="sec-head"><span class="idx">04</span><h2>Eviction Policies</h2></div>
+  <p class="sec-intro">When the cache is full, which key to remove?</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>Policy</th><th>Remove which key</th><th>Implementation</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td>LRU</td><td>Least Recently Used — not accessed the longest</td><td>LinkedHashMap(accessOrder=true)</td><td>General purpose — temporal locality</td></tr>
+        <tr><td>LFU</td><td>Least Frequently Used — fewest total accesses</td><td>Min-heap + frequency map</td><td>Hot/cold data — popular items stay longer</td></tr>
+        <tr><td>FIFO</td><td>Oldest inserted key</td><td>Queue</td><td>Simple, no access tracking</td></tr>
+        <tr><td>TTL</td><td>Expired by time-to-live</td><td>DelayQueue / lazy check</td><td>Data with known freshness window</td></tr>
+        <tr><td>Random</td><td>Random key</td><td>Random index</td><td>Surprisingly competitive; used in Redis</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="code">
+  <div class="sec-head"><span class="idx">05</span><h2>Code</h2></div>
+  <div class="content-block">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(this,'lru-impl')">LRU Cache</button>
+      <button class="tab-btn" onclick="switchTab(this,'cache-aside')">Cache-Aside</button>
+      <button class="tab-btn" onclick="switchTab(this,'stampede')">Cache Stampede Fix</button>
+    </div>
+    <div class="tab-pane active" id="lru-impl"><pre><span class="kw">class</span> <span class="cn">LRUCache</span>&lt;K, V&gt; {
+    <span class="kw">private final int</span> capacity;
+    <span class="kw">private final</span> LinkedHashMap&lt;K, V&gt; cache;
+
+    <span class="fn">LRUCache</span>(<span class="kw">int</span> capacity) {
+        <span class="kw">this</span>.capacity = capacity;
+        <span class="cm">// accessOrder=true: get() moves entry to tail (most-recently-used)</span>
+        <span class="kw">this</span>.cache = <span class="kw">new</span> LinkedHashMap&lt;&gt;(capacity, 0.75f, <span class="kw">true</span>) {
+            <span class="kw">protected boolean</span> <span class="fn">removeEldestEntry</span>(Map.Entry&lt;K,V&gt; eldest) {
+                <span class="kw">return</span> <span class="fn">size</span>() &gt; capacity; <span class="cm">// auto-evict LRU when full</span>
+            }
+        };
+    }
+
+    <span class="kw">public synchronized</span> V <span class="fn">get</span>(K key) {
+        <span class="kw">return</span> cache.<span class="fn">getOrDefault</span>(key, <span class="kw">null</span>);
+    }
+    <span class="kw">public synchronized void</span> <span class="fn">put</span>(K key, V value) { cache.<span class="fn">put</span>(key, value); }
+    <span class="kw">public synchronized void</span> <span class="fn">invalidate</span>(K key)    { cache.<span class="fn">remove</span>(key); }
+}</pre></div>
+    <div class="tab-pane" id="cache-aside"><pre><span class="kw">public</span> <span class="cn">User</span> <span class="fn">getUser</span>(String userId) {
+    String key = <span class="st">"user:"</span> + userId;
+
+    <span class="cm">// 1. Check cache</span>
+    <span class="cn">User</span> cached = cache.<span class="fn">get</span>(key);
+    <span class="kw">if</span> (cached != <span class="kw">null</span>) <span class="kw">return</span> cached; <span class="cm">// HIT</span>
+
+    <span class="cm">// 2. Miss — load from DB</span>
+    <span class="cn">User</span> user = userRepo.<span class="fn">findById</span>(userId);
+
+    <span class="cm">// 3. Populate cache with TTL</span>
+    cache.<span class="fn">put</span>(key, user, Duration.<span class="fn">ofMinutes</span>(15));
+    <span class="kw">return</span> user;
+}
+
+<span class="kw">public void</span> <span class="fn">updateUser</span>(<span class="cn">User</span> user) {
+    userRepo.<span class="fn">save</span>(user);
+    cache.<span class="fn">invalidate</span>(<span class="st">"user:"</span> + user.<span class="fn">getId</span>()); <span class="cm">// invalidate stale entry</span>
+}</pre></div>
+    <div class="tab-pane" id="stampede"><pre><span class="cm">// Cache stampede: 10,000 threads miss simultaneously → 10,000 DB queries</span>
+<span class="cm">// Fix: only one thread loads, others wait on the same lock</span>
+<span class="kw">private final</span> ConcurrentHashMap&lt;String, Object&gt; locks = <span class="kw">new</span> ConcurrentHashMap&lt;&gt;();
+
+<span class="kw">public</span> <span class="cn">User</span> <span class="fn">getUserSafe</span>(String userId) {
+    String key = <span class="st">"user:"</span> + userId;
+    <span class="cn">User</span> hit = cache.<span class="fn">get</span>(key);
+    <span class="kw">if</span> (hit != <span class="kw">null</span>) <span class="kw">return</span> hit;
+
+    Object lock = locks.<span class="fn">computeIfAbsent</span>(key, k -> <span class="kw">new</span> Object());
+    <span class="kw">synchronized</span> (lock) {
+        <span class="cn">User</span> recheck = cache.<span class="fn">get</span>(key); <span class="cm">// double-check after lock</span>
+        <span class="kw">if</span> (recheck != <span class="kw">null</span>) <span class="kw">return</span> recheck;
+
+        <span class="cn">User</span> user = userRepo.<span class="fn">findById</span>(userId);
+        cache.<span class="fn">put</span>(key, user, Duration.<span class="fn">ofMinutes</span>(15));
+        locks.<span class="fn">remove</span>(key);
+        <span class="kw">return</span> user;
+    }
+}</pre></div>
+  </div>
+</section>
+
+<section id="tradeoffs">
+  <div class="sec-head"><span class="idx">06</span><h2>Trade-offs</h2></div>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>Strategy</th><th>Write Speed</th><th>Read Consistency</th><th>Complexity</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td>Cache-Aside</td><td>Normal</td><td>Eventual (TTL)</td><td>Low</td><td>Read-heavy, general purpose</td></tr>
+        <tr><td>Write-Through</td><td>Slower</td><td>Strong</td><td>Medium</td><td>Data that must be fresh on read</td></tr>
+        <tr><td>Write-Back</td><td>Fastest</td><td>Risk of loss</td><td>High</td><td>Write-heavy, tolerate some loss</td></tr>
+        <tr><td>Write-Around</td><td>Normal</td><td>Miss on first read</td><td>Low</td><td>Rarely-read write data</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="realworld">
+  <div class="sec-head"><span class="idx">07</span><h2>Real-World Usage</h2></div>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name">Redis</div><div class="p-title">Remote cache</div><div class="p-desc">Supports allkeys-lru, allkeys-lfu, volatile-ttl eviction. Used for cache-aside at scale.</div></div>
+      <div class="pattern-card"><div class="p-name">CDN (CloudFront, Fastly)</div><div class="p-title">Write-around</div><div class="p-desc">Origin writes to S3; CDN caches on first read per region. Cache-Control headers define TTL.</div></div>
+      <div class="pattern-card"><div class="p-name">CPU L1/L2</div><div class="p-title">Write-back</div><div class="p-desc">Hardware-managed write-back cache. CPU writes to cache; hardware flushes to RAM asynchronously.</div></div>
+      <div class="pattern-card"><div class="p-name">Browser Cache</div><div class="p-title">TTL-based</div><div class="p-desc">Cache-Control: max-age=3600. Stale-while-revalidate for fresh-enough responses.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="tips">
+  <div class="sec-head"><span class="idx">08</span><h2>Interview Tips</h2></div>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>Ask before designing:</strong> read-heavy or write-heavy? What's acceptable staleness? These two questions determine the strategy. Don't pick one without asking.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>Always mention TTL.</strong> Without TTL, stale data lives forever. "I'd set a 15-minute TTL here and invalidate on write." Both mechanisms together — proactive invalidation AND TTL as a fallback.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>Cache stampede is the follow-up question.</strong> "What if 10,000 requests all miss simultaneously?" — use a mutex/lock per key so only one thread loads from DB. Double-check after acquiring the lock.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>LRU is the default eviction policy.</strong> Know its O(1) implementation: LinkedHashMap with accessOrder=true, or doubly-linked list + HashMap. LFU is better when you have a small hot set accessed millions of times.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Cache invalidation strategies:</strong> (a) invalidate on write — immediate consistency; (b) TTL — eventual consistency; (c) event-driven — subscribe to DB changes. "I'd use (a) + (b) as fallback."</div></div>
+    <div class="tip"><div class="tip-icon">6</div><div class="tip-text"><strong>Hot key problem:</strong> one viral key overwhelms one cache shard. Solutions: read replicas for that key, local in-process cache, key splitting (user:123:shard-0..2). Mention this shows depth.</div></div>
+  </div>
+</section>
+
+<footer><span class="k">Caching Strategies — Performance</span><span><a href="concepts-index.html">← All Concepts</a></span></footer>
+</div>
+<script>
+function switchTab(btn,id){const grp=btn.parentElement;grp.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const wrap=grp.parentElement;wrap.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');}
+</script>
+</body></html>

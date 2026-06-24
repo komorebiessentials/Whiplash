@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design a Paste Sharing Service — HLD</title>
+<style>
+:root {
+  --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+  --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+  --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+  --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 0 28px 100px; }
+.top-nav { padding: 24px 0 0; display: flex; align-items: center; gap: 16px; }
+.back { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); text-decoration: none; display: flex; align-items: center; gap: 6px; }
+.back:hover { color: var(--clay); }
+header { padding: 48px 0 40px; border-bottom: 1.5px solid var(--g300); margin-bottom: 32px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--clay); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.eyebrow::before { content: ""; width: 20px; height: 1.5px; background: var(--clay); }
+h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(32px, 5vw, 52px); line-height: 1.06; letter-spacing: -.02em; margin-bottom: 12px; }
+.tagline { font-size: 16px; color: var(--g700); max-width: 560px; }
+nav.toc { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 48px; }
+nav.toc a { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); text-decoration: none; padding: 5px 12px; border: 1.5px solid var(--g200); border-radius: 20px; transition: all .15s; }
+nav.toc a:hover { color: var(--clay); border-color: var(--clay); }
+.section { margin-bottom: 64px; }
+.section-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--clay); margin-bottom: 6px; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 28px; letter-spacing: -.01em; margin-bottom: 24px; }
+.req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:600px){.req-grid{grid-template-columns:1fr;}}
+.req-item { padding: 14px 16px; border-radius: 10px; font-size: 14px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+.req-item.func { background: var(--paper); border: 1.5px solid var(--g300); }
+.req-item.nfunc { background: var(--g100); border: 1.5px solid var(--g200); }
+.req-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.req-item.func .req-dot { background: var(--clay); }
+.req-item.nfunc .req-dot { background: var(--olive); }
+.est-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.est-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); padding: 8px 12px; text-align: left; border-bottom: 1.5px solid var(--g300); }
+.est-table td { padding: 10px 12px; border-bottom: 1px solid var(--g200); }
+.est-table tr:last-child td { border-bottom: none; }
+.est-table td:first-child { font-weight: 500; color: var(--g700); }
+.est-table td:last-child { font-family: var(--mono); font-size: 13px; color: var(--clay); }
+.arch-box { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 14px; padding: 28px; overflow-x: auto; }
+.arch-box svg { display: block; margin: 0 auto; }
+.api-block { background: var(--slate); border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; overflow-x: auto; }
+.api-block pre { font-family: var(--mono); font-size: 13px; color: #e8e6e0; line-height: 1.7; white-space: pre; }
+.api-method { color: var(--clay); font-weight: 700; }
+.api-path { color: #a8d8b4; }
+.api-comment { color: var(--g500); }
+.schema-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 12px; padding: 20px 22px; margin-bottom: 14px; }
+.schema-name { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--clay); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.schema-fields { font-family: var(--mono); font-size: 13px; color: var(--g700); line-height: 1.9; }
+.schema-fields .field-name { color: var(--slate); font-weight: 600; }
+.schema-fields .field-type { color: var(--olive); }
+.schema-note { font-size: 13px; color: var(--g500); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--g200); }
+.dive-card { background: var(--paper); border-left: 3px solid var(--clay); border-radius: 0 10px 10px 0; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+.dive-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: var(--slate); }
+.dive-body { font-size: 14px; color: var(--g700); line-height: 1.6; }
+.dive-body ul { margin: 6px 0 0 16px; }
+.dive-body li { margin-bottom: 4px; }
+.dive-body code { font-family: var(--mono); font-size: 12px; background: var(--g100); padding: 1px 5px; border-radius: 4px; color: var(--clay); }
+.scale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:600px){.scale-grid{grid-template-columns:1fr;}}
+.scale-card { background: var(--g100); border-radius: 10px; padding: 16px 18px; }
+.scale-card h4 { font-size: 13px; font-weight: 600; color: var(--clay); margin-bottom: 6px; }
+.scale-card p { font-size: 13px; color: var(--g700); line-height: 1.5; }
+.tip { display: flex; gap: 14px; align-items: flex-start; background: var(--paper); border: 1.5px solid var(--g300); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+.tip-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.tip-text { font-size: 14px; color: var(--g700); line-height: 1.55; }
+.tip-text strong { color: var(--slate); }
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+@media(max-width:600px){.compare-grid{grid-template-columns:1fr;}}
+.compare-card { background: var(--g100); border-radius: 10px; padding: 14px 16px; }
+.compare-card h4 { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--clay); margin-bottom: 8px; }
+.compare-card p { font-size: 13px; color: var(--g700); line-height: 1.5; }
+footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 24px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--g500); }
+footer a { color: var(--clay); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+/* ── Interactive arch ── */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:700px){.arch-wrap{grid-template-columns:1fr}}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px}
+.ap-empty{color:var(--g500);font-size:13px;text-align:center;padding-top:40px}
+/* ── Flow stepper ── */
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);font-size:14px;margin:0 2px}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin:16px 0;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.65;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:12px;margin-top:8px}
+.fnav-btn{padding:7px 18px;border-radius:7px;border:1.5px solid var(--g300);font-size:13px;font-weight:500;background:var(--g100);cursor:pointer;transition:all .15s}
+.fnav-btn:hover:not(:disabled){background:var(--clay);border-color:var(--clay);color:white}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:12px;color:var(--g500)}
+.flow-dots{display:flex;gap:6px;margin-left:auto}
+.fdot{width:8px;height:8px;border-radius:50%;background:var(--g300);cursor:pointer;transition:background .15s}
+.fdot.on{background:var(--clay)}
+/* ── Self-check ── */
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden;margin-bottom:8px}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+/* ── Key Space Calculator ── */
+.playground{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin:28px 0}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+@media(max-width:560px){.calc-grid{grid-template-columns:1fr}}
+.calc-field label{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);margin-bottom:6px}
+.calc-field input{width:100%;padding:9px 12px;font-family:var(--mono);font-size:14px;border:1.5px solid var(--g300);border-radius:8px;background:var(--g100);color:var(--slate);outline:none}
+.calc-field input:focus{border-color:var(--clay)}
+.calc-result{background:var(--g100);border-radius:10px;padding:16px 20px}
+.cr-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--g200);font-size:14px}
+.cr-row:last-child{border-bottom:none;padding-top:10px}
+.cr-label{color:var(--g700)}
+.cr-val{font-family:var(--mono);color:var(--clay);font-weight:600;font-size:15px}
+.cr-danger{color:#e07;}
+.cr-ok{color:#6a9f5b}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top-nav">
+  <a class="back" href="index.html">← Home</a>
+  <span style="color:var(--g300)">|</span>
+  <a class="back" href="hld-index.html">HLD Problems</a>
+</div>
+
+<header>
+  <div class="eyebrow">High Level Design</div>
+  <h1>Pastebin</h1>
+  <p class="tagline">Design a paste-sharing service where users create text/code snippets with unique URLs — a focused problem combining object storage, ID generation, and CDN caching.</p>
+</header>
+
+<nav class="toc">
+  <a href="#overview">Requirements</a>
+  <a href="#estimation">Estimation</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Request Flow</a>
+  <a href="#api">API</a>
+  <a href="#database">Data Model</a>
+  <a href="#deep-dive">Deep Dive</a>
+  <a href="#playground">Key Space Calc</a>
+  <a href="#self-check">Self-Check</a>
+  <a href="#tips">Interview Tips</a>
+</nav>
+
+<!-- 1. Requirements -->
+<div class="section" id="overview">
+  <div class="section-label">Section 01</div>
+  <h2>Requirements</h2>
+  <div style="margin-bottom:16px"><strong style="font-size:13px;color:var(--clay)">Functional</strong></div>
+  <div class="req-grid" style="margin-bottom:20px">
+    <div class="req-item func"><span class="req-dot"></span>Create a paste (text or code, up to 10 MB) and receive a unique short URL</div>
+    <div class="req-item func"><span class="req-dot"></span>View paste content via its unique URL; optionally view raw text</div>
+    <div class="req-item func"><span class="req-dot"></span>Set paste expiration (1 hour / 1 day / 1 week / never)</div>
+    <div class="req-item func"><span class="req-dot"></span>Password-protect a paste; require password to view</div>
+    <div class="req-item func"><span class="req-dot"></span>Syntax highlighting by programming language</div>
+    <div class="req-item func"><span class="req-dot"></span>View count tracking per paste; user's paste history</div>
+  </div>
+  <div style="margin-bottom:16px"><strong style="font-size:13px;color:var(--olive)">Non-Functional</strong></div>
+  <div class="req-grid">
+    <div class="req-item nfunc"><span class="req-dot"></span>10M DAU; 10:1 read-to-write ratio (reads &gt;&gt; writes)</div>
+    <div class="req-item nfunc"><span class="req-dot"></span>Read latency &lt;100ms; create latency &lt;500ms</div>
+    <div class="req-item nfunc"><span class="req-dot"></span>Pastes durable until expiry (no accidental loss)</div>
+    <div class="req-item nfunc"><span class="req-dot"></span>System stays available even if storage layer is degraded</div>
+  </div>
+</div>
+
+<!-- 2. Scale Estimation -->
+<div class="section" id="estimation">
+  <div class="section-label">Section 02</div>
+  <h2>Scale Estimation</h2>
+  <table class="est-table">
+    <tr><th>Metric</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>DAU</td><td>Given</td><td>10M users</td></tr>
+    <tr><td>Write QPS</td><td>10M × 1 paste/day / 86,400</td><td>~115 writes/sec</td></tr>
+    <tr><td>Read QPS</td><td>115 × 10 (read/write ratio)</td><td>~1,150 reads/sec</td></tr>
+    <tr><td>Peak QPS</td><td>5× average</td><td>~5,750 reads/sec</td></tr>
+    <tr><td>Storage per paste</td><td>10 KB average content</td><td>—</td></tr>
+    <tr><td>Storage growth per day</td><td>115 × 86,400 × 10 KB</td><td>~100 GB/day</td></tr>
+    <tr><td>5-year storage</td><td>100 GB × 365 × 5</td><td>~180 TB total</td></tr>
+    <tr><td>Unique IDs needed</td><td>6-char Base62 = 62^6</td><td>56 billion IDs</td></tr>
+  </table>
+</div>
+
+<!-- 3. Architecture -->
+<div class="section" id="architecture">
+  <div class="section-label">Section 03</div>
+  <h2>High-Level Architecture</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:14px">Click any component to learn more.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 760 280" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width:720px;width:100%">
+        <!-- Client -->
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="10" y="110" width="80" height="60" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="50" y="136" text-anchor="middle" font-family="monospace" font-size="10" fill="#3D3D3A" font-weight="600">CLIENT</text>
+          <text x="50" y="151" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">browser /</text>
+          <text x="50" y="163" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">mobile</text>
+        </g>
+
+        <!-- CDN -->
+        <g class="arch-node" data-id="cdn" onclick="showNode('cdn')">
+          <rect x="140" y="110" width="90" height="60" rx="8" fill="#FFFFFF" stroke="#D97757" stroke-width="2"/>
+          <text x="185" y="134" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">CDN</text>
+          <text x="185" y="149" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">cache GET /{id}</text>
+          <text x="185" y="161" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">long TTL for</text>
+          <text x="185" y="173" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">public pastes</text>
+        </g>
+
+        <!-- LB -->
+        <rect x="285" y="120" width="80" height="40" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text x="325" y="144" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">LOAD BALANCER</text>
+
+        <!-- Paste Service -->
+        <g class="arch-node" data-id="api" onclick="showNode('api')">
+          <rect x="420" y="100" width="120" height="80" rx="8" fill="#141413" stroke="#D97757" stroke-width="2"/>
+          <text x="480" y="126" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">PASTE SERVICE</text>
+          <text x="480" y="142" text-anchor="middle" font-family="monospace" font-size="8" fill="#E3DACC">create / read</text>
+          <text x="480" y="156" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">ID generation</text>
+          <text x="480" y="170" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">auth / password</text>
+        </g>
+
+        <!-- Arrows left half -->
+        <line x1="90" y1="140" x2="139" y2="140" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="139,140 133,136 133,144" fill="#D1CFC5"/>
+        <line x1="230" y1="140" x2="284" y2="140" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="284,140 278,136 278,144" fill="#D1CFC5"/>
+        <line x1="365" y1="140" x2="419" y2="140" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="419,140 413,136 413,144" fill="#D1CFC5"/>
+
+        <!-- Object Store -->
+        <g class="arch-node" data-id="s3" onclick="showNode('s3')">
+          <rect x="600" y="30" width="140" height="50" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="670" y="52" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">OBJECT STORE (S3)</text>
+          <text x="670" y="66" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">pastes/{id} → content</text>
+        </g>
+
+        <!-- PostgreSQL -->
+        <g class="arch-node" data-id="postgres" onclick="showNode('postgres')">
+          <rect x="600" y="110" width="140" height="50" rx="8" fill="#FFFFFF" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="670" y="132" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D" font-weight="600">POSTGRESQL</text>
+          <text x="670" y="146" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">metadata only</text>
+          <text x="670" y="157" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">not content</text>
+        </g>
+
+        <!-- Redis Cache -->
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="600" y="190" width="140" height="50" rx="8" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="670" y="212" text-anchor="middle" font-family="monospace" font-size="9" fill="#E3DACC" font-weight="600">REDIS</text>
+          <text x="670" y="226" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">hot paste metadata</text>
+          <text x="670" y="237" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">TTL 1 hour</text>
+        </g>
+
+        <!-- Arrows right half -->
+        <line x1="540" y1="125" x2="599" y2="55" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="599,55 594,61 601,61" fill="#D1CFC5"/>
+        <line x1="540" y1="140" x2="599" y2="135" stroke="#D1CFC5" stroke-width="1.5"/>
+        <polygon points="599,135 593,131 593,139" fill="#D1CFC5"/>
+        <line x1="540" y1="155" x2="599" y2="215" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <polygon points="599,215 594,209 601,211" fill="#D1CFC5"/>
+
+        <!-- ID Generator note -->
+        <g class="arch-node" data-id="keygen" onclick="showNode('keygen')">
+          <rect x="420" y="220" width="120" height="40" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="480" y="238" text-anchor="middle" font-family="monospace" font-size="9" fill="#3D3D3A" font-weight="600">ID GENERATOR</text>
+          <text x="480" y="252" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Base62 6-char codes</text>
+        </g>
+        <line x1="480" y1="180" x2="480" y2="219" stroke="#3D3D3A" stroke-width="1.5" stroke-dasharray="4,3"/>
+      </svg>
+    </div>
+    <div id="arch-panel" class="arch-panel">
+      <p class="ap-empty">Click any component to learn more</p>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Request Flow -->
+<section class="section" id="flow">
+  <div class="section-label">Section 04</div>
+  <h2>Request Flow — Create a Paste</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">
+    <span id="fn-client" class="fn">Client</span>
+    <span class="farr">→</span>
+    <span id="fn-lb" class="fn">LB</span>
+    <span class="farr">→</span>
+    <span id="fn-api" class="fn">Paste Service</span>
+    <span class="farr">→</span>
+    <span id="fn-keygen" class="fn">ID Gen</span>
+    <span class="farr">→</span>
+    <span id="fn-s3" class="fn">S3</span>
+    <span class="farr">→</span>
+    <span id="fn-postgres" class="fn">PostgreSQL</span>
+    <span class="farr">→</span>
+    <span id="fn-redis" class="fn">Redis</span>
+  </div>
+  <div id="flow-card" class="flow-card">
+    <div class="fc-title" id="fc-title"></div>
+    <div class="fc-desc" id="fc-desc"></div>
+    <pre class="fc-code" id="fc-code"></pre>
+  </div>
+  <div class="flow-nav">
+    <button class="fnav-btn" id="flow-prev" onclick="prevStep()">← Prev</button>
+    <button class="fnav-btn" id="flow-next" onclick="nextStep()">Next →</button>
+    <span class="fnav-counter" id="flow-counter"></span>
+    <div class="flow-dots" id="flow-dots"></div>
+  </div>
+</section>
+
+<!-- 5. API Design -->
+<div class="section" id="api">
+  <div class="section-label">Section 05</div>
+  <h2>API Design</h2>
+  <div class="api-block">
+    <pre><span class="api-method">POST</span>   <span class="api-path">/api/v1/pastes</span>
+<span class="api-comment">// Create a new paste</span>
+Body: {
+  content:    "def hello(): print('Hello World')",
+  language:   "python",       <span class="api-comment">// for syntax highlighting</span>
+  expiresAt:  "2026-07-21",   <span class="api-comment">// optional</span>
+  password:   "secret123",    <span class="api-comment">// optional</span>
+  isPublic:   true
+}
+→ 201 Created { pasteId: "xK3mP9", url: "https://paste.io/xK3mP9" }</pre>
+  </div>
+  <div class="api-block">
+    <pre><span class="api-method">GET</span>    <span class="api-path">/api/v1/pastes/{pasteId}</span>
+<span class="api-comment">// Returns metadata; content URL points to CDN/S3</span>
+→ { pasteId, title, language, contentUrl, size, viewCount,
+    createdAt, expiresAt, isPublic, hasPassword }
+
+<span class="api-method">GET</span>    <span class="api-path">/api/v1/pastes/{pasteId}/raw</span>       <span class="api-comment">// Raw text content</span>
+<span class="api-method">DELETE</span> <span class="api-path">/api/v1/pastes/{pasteId}</span>           <span class="api-comment">// Requires owner JWT</span>
+<span class="api-method">GET</span>    <span class="api-path">/api/v1/pastes?userId=&amp;page=</span>       <span class="api-comment">// User's paste history</span></pre>
+  </div>
+</div>
+
+<!-- 6. Database Design -->
+<div class="section" id="database">
+  <div class="section-label">Section 06</div>
+  <h2>Database Design</h2>
+  <div class="schema-card">
+    <div class="schema-name">pastes (PostgreSQL) — metadata only</div>
+    <div class="schema-fields">
+      <span class="field-name">paste_id</span>     <span class="field-type">VARCHAR(8) PRIMARY KEY</span> — Base62 short code<br>
+      <span class="field-name">owner_id</span>     <span class="field-type">UUID</span> — nullable (anonymous pastes)<br>
+      <span class="field-name">title</span>        <span class="field-type">TEXT</span><br>
+      <span class="field-name">language</span>     <span class="field-type">TEXT</span> — "python", "java", "text"<br>
+      <span class="field-name">content_url</span>  <span class="field-type">TEXT</span> — S3 key: "pastes/xK3mP9"<br>
+      <span class="field-name">size_bytes</span>   <span class="field-type">INTEGER</span><br>
+      <span class="field-name">password_hash</span> <span class="field-type">TEXT</span> — bcrypt, nullable<br>
+      <span class="field-name">is_public</span>    <span class="field-type">BOOLEAN</span><br>
+      <span class="field-name">view_count</span>   <span class="field-type">INTEGER</span><br>
+      <span class="field-name">created_at</span>   <span class="field-type">TIMESTAMP</span><br>
+      <span class="field-name">expires_at</span>   <span class="field-type">TIMESTAMP</span> — nullable
+    </div>
+    <div class="schema-note">Content is NOT stored in DB — only the S3 key. DB stays lean (&lt;1 KB per row). 10M pastes = &lt;10 GB for metadata table.</div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">Content Storage (S3 Object Store)</div>
+    <div class="schema-fields">
+      Key: <span class="field-type">pastes/{paste_id}</span><br>
+      Value: <span class="field-type">raw paste content (bytes)</span><br>
+      Content-Type: text/plain; charset=utf-8<br>
+      Metadata: language, created_at (in S3 object metadata)
+    </div>
+    <div class="schema-note">Object store scales to petabytes. S3 standard: 99.999999999% (11 nines) durability. No size limit per object (up to 5 TB; our limit is 10 MB). Immutable after creation.</div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">users (PostgreSQL)</div>
+    <div class="schema-fields">
+      <span class="field-name">user_id</span>      <span class="field-type">UUID PRIMARY KEY</span><br>
+      <span class="field-name">username</span>     <span class="field-type">TEXT UNIQUE</span><br>
+      <span class="field-name">email</span>        <span class="field-type">TEXT UNIQUE</span><br>
+      <span class="field-name">password_hash</span> <span class="field-type">TEXT</span><br>
+      <span class="field-name">created_at</span>   <span class="field-type">TIMESTAMP</span>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Deep Dive -->
+<div class="section" id="deep-dive">
+  <div class="section-label">Section 07</div>
+  <h2>Key Design Decisions</h2>
+  <div class="dive-card">
+    <div class="dive-title">Unique ID Generation — Three Options</div>
+    <div class="dive-body">
+      <div class="compare-grid" style="margin-top:8px">
+        <div class="compare-card">
+          <h4>Option 1: Random Base62</h4>
+          <p>Generate random 6-char Base62 string. Check DB for collision. ~115 writes/sec makes collision probability negligible (birthday problem at 56B space). Simple.</p>
+        </div>
+        <div class="compare-card">
+          <h4>Option 2: Hash-Based</h4>
+          <p>MD5(content + userId + timestamp) → first 6 chars → Base62. Deterministic: same content from same user → same ID (natural dedup). Risk: collisions on different content.</p>
+        </div>
+        <div class="compare-card">
+          <h4>Option 3: Pre-Generated Pool</h4>
+          <p>Background job pre-generates IDs in batches, stores in <code>available_ids</code> table. Service pops one on create. Zero collision risk. Slightly more complex.</p>
+        </div>
+      </div>
+      <p style="margin-top:12px;font-size:13px;color:var(--g500)">Recommendation: Option 1 (random) for simplicity — at 115 writes/sec with 62^6 space, collision is astronomically rare. Retry on collision (once is enough).</p>
+    </div>
+  </div>
+  <div class="dive-card">
+    <div class="dive-title">Content in S3, Metadata in PostgreSQL</div>
+    <div class="dive-body">
+      The most important architectural decision: store paste <strong>content</strong> in S3 (object store), not in the database. The DB stores only the S3 key as a pointer.<br><br>
+      Why: text content is variable-size (up to 10 MB), stored forever, rarely updated. Databases are optimized for structured queries, not large blob storage. S3 scales to exabytes; PostgreSQL with 10 MB rows does not.<br><br>
+      Result: DB stays lean (metadata queries stay fast), S3 provides 11-9s durability for the actual content, CDN can serve directly from S3 edge without touching the app server.
+    </div>
+  </div>
+  <div class="dive-card">
+    <div class="dive-title">Expiration Handling</div>
+    <div class="dive-body">
+      Two approaches:
+      <ul>
+        <li><strong>Lazy deletion:</strong> On every read, check <code>expires_at &lt;= NOW()</code>. If expired, return 404 and mark for cleanup. Zero background job needed, but expired data lingers in storage.</li>
+        <li><strong>Proactive cron:</strong> Daily job runs <code>SELECT paste_id FROM pastes WHERE expires_at &lt;= NOW()</code>, deletes from S3 and DB in batches. Frees storage promptly.</li>
+      </ul>
+      Use both: lazy check on read for correctness, cron job for storage reclamation. Cron uses <code>expires_at</code> index for efficient query.
+    </div>
+  </div>
+  <div class="dive-card">
+    <div class="dive-title">View Count — Don't Block on Write</div>
+    <div class="dive-body">
+      Naive approach: <code>UPDATE pastes SET view_count = view_count + 1</code> on every read → DB write on the hot read path (bad).<br><br>
+      Better: increment a Redis counter <code>INCR view:{pasteId}</code> on read. A background job periodically flushes Redis counters to PostgreSQL in bulk. Eventual consistency is fine for view counts.
+    </div>
+  </div>
+</div>
+
+<!-- 8. Key Space Calculator -->
+<section class="section" id="playground">
+  <div class="section-label">Section 08</div>
+  <h2>Key Space Calculator</h2>
+  <div class="playground">
+    <p style="font-size:13px;color:var(--g700);margin-bottom:18px">Adjust the ID parameters to see how the key space holds up at different write rates. This shows why a 6-char Base62 ID is robust for Pastebin-scale traffic.</p>
+    <div class="calc-grid">
+      <div class="calc-field">
+        <label>ID Length (chars)</label>
+        <input id="calc-len" type="number" value="6" min="4" max="12" oninput="calcSpace()">
+      </div>
+      <div class="calc-field">
+        <label>Alphabet Size</label>
+        <input id="calc-alpha" type="number" value="62" min="10" max="94" oninput="calcSpace()">
+      </div>
+      <div class="calc-field">
+        <label>Pastes Created/Day</label>
+        <input id="calc-rate" type="number" value="10000000" min="1" oninput="calcSpace()">
+      </div>
+    </div>
+    <div class="calc-result" id="calc-result"></div>
+  </div>
+</section>
+
+<!-- 9. Self-check -->
+<section class="section" id="self-check">
+  <div class="section-label">Section 09</div>
+  <h2>Self-Check: Interview Questions</h2>
+  <div class="sc-item" id="sc-1">
+    <div class="sc-q" onclick="toggleSC('sc-1')">
+      <span>Why store content in S3 instead of PostgreSQL? <span class="sc-tag">Storage</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>PostgreSQL is a relational database optimized for structured data, joins, and transactions on fixed-schema rows. A paste can be up to 10 MB — storing 10 MB TEXT blobs in PostgreSQL rows creates several problems: (1) table rows become massive, slowing down scans and index reads; (2) PostgreSQL buffers the blob in memory on read, crowding out index data; (3) replication lag increases because 10 MB rows flow through WAL (write-ahead log). Object stores (S3, GCS) are designed exactly for large immutable blobs: they stream content directly to the client, have 11-9s durability via erasure coding, and scale to exabytes at low cost (~$0.023/GB/month). The DB stores only a tiny S3 key pointer, staying lean and fast for metadata queries.</p></div>
+  </div>
+  <div class="sc-item" id="sc-2">
+    <div class="sc-q" onclick="toggleSC('sc-2')">
+      <span>How do you handle a paste going viral (1M views in 1 hour)? <span class="sc-tag">Scale</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>A viral paste is exactly the CDN use case. Paste content is immutable — the same bytes are served to all readers. Public pastes get Cache-Control: public, max-age=86400 (or longer for "never expires"). CDN serves all 1M reads from edge nodes nearest to users. The S3 origin and app servers see essentially zero traffic after the CDN warms up.<br><br>For metadata (title, view count, language): Redis caches paste metadata with TTL=1 hour. Cache hit rate for a viral paste is ~100% — all 1M readers hit Redis, not PostgreSQL. View count: INCR view:{pasteId} in Redis (atomic). Background job flushes to DB hourly. The eventual view count drift is acceptable — nobody cares if it shows 999,843 vs 1,000,000 in real-time.</p></div>
+  </div>
+  <div class="sc-item" id="sc-3">
+    <div class="sc-q" onclick="toggleSC('sc-3')">
+      <span>What's the collision probability with random Base62 IDs? <span class="sc-tag">ID Generation</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Key space: 62^6 = 56,800,235,584 (~56 billion). With 10M DAU creating 1 paste each = 10M pastes/day. The birthday problem: probability of at least one collision with n items in space N is approximately n²/(2N). For n=10M (daily creates) and N=56B: P ≈ (10^7)² / (2 × 5.68×10^10) ≈ 10^14 / 1.14×10^11 ≈ 877. Wait — that would be &gt;1, meaning collisions are guaranteed! But the space gets consumed across all time, not just one day. After 5 years at 10M/day: 18B pastes (assuming no expiry). At 18B/56B = 32% space used. Then daily collision probability: (10M × 18B) / (2 × 56B) ≈ 1.6 per day. So yes, collisions do happen occasionally — the DB unique constraint catches them and we retry with a new random ID. Just retry once.</p></div>
+  </div>
+  <div class="sc-item" id="sc-4">
+    <div class="sc-q" onclick="toggleSC('sc-4')">
+      <span>How do you implement password-protected pastes? <span class="sc-tag">Security</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>At create time: bcrypt-hash the password with cost factor 12. Store password_hash in DB. Do NOT send raw password to S3 — the S3 object stores only plain content.<br><br>At read time: if password_hash IS NOT NULL in metadata, return HTTP 401 with {requiresPassword: true}. Client shows password prompt. POST /pastes/{id}/unlock {password} → server bcrypt.compare(password, password_hash) → if match, return a short-lived signed token (JWT with pasteId + exp=10min). Subsequent content requests include this token.<br><br>CDN caching: set Cache-Control: private, no-store for password-protected pastes. CDN must not cache them — each user must go through the unlock flow. This slightly increases load for protected pastes, but volume is low enough to not matter.</p></div>
+  </div>
+  <div class="sc-item" id="sc-5">
+    <div class="sc-q" onclick="toggleSC('sc-5')">
+      <span>How do anonymous pastes work — what if the creator wants to edit later? <span class="sc-tag">Auth</span></span>
+      <span class="sc-plus">+</span>
+    </div>
+    <div class="sc-a"><p>Anonymous pastes are extremely common (no login required). The system issues an edit token — a random 128-bit value — returned to the client in the creation response. The client stores this in browser localStorage. The DB stores edit_token_hash = bcrypt(editToken) with the paste row.<br><br>To delete or edit: client sends DELETE /pastes/{id} with X-Edit-Token: {editToken}. Server looks up the paste, bcrypt.compare(editToken, edit_token_hash) → if match, allow the operation. This is essentially a capability-based auth: whoever has the edit token can modify the paste. Risk: if user clears localStorage, they lose the ability to edit — no recovery. This is the actual behavior of Pastebin: "Save this link if you want to edit later."</p></div>
+  </div>
+</section>
+
+<!-- 10. Scaling -->
+<div class="section" id="scaling">
+  <div class="section-label">Section 10</div>
+  <h2>Scaling &amp; Bottlenecks</h2>
+  <div class="scale-grid">
+    <div class="scale-card">
+      <h4>CDN for Reads</h4>
+      <p>Paste content is immutable after creation. Public pastes can be cached at CDN with infinite TTL (until deleted). A viral code snippet shared on Twitter handles 100K reads/sec from CDN edge.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Direct S3 Upload</h4>
+      <p>For large pastes: issue a presigned S3 PUT URL to client → client uploads directly to S3 (bypasses app server). App server only stores the S3 key in DB after confirmation.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Read Replicas</h4>
+      <p>Paste reads are 10x more frequent than writes. PostgreSQL read replicas handle metadata reads. Primary only for creates, updates (view count flush), deletes.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Redis Metadata Cache</h4>
+      <p>Cache paste metadata in Redis: <code>paste:{id} → JSON</code> with TTL 1 hour. Cache miss → hit PostgreSQL → populate cache. 80% of reads hit hot pastes.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Soft Delete Pattern</h4>
+      <p>Mark deleted in DB immediately (user sees success). Async cleanup job removes from S3. Decouples fast user-facing response from slower storage deletion.</p>
+    </div>
+    <div class="scale-card">
+      <h4>Password-Protected Pastes</h4>
+      <p>Check <code>password_hash</code> on read. Return 403 if wrong password. CDN cannot cache password-protected pastes (vary by auth). Set <code>Cache-Control: private</code> for these.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 11. Interview Tips -->
+<div class="section" id="tips">
+  <div class="section-label">Section 11</div>
+  <h2>Interview Tips</h2>
+  <div class="tip"><div class="tip-icon">📦</div><div class="tip-text"><strong>Object store is the key insight:</strong> When the interviewer asks where you store the content, say S3 (object store), not a DB column. Explain why: DB is for structured queries, object store is for blobs. This single decision prevents the biggest scalability mistake.</div></div>
+  <div class="tip"><div class="tip-icon">🔗</div><div class="tip-text"><strong>Pastebin = URL Shortener + File Storage:</strong> Recognize the overlap with URL shortener (short ID generation is identical). If you've discussed URL shortener first, reference it — interviewers like system thinking that connects prior designs.</div></div>
+  <div class="tip"><div class="tip-icon">🌐</div><div class="tip-text"><strong>CDN is decisive:</strong> A paste shared on social media can get millions of views. Without CDN, your app servers and S3 take the full hit. With CDN, the content is served from edge — ~0ms latency, ~$0 origin cost per view.</div></div>
+  <div class="tip"><div class="tip-icon">⏰</div><div class="tip-text"><strong>Expiration — lazy vs proactive:</strong> Interviewers often ask "how do you handle expired pastes?" Have both answers: lazy check on read (correctness) and cron cleanup (storage reclamation). Explain why you need both.</div></div>
+  <div class="tip"><div class="tip-icon">📊</div><div class="tip-text"><strong>Anonymous vs authenticated pastes:</strong> Many pastes are created without logging in. <code>owner_id</code> is nullable. Anonymous paste creators get an edit token in the response — stored in their browser localStorage. This is how Pastebin actually works.</div></div>
+</div>
+
+<footer>
+  <span style="font-family:var(--serif);font-style:italic;font-size:14px;color:var(--g700)">SDE Interview Prep</span>
+  <a href="hld-index.html">← Back to HLD Problems</a>
+</footer>
+
+</div>
+
+<script>
+// ── NODE_INFO ──
+const NODE_INFO = {
+  client: {
+    title: "Client (Browser / Mobile)",
+    body: "User creates a paste by filling in a text area and clicking Submit. Browser sends POST /api/v1/pastes with the full content in the request body (up to 10 MB). For large pastes (>1 MB), the API can return a presigned S3 URL for direct upload to bypass the app server.",
+    stats: ["POST with body up to 10 MB","Receives pasteId + URL in response","Stores edit_token in localStorage","Direct S3 upload for large pastes"],
+    warn: null
+  },
+  cdn: {
+    title: "CDN (Content Delivery Network)",
+    body: "Public paste content is immutable — once created, it never changes. CDN caches GET /{pasteId} responses with long TTL (24h or more). Viral pastes serve millions of views from CDN edge without touching origin servers. Password-protected pastes bypass CDN (Cache-Control: private).",
+    stats: ["Long TTL for public pastes","Cache-Control: private for protected","~0ms latency from edge cache","65%+ hit rate expected"],
+    warn: "Password-protected and private pastes must never be CDN-cached. Always verify ownership in app server for these. Missing this causes information disclosure."
+  },
+  api: {
+    title: "Paste Service (API Layer)",
+    body: "Stateless service handling paste create, read, delete, and expiry logic. On create: generates Base62 ID (6 chars), writes content to S3, writes metadata to PostgreSQL, caches metadata in Redis. On read: checks Redis first, falls back to PostgreSQL, checks expiry, verifies password if set.",
+    stats: ["Stateless, horizontally scaled","Redis → PostgreSQL on metadata miss","Lazy expiry check on read","Async view count via Redis INCR"],
+    warn: null
+  },
+  keygen: {
+    title: "ID Generator (Base62)",
+    body: "Generates a random 6-character ID from Base62 alphabet (a-z, A-Z, 0-9). The key space is 62^6 = ~56 billion unique IDs. After a few years of high-volume usage, occasional collisions occur — the service retries once on a UNIQUE constraint violation from the DB.",
+    stats: ["62^6 = 56B unique IDs","Random, no sequencing","DB UNIQUE constraint prevents dups","Retry once on collision (rare)"],
+    warn: null
+  },
+  redis: {
+    title: "Redis (Hot Metadata Cache)",
+    body: "Caches paste metadata as JSON with TTL=1 hour. Key: paste:{pasteId}. Also stores view count increments in real-time: INCR view:{pasteId}. A background job flushes Redis view counters to PostgreSQL every 5 minutes. Redis also stores rate limit counters per IP for abuse prevention.",
+    stats: ["Key: paste:{id} → JSON","TTL: 1 hour","INCR view:{id} for view count","Rate limit: req:{ip} counter"],
+    warn: null
+  },
+  postgres: {
+    title: "PostgreSQL (Metadata Store)",
+    body: "Stores only paste metadata — NOT content. Rows are tiny (<1 KB). 10M pastes = ~10 GB. Indexes on owner_id (for user history), expires_at (for cleanup cron), created_at (for pagination). Primary for writes; read replicas for read-heavy metadata lookups.",
+    stats: ["<1KB per row","Index: owner_id, expires_at","Read replicas for read scale","Full-text search via pg_trgm (optional)"],
+    warn: null
+  },
+  s3: {
+    title: "S3 Object Store (Content)",
+    body: "Stores the actual paste text content. Key: pastes/{pasteId}. 11-nines durability via erasure coding. Objects are immutable after creation — no updates, only create and delete. CDN pulls content from S3 on cache miss and caches at the edge. Direct S3 streaming for large pastes avoids buffering in app server.",
+    stats: ["Key: pastes/{pasteId}","11-nine durability","$0.023/GB/month storage","CDN origin for public pastes"],
+    warn: null
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  document.querySelectorAll(`.arch-node[data-id="${id}"]`).forEach(g => g.classList.add('sel'));
+  const info = NODE_INFO[id];
+  if (!info) return;
+  const panel = document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  panel.innerHTML = `
+    <div class="ap-title">${info.title}</div>
+    <div class="ap-body">${info.body}</div>
+    <div>${info.stats.map(s => `<span class="ap-stat">${s}</span>`).join('')}</div>
+    ${info.warn ? `<div class="ap-warn">${info.warn}</div>` : ''}
+  `;
+}
+
+// ── FLOW STEPPER ──
+const STEPS = [
+  {
+    nodes: ['fn-client'],
+    title: "User submits a new paste",
+    desc: "User fills in content (e.g. Python code) and clicks Create. Browser sends POST /api/v1/pastes with the content, language='python', expiresAt=null, isPublic=true. The request body is up to 10 MB.",
+    code: "POST /api/v1/pastes HTTP/1.1\nContent-Type: application/json\n\n{\n  \"content\": \"def fibonacci(n):\\n    ...\",\n  \"language\": \"python\",\n  \"isPublic\": true\n}"
+  },
+  {
+    nodes: ['fn-client','fn-lb','fn-api'],
+    title: "Load balancer routes; API validates",
+    desc: "Load balancer routes to an available Paste Service instance (round-robin). Service validates: content size ≤10 MB, language is supported, check for rate limit. Then generates the unique 6-char Base62 ID.",
+    code: "// Validation + ID generation\nif (content.length > 10_000_000) throw 413;\nif (!SUPPORTED_LANGS.has(language)) throw 400;\n\n// Rate limit: 10 pastes/min per IP\nredis.incr('rl:' + clientIP);\n\n// Generate unique ID\nconst pasteId = randomBase62(6); // e.g. 'xK3mP9'"
+  },
+  {
+    nodes: ['fn-api','fn-keygen'],
+    title: "Generate unique Base62 ID",
+    desc: "Pick 6 random characters from [a-zA-Z0-9] = 62 chars. The resulting space is 62^6 ≈ 56 billion possible IDs. At 10M pastes/day, this space sustains years of operation before collision rate becomes meaningful.",
+    code: "const ALPHABET = 'abcdefghijklmnopqrstuvwxyz' +\n                  'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +\n                  '0123456789';\n\nfunction randomBase62(len) {\n  return Array.from({length: len}, () =>\n    ALPHABET[Math.floor(Math.random() * 62)]\n  ).join('');\n} // e.g. 'xK3mP9'"
+  },
+  {
+    nodes: ['fn-api','fn-s3'],
+    title: "Write content to S3",
+    desc: "Service calls S3 PutObject: key='pastes/xK3mP9', body=paste content bytes. S3 durably stores across 3+ availability zones. Returns a 200 ETag when write is confirmed. The paste content is now safely stored — DB write is next.",
+    code: "// Async: don't block response waiting for S3\nawait s3.putObject({\n  Bucket: 'paste-content-prod',\n  Key: `pastes/${pasteId}`,\n  Body: content,\n  ContentType: 'text/plain; charset=utf-8',\n  Metadata: { language, createdBy: userId }\n});"
+  },
+  {
+    nodes: ['fn-api','fn-postgres'],
+    title: "Write metadata to PostgreSQL",
+    desc: "Service inserts one row: paste_id='xK3mP9', content_url='pastes/xK3mP9', language='python', etc. The UNIQUE constraint on paste_id catches any ID collision — service retries with a new ID. This 2-phase write (S3 first, then DB) ensures durability: if DB insert fails, S3 object is orphaned and cleaned up by a daily reconciliation job.",
+    code: "INSERT INTO pastes (\n  paste_id, content_url, language,\n  size_bytes, is_public, expires_at, created_at\n) VALUES (\n  'xK3mP9', 'pastes/xK3mP9', 'python',\n  4096, true, NULL, NOW()\n)\nON CONFLICT (paste_id) DO NOTHING; -- retry if conflict"
+  },
+  {
+    nodes: ['fn-api','fn-redis'],
+    title: "Cache metadata + return URL to client",
+    desc: "Service writes paste metadata to Redis (paste:xK3mP9 → JSON, TTL=1 hour). Returns 201 Created with the URL to client. Client displays the shareable URL. CDN will warm on first read and serve subsequent views from edge.",
+    code: "// Populate cache for immediate reads\nredis.setex('paste:xK3mP9', 3600,\n  JSON.stringify({ pasteId, language, size, isPublic })\n);\n\n// Response to client\nreturn {\n  pasteId: 'xK3mP9',\n  url: 'https://paste.io/xK3mP9'\n};"
+  }
+];
+
+const FN_IDS = ['fn-client','fn-lb','fn-api','fn-keygen','fn-s3','fn-postgres','fn-redis'];
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  FN_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'fn';
+    if (s.nodes.includes(id)) el.classList.add('act');
+    else if (STEPS.slice(0, curStep).some(st => st.nodes.includes(id))) el.classList.add('done');
+  });
+  document.getElementById('fc-title').textContent = s.title;
+  document.getElementById('fc-desc').textContent = s.desc;
+  document.getElementById('fc-code').textContent = s.code;
+  document.getElementById('flow-counter').textContent = `Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('flow-prev').disabled = curStep === 0;
+  document.getElementById('flow-next').disabled = curStep === STEPS.length - 1;
+  const dots = document.getElementById('flow-dots');
+  dots.innerHTML = STEPS.map((_, i) => `<div class="fdot${i===curStep?' on':''}" onclick="goStep(${i})"></div>`).join('');
+}
+function nextStep() { if (curStep < STEPS.length-1) { curStep++; renderStep(); } }
+function prevStep() { if (curStep > 0) { curStep--; renderStep(); } }
+function goStep(n) { curStep = n; renderStep(); }
+
+// ── SELF-CHECK ──
+function toggleSC(id) { document.getElementById(id).classList.toggle('open'); }
+
+// ── KEY SPACE CALCULATOR ──
+function fmtNum(n) {
+  if (n >= 1e12) return (n/1e12).toFixed(2) + ' trillion';
+  if (n >= 1e9)  return (n/1e9).toFixed(2)  + ' billion';
+  if (n >= 1e6)  return (n/1e6).toFixed(2)  + ' million';
+  if (n >= 1e3)  return (n/1e3).toFixed(1)  + ' thousand';
+  return n.toFixed(0);
+}
+
+function calcSpace() {
+  const len = parseInt(document.getElementById('calc-len').value) || 6;
+  const alpha = parseInt(document.getElementById('calc-alpha').value) || 62;
+  const rate = parseInt(document.getElementById('calc-rate').value) || 10000000;
+  const space = Math.pow(alpha, len);
+  const yearsExhaust = space / (rate * 365);
+  const usedAt5y = (rate * 365 * 5) / space * 100;
+
+  // Birthday paradox: daily collision probability (approx for large spaces)
+  // P(collision) ≈ (daily_rate^2) / (2 * space)
+  const collisionPerDay = (rate * rate) / (2 * space);
+
+  let yearClass = yearsExhaust > 20 ? 'cr-ok' : yearsExhaust > 5 ? '' : 'cr-danger';
+  let used5yClass = usedAt5y < 30 ? 'cr-ok' : usedAt5y < 80 ? '' : 'cr-danger';
+
+  document.getElementById('calc-result').innerHTML = `
+    <div class="cr-row">
+      <span class="cr-label">Total unique IDs (${alpha}^${len})</span>
+      <span class="cr-val">${fmtNum(space)}</span>
+    </div>
+    <div class="cr-row">
+      <span class="cr-label">Years until ID space exhausted</span>
+      <span class="cr-val ${yearClass}">${yearsExhaust > 1e6 ? '&gt; 1 million years' : yearsExhaust.toFixed(1) + ' years'}</span>
+    </div>
+    <div class="cr-row">
+      <span class="cr-label">Space used after 5 years</span>
+      <span class="cr-val ${used5yClass}">${usedAt5y.toFixed(4)}%</span>
+    </div>
+    <div class="cr-row" style="border-top:1.5px solid var(--g300)">
+      <span class="cr-label">Expected collisions per day</span>
+      <span class="cr-val ${collisionPerDay > 1 ? 'cr-danger' : 'cr-ok'}">${collisionPerDay < 0.001 ? '&lt;0.001' : collisionPerDay.toFixed(3)}</span>
+    </div>
+  `;
+}
+
+// Init
+renderStep();
+calcSpace();
+</script>
+</body>
+</html>

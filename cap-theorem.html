@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAP Theorem — Key Concept</title>
+<style>
+  :root {
+    --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;--clay:#D97757;--clay-d:#B85C3E;
+    --oat:#E3DACC;--olive:#788C5D;--g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;
+    --g500:#87867F;--g700:#3D3D3A;
+    --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}
+  body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px 120px;}
+  header.masthead{padding:72px 0 48px;border-bottom:1.5px solid var(--g300);margin-bottom:8px;}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--g500);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+  .eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay);}
+  .back{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-decoration:none;color:var(--g500);margin-right:14px;transition:color 120ms;}.back:hover{color:var(--clay);}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5vw,54px);line-height:1.06;letter-spacing:-.018em;margin-bottom:8px;}
+  h1 em{font-style:italic;color:var(--clay);}
+  .intro{font-size:15px;color:var(--g700);margin-top:16px;max-width:600px;}
+  nav.toc{display:flex;flex-wrap:wrap;gap:8px;padding-top:24px;}
+  nav.toc a{font-size:12px;padding:6px 14px;border:1.5px solid var(--g300);border-radius:999px;text-decoration:none;color:var(--g700);background:var(--paper);transition:border-color 120ms,color 120ms;}
+  nav.toc a:hover{border-color:var(--slate);color:var(--slate);}
+  section{margin-top:60px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px;}
+  .sec-head .idx{font-family:var(--mono);font-size:12px;color:var(--clay);font-weight:600;width:30px;flex-shrink:0;}
+  .sec-head h2{font-family:var(--serif);font-weight:500;font-size:24px;letter-spacing:-.012em;}
+  .sec-intro{font-size:14px;color:var(--g700);max-width:680px;margin:0 0 20px 44px;}
+  .content-block{margin-left:44px;}
+  @media(max-width:600px){.content-block,.sec-intro{margin-left:0;}}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+  .tip{display:flex;gap:12px;background:var(--g100);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+  .tip .tip-icon{font-size:15px;flex-shrink:0;font-weight:700;color:var(--clay);}
+  .tip .tip-text{font-size:13.5px;color:var(--g700);}
+  .tip .tip-text strong{color:var(--slate);}
+  .pattern-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:10px;padding:14px 16px;}
+  .pattern-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+  .pattern-card .p-name{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--olive);margin-bottom:6px;}
+  .pattern-card .p-title{font-size:14px;font-weight:600;margin-bottom:5px;}
+  .pattern-card .p-desc{font-size:12.5px;color:var(--g700);}
+  .rel-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .rel-table th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);text-align:left;padding:6px 10px;border-bottom:1.5px solid var(--g300);}
+  .rel-table td{padding:8px 10px;border-bottom:1px solid var(--g100);color:var(--g700);vertical-align:top;}
+  .rel-table td:first-child{font-weight:600;color:var(--slate);}
+  pre{background:#1A1A18;color:#E8E6DF;border-radius:8px;padding:16px 18px;font-family:var(--mono);font-size:12.5px;line-height:1.65;overflow-x:auto;margin:12px 0;}
+  pre .kw{color:#CF9F6E;}pre .cn{color:#88C0A0;}pre .cm{color:#5F5F5A;}pre .st{color:#A8C97A;}pre .fn{color:#D97757;}
+  .tabs{display:flex;gap:4px;margin-bottom:-1px;}
+  .tab-btn{font-family:var(--mono);font-size:11.5px;padding:7px 14px;border:1.5px solid var(--g300);border-bottom:none;border-radius:7px 7px 0 0;background:var(--g100);color:var(--g500);cursor:pointer;transition:background 120ms,color 120ms;}
+  .tab-btn.active{background:var(--paper);color:var(--slate);}
+  .tab-pane{display:none;border:1.5px solid var(--g300);}
+  .tab-pane.active{display:block;}
+  .tab-pane pre{border-radius:0 6px 6px 6px;margin:0;}
+  .highlight-box{background:#FEF3EE;border-left:3px solid var(--clay);border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;font-size:13.5px;color:var(--g700);}
+  .highlight-box strong{color:var(--clay-d);}
+  .badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:5px;margin-right:4px;}
+  .badge.cp{background:#FEF3EE;color:var(--clay);}
+  .badge.ap{background:#EEF3E8;color:var(--olive);}
+  footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:28px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:16px;font-size:12.5px;color:var(--g500);}
+  footer .k{font-family:var(--serif);font-style:italic;color:var(--g700);font-size:14px;}
+  footer a{color:var(--clay);text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="masthead">
+  <div class="eyebrow"><a class="back" href="index.html">← Home</a> Distributed Systems · Key Concept</div>
+  <h1>CAP <em>Theorem</em></h1>
+  <p class="intro">A distributed system can only guarantee 2 of 3 properties. Understanding this forces explicit trade-off decisions in every system design interview.</p>
+  <nav class="toc">
+    <a href="#what">What Is It</a><a href="#problem">The Problem</a><a href="#works">How It Works</a>
+    <a href="#systems">CP vs AP</a><a href="#pacelc">PACELC</a><a href="#code">Code</a>
+    <a href="#realworld">Real World</a><a href="#tips">Interview Tips</a>
+  </nav>
+</header>
+
+<section id="what">
+  <div class="sec-head"><span class="idx">01</span><h2>What Is It</h2></div>
+  <p class="sec-intro">Proposed by Eric Brewer (2000), proved by Gilbert & Lynch (2002). Every distributed data store must choose which two of three guarantees to provide.</p>
+  <div class="content-block">
+    <div class="two-col" style="margin-bottom:20px;">
+      <div class="pattern-card">
+        <div class="p-name" style="color:var(--clay);">C — Consistency</div>
+        <div class="p-title">Every read sees the latest write</div>
+        <div class="p-desc">Every read receives the most recent write or an error. No stale reads. All nodes see the same data at the same time.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name" style="color:var(--olive);">A — Availability</div>
+        <div class="p-title">Every request gets a response</div>
+        <div class="p-desc">Every request (to a non-failing node) receives a response — not an error. The response may be stale. The system never returns an error just to preserve consistency.</div>
+      </div>
+    </div>
+    <div class="pattern-card" style="margin-bottom:16px;">
+      <div class="p-name" style="color:#4A6FA5;">P — Partition Tolerance</div>
+      <div class="p-title">System continues despite network splits</div>
+      <div class="p-desc">The system continues operating even when an arbitrary number of messages between nodes are dropped or delayed. Networks DO partition — this is not optional in any real distributed system.</div>
+    </div>
+    <div class="highlight-box"><strong>Key insight:</strong> P is not really a choice. Networks partition. You must decide: when a partition happens, do you return an error (C over A) or serve potentially stale data (A over C)? The real choice is <strong>CP or AP</strong>.</div>
+  </div>
+</section>
+
+<section id="problem">
+  <div class="sec-head"><span class="idx">02</span><h2>The Problem It Solves</h2></div>
+  <p class="sec-intro">Before CAP, engineers assumed they could build systems that were always consistent AND always available AND fault-tolerant. CAP proved this is impossible.</p>
+  <div class="content-block">
+    <div class="two-col">
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:10px;">Without CAP thinking</p>
+        <ul style="padding-left:18px;font-size:13.5px;color:var(--g700);">
+          <li style="margin-bottom:6px;">Engineers over-promise: "our DB is always consistent AND never goes down"</li>
+          <li style="margin-bottom:6px;">Network partition happens → forced into an undocumented, surprising failure mode</li>
+          <li style="margin-bottom:6px;">Users experience worse outcomes than if the trade-off was planned</li>
+        </ul>
+      </div>
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:10px;">With CAP thinking</p>
+        <ul style="padding-left:18px;font-size:13.5px;color:var(--g700);">
+          <li style="margin-bottom:6px;">Explicit decision: "we choose AP because stale data is better than an outage for this use case"</li>
+          <li style="margin-bottom:6px;">Partition happens → system behaves as designed, users see stale data instead of errors</li>
+          <li style="margin-bottom:6px;">Clients and SLAs are written around the actual guarantees</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="works">
+  <div class="sec-head"><span class="idx">03</span><h2>How It Works</h2></div>
+  <p class="sec-intro">The partition scenario: Node A and Node B can no longer communicate.</p>
+  <div class="content-block">
+    <div style="text-align:center;margin-bottom:20px;">
+      <svg viewBox="0 0 520 200" style="max-width:520px;width:100%;height:auto;">
+        <!-- Node A -->
+        <rect x="30" y="70" width="120" height="60" rx="8" fill="var(--paper)" stroke="var(--g300)" stroke-width="2"/>
+        <text x="90" y="98" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="var(--slate)">Node A</text>
+        <text x="90" y="116" text-anchor="middle" font-family="monospace" font-size="10" fill="var(--g500)">val = 10</text>
+        <!-- Node B -->
+        <rect x="370" y="70" width="120" height="60" rx="8" fill="var(--paper)" stroke="var(--g300)" stroke-width="2"/>
+        <text x="430" y="98" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="var(--slate)">Node B</text>
+        <text x="430" y="116" text-anchor="middle" font-family="monospace" font-size="10" fill="var(--g500)">val = ???</text>
+        <!-- Network partition line -->
+        <line x1="150" y1="100" x2="230" y2="100" stroke="var(--g300)" stroke-width="2" stroke-linecap="round"/>
+        <line x1="290" y1="100" x2="370" y2="100" stroke="var(--g300)" stroke-width="2" stroke-linecap="round"/>
+        <rect x="230" y="80" width="60" height="40" rx="6" fill="#FEF3EE" stroke="var(--clay)" stroke-width="2" stroke-dasharray="4 3"/>
+        <text x="260" y="97" text-anchor="middle" font-family="monospace" font-size="8.5" fill="var(--clay)" font-weight="700">PARTITION</text>
+        <text x="260" y="110" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--clay)">✕ no msgs</text>
+        <!-- Write arrives at A -->
+        <text x="90" y="52" text-anchor="middle" font-family="monospace" font-size="10" fill="var(--olive)">WRITE val=20</text>
+        <line x1="90" y1="56" x2="90" y2="70" stroke="var(--olive)" stroke-width="1.5" stroke-linecap="round"/>
+        <polygon fill="var(--olive)" points="86,68 90,74 94,68"/>
+        <!-- Read arrives at B -->
+        <text x="430" y="52" text-anchor="middle" font-family="monospace" font-size="10" fill="var(--g500)">READ</text>
+        <line x1="430" y1="56" x2="430" y2="70" stroke="var(--g500)" stroke-width="1.5" stroke-linecap="round"/>
+        <polygon fill="var(--g500)" points="426,68 430,74 434,68"/>
+        <!-- CP choice -->
+        <rect x="30" y="155" width="180" height="36" rx="6" fill="#FEF3EE" stroke="var(--clay)" stroke-width="1.5"/>
+        <text x="120" y="170" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--clay)" font-weight="700">CP: B returns ERROR</text>
+        <text x="120" y="183" text-anchor="middle" font-family="monospace" font-size="8.5" fill="var(--clay)">"can't guarantee fresh data"</text>
+        <!-- AP choice -->
+        <rect x="310" y="155" width="180" height="36" rx="6" fill="#EEF3E8" stroke="var(--olive)" stroke-width="1.5"/>
+        <text x="400" y="170" text-anchor="middle" font-family="monospace" font-size="9" fill="var(--olive)" font-weight="700">AP: B returns val=10</text>
+        <text x="400" y="183" text-anchor="middle" font-family="monospace" font-size="8.5" fill="var(--olive)">(stale — the old value)</text>
+      </svg>
+    </div>
+    <div class="two-col">
+      <div class="highlight-box" style="background:#FEF3EE;border-color:var(--clay);">
+        <strong>Choose C (over A):</strong> Node B refuses to serve the read. Returns error or blocks until partition heals. Data is always correct — but users see failures.
+      </div>
+      <div class="highlight-box" style="background:#EEF3E8;border-color:var(--olive);">
+        <strong>Choose A (over C):</strong> Node B serves stale data (val=10). Users get a response — but it may be wrong. Nodes reconcile when partition heals.
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="systems">
+  <div class="sec-head"><span class="idx">04</span><h2>CP vs AP Systems</h2></div>
+  <p class="sec-intro">Most real systems are not purely one or the other — they tune their behavior per operation, but broadly fit one category.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>System</th><th>Category</th><th>Behavior during partition</th><th>Use when</th></tr></thead>
+      <tbody>
+        <tr><td>Zookeeper</td><td><span class="badge cp">CP</span></td><td>Refuses writes if quorum unavailable</td><td>Distributed locks, leader election</td></tr>
+        <tr><td>HBase</td><td><span class="badge cp">CP</span></td><td>Row-level strong consistency, may reject</td><td>Financial records, inventory counts</td></tr>
+        <tr><td>MongoDB (default)</td><td><span class="badge cp">CP</span></td><td>Primary required for reads/writes</td><td>General-purpose with strong consistency</td></tr>
+        <tr><td>Redis Cluster</td><td><span class="badge cp">CP</span></td><td>Rejects if primary unreachable</td><td>Session store, rate limiting</td></tr>
+        <tr><td>Cassandra</td><td><span class="badge ap">AP</span></td><td>All nodes serve reads, Last-Write-Wins on heal</td><td>Social feeds, time-series, IoT</td></tr>
+        <tr><td>DynamoDB</td><td><span class="badge ap">AP</span></td><td>Serves reads from any replica (eventual)</td><td>Shopping carts, user preferences</td></tr>
+        <tr><td>CouchDB</td><td><span class="badge ap">AP</span></td><td>Multi-master, MVCC conflict resolution</td><td>Offline-first apps, sync scenarios</td></tr>
+        <tr><td>DNS</td><td><span class="badge ap">AP</span></td><td>Cached entries served, eventual propagation</td><td>Name resolution — staleness acceptable</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="pacelc">
+  <div class="sec-head"><span class="idx">05</span><h2>PACELC — Beyond CAP</h2></div>
+  <p class="sec-intro">CAP only describes behavior during partitions. PACELC also asks: even when there's no partition, what's your trade-off between latency and consistency?</p>
+  <div class="content-block">
+    <div class="highlight-box">
+      <strong>PACELC:</strong> If Partition → choose Availability or Consistency. Else (normal operation) → choose Latency or Consistency.
+    </div>
+    <table class="rel-table" style="margin-top:14px;">
+      <thead><tr><th>System</th><th>During Partition</th><th>Normal Operation</th><th>Classification</th></tr></thead>
+      <tbody>
+        <tr><td>DynamoDB</td><td>Availability</td><td>Latency (eventual reads)</td><td>PA/EL</td></tr>
+        <tr><td>Cassandra</td><td>Availability</td><td>Latency (tunable)</td><td>PA/EL</td></tr>
+        <tr><td>Google Spanner</td><td>Consistency</td><td>Consistency (TrueTime)</td><td>PC/EC</td></tr>
+        <tr><td>HBase</td><td>Consistency</td><td>Consistency</td><td>PC/EC</td></tr>
+        <tr><td>MongoDB</td><td>Consistency</td><td>Latency (by default)</td><td>PC/EL</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">Illustrating CP and AP behaviors in a simple two-node replication scenario.</p>
+  <div class="content-block">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(this,'cp-code')">CP Behavior</button>
+      <button class="tab-btn" onclick="switchTab(this,'ap-code')">AP Behavior</button>
+      <button class="tab-btn" onclick="switchTab(this,'eventual')">Eventual Consistency</button>
+    </div>
+    <div class="tab-pane active" id="cp-code"><pre><span class="cm">// CP — refuse reads/writes if cannot reach quorum</span>
+<span class="kw">class</span> <span class="cn">CPDataStore</span> {
+    <span class="kw">private final</span> List&lt;<span class="cn">Node</span>&gt; replicas;
+    <span class="kw">private final int</span> quorum; <span class="cm">// majority = replicas.size()/2 + 1</span>
+
+    <span class="kw">public</span> String <span class="fn">read</span>(String key) {
+        <span class="kw">int</span> reachable = <span class="fn">countReachable</span>();
+        <span class="kw">if</span> (reachable &lt; quorum)
+            <span class="kw">throw new</span> <span class="cn">QuorumUnavailableException</span>(<span class="st">"Cannot guarantee consistency"</span>);
+        <span class="kw">return</span> primary.<span class="fn">read</span>(key); <span class="cm">// read from primary (always fresh)</span>
+    }
+
+    <span class="kw">public void</span> <span class="fn">write</span>(String key, String value) {
+        <span class="kw">int</span> acks = 0;
+        <span class="kw">for</span> (<span class="cn">Node</span> node : replicas) {
+            <span class="kw">try</span> { node.<span class="fn">write</span>(key, value); acks++; } <span class="kw">catch</span> (<span class="cn">Exception</span> e) {}
+        }
+        <span class="kw">if</span> (acks &lt; quorum)
+            <span class="kw">throw new</span> <span class="cn">WriteFailedException</span>(<span class="st">"Could not reach quorum"</span>);
+    }
+}</pre></div>
+    <div class="tab-pane" id="ap-code"><pre><span class="cm">// AP — always serve, accept stale reads</span>
+<span class="kw">class</span> <span class="cn">APDataStore</span> {
+    <span class="kw">private final</span> List&lt;<span class="cn">Node</span>&gt; replicas;
+
+    <span class="kw">public</span> String <span class="fn">read</span>(String key) {
+        <span class="cm">// Try any replica — return first response (may be stale)</span>
+        <span class="kw">for</span> (<span class="cn">Node</span> node : replicas) {
+            <span class="kw">try</span> { <span class="kw">return</span> node.<span class="fn">read</span>(key); } <span class="kw">catch</span> (<span class="cn">Exception</span> e) {}
+        }
+        <span class="kw">throw new</span> <span class="cn">AllNodesDownException</span>(); <span class="cm">// only fails if ALL nodes down</span>
+    }
+
+    <span class="kw">public void</span> <span class="fn">write</span>(String key, String value) {
+        <span class="cm">// Write to any available node — replicate async (eventual consistency)</span>
+        <span class="kw">for</span> (<span class="cn">Node</span> node : replicas) {
+            <span class="kw">try</span> {
+                node.<span class="fn">write</span>(key, value); <span class="cm">// fire-and-forget on others</span>
+                asyncReplicate(key, value, replicas);
+                <span class="kw">return</span>;
+            } <span class="kw">catch</span> (<span class="cn">Exception</span> e) {}
+        }
+    }
+}</pre></div>
+    <div class="tab-pane" id="eventual"><pre><span class="cm">// Eventual consistency reconciliation — Last Write Wins (LWW)</span>
+<span class="kw">class</span> <span class="cn">VersionedValue</span> {
+    String value;
+    <span class="kw">long</span> timestamp; <span class="cm">// wall clock or logical clock (Lamport)</span>
+}
+
+<span class="kw">class</span> <span class="cn">ReplicationHandler</span> {
+    <span class="cm">// When partition heals, nodes exchange their versions</span>
+    <span class="kw">public</span> <span class="cn">VersionedValue</span> <span class="fn">reconcile</span>(<span class="cn">VersionedValue</span> local, <span class="cn">VersionedValue</span> remote) {
+        <span class="cm">// Last Write Wins (LWW) — higher timestamp wins</span>
+        <span class="kw">return</span> remote.timestamp &gt; local.timestamp ? remote : local;
+    }
+}
+
+<span class="cm">// Better: Vector Clocks detect true conflicts instead of assuming LWW</span>
+<span class="cm">// Amazon Dynamo paper uses vector clocks + client-side conflict resolution</span></pre></div>
+  </div>
+</section>
+
+<section id="realworld">
+  <div class="sec-head"><span class="idx">07</span><h2>Real-World Usage</h2></div>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name">Banking</div><div class="p-title">CP always</div><div class="p-desc">Never show wrong balance. Outage during partition is better than incorrect account state.</div></div>
+      <div class="pattern-card"><div class="p-name">Social Media</div><div class="p-title">AP preferred</div><div class="p-desc">Seeing a post 2 seconds late is fine. High availability matters more than perfect consistency.</div></div>
+      <div class="pattern-card"><div class="p-name">E-Commerce Cart</div><div class="p-title">AP (Amazon Dynamo)</div><div class="p-desc">Amazon chose AP for shopping carts — a lost item is worse than a duplicate item (fixable at checkout).</div></div>
+      <div class="pattern-card"><div class="p-name">Distributed Locks</div><div class="p-title">CP (Zookeeper)</div><div class="p-desc">A distributed lock that gives two nodes permission simultaneously is worse than locking being unavailable.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="tips">
+  <div class="sec-head"><span class="idx">08</span><h2>Interview Tips</h2></div>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>Never say "we want all 3."</strong> This signals you don't understand CAP. P is not optional — networks partition. Say "we choose CP because X" or "we choose AP because Y."</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>CAP-C ≠ ACID-C.</strong> CAP Consistency = linearizability (reads see the latest write globally). ACID Consistency = integrity constraints (foreign keys, etc.). They're different things — interviewers test this.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>Eventual consistency is AP with a guarantee.</strong> "Eventually consistent" means nodes WILL converge to the same state — it's not "no consistency." The window is typically milliseconds to seconds.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>Mention PACELC for SDE III level.</strong> "CAP only covers partition behavior. PACELC also asks about latency vs consistency in normal operation — Spanner is PC/EC, DynamoDB is PA/EL."</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Cassandra is tunable.</strong> It's AP by default but lets you tune with ConsistencyLevel.QUORUM to get CP-like behavior per-query. Mention this to show nuance — real systems don't always fit neatly.</div></div>
+    <div class="tip"><div class="tip-icon">6</div><div class="tip-text"><strong>Always connect to the use case.</strong> "For a payment service I'd choose CP — a failed transaction is better than a duplicate charge. For a news feed I'd choose AP — a 5-second delay in seeing a post is acceptable."</div></div>
+  </div>
+</section>
+
+<footer><span class="k">CAP Theorem — Distributed Systems</span><span><a href="concepts-index.html">← All Concepts</a></span></footer>
+</div>
+<script>
+function switchTab(btn,id){
+  const grp=btn.parentElement;
+  grp.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const wrap=grp.parentElement;
+  wrap.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body></html>

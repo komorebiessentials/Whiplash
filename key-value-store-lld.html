@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In-Memory Key-Value Store — LLD Deep Dive</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5; --paper:  #FFFFFF; --slate:  #141413; --clay:   #D97757;
+    --clay-d: #B85C3E; --oat:    #E3DACC; --olive:  #788C5D;
+    --g100:   #F0EEE6; --g200:   #E6E3DA; --g300:   #D1CFC5; --g500:   #87867F; --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 120px; }
+  header.masthead { padding: 72px 0 48px; border-bottom: 1.5px solid var(--g300); margin-bottom: 8px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--g500); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content:""; width:24px; height:1.5px; background:var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 5vw, 56px); line-height: 1.06; letter-spacing: -0.018em; margin-bottom: 8px; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro { font-size: 15.5px; color: var(--g700); margin-top: 18px; max-width: 600px; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 28px; }
+  nav.toc a { font-size: 12px; padding: 6px 14px; border: 1.5px solid var(--g300); border-radius: 999px; text-decoration: none; color: var(--g700); background: var(--paper); transition: border-color 120ms, color 120ms; display: inline-flex; align-items: center; gap: 6px; }
+  nav.toc a .n { font-family: var(--mono); font-size: 10px; color: var(--g500); }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+  section { margin-top: 64px; scroll-margin-top: 24px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .sec-head .idx { font-family: var(--mono); font-size: 12px; color: var(--clay); font-weight: 600; width: 30px; flex-shrink: 0; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 500; font-size: 25px; letter-spacing: -0.012em; }
+  .sec-intro { font-size: 14px; color: var(--g700); max-width: 680px; margin: 0 0 22px 44px; }
+  .content-block { margin-left: 44px; }
+  @media (max-width: 600px) { .content-block, .sec-intro { margin-left: 0; } }
+  .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .req-grid { grid-template-columns: 1fr; } }
+  .req-item { background: var(--g100); border-radius: 8px; padding: 12px 14px; border-left: 3px solid var(--g300); }
+  .req-item.func { border-left-color: var(--clay); }
+  .req-item.nfunc { border-left-color: var(--olive); }
+  .req-item .req-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); margin-bottom: 4px; }
+  .req-item p { font-size: 13.5px; color: var(--g700); }
+  .diagram-wrap { overflow-x: auto; padding: 4px 0 8px; }
+  .class-box { display: inline-block; border: 2px solid var(--g300); border-radius: 8px; overflow: hidden; font-size: 13px; min-width: 170px; background: var(--paper); vertical-align: top; margin: 6px; }
+  .class-box .class-name { background: var(--slate); color: var(--paper); font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 7px 12px; letter-spacing: 0.04em; }
+  .class-box .class-name.interface { background: var(--olive); }
+  .class-box .class-name.enum { background: #4A6FA5; }
+  .class-box .class-name.abstract { background: var(--clay); }
+  .class-box .field { padding: 3px 12px; color: var(--g700); font-family: var(--mono); font-size: 11.5px; border-bottom: 1px solid var(--g100); }
+  .class-box .field.method { color: var(--clay-d); }
+  .class-box .field.enum-val { color: #4A6FA5; }
+  .class-box .divider { height: 1.5px; background: var(--g200); margin: 4px 0; }
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step { display: flex; gap: 0; align-items: stretch; }
+  .flow-left { display: flex; flex-direction: column; align-items: center; width: 40px; flex-shrink: 0; }
+  .flow-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--clay); flex-shrink: 0; margin-top: 3px; border: 2px solid var(--ivory); box-shadow: 0 0 0 2px var(--clay); }
+  .flow-dot.green { background: var(--olive); box-shadow: 0 0 0 2px var(--olive); }
+  .flow-dot.gray { background: var(--g300); box-shadow: 0 0 0 2px var(--g300); }
+  .flow-line { flex: 1; width: 2px; background: var(--g200); margin: 2px 0; }
+  .flow-content { padding: 0 0 20px 0; flex: 1; }
+  .flow-step-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .flow-step-desc { font-size: 13.5px; color: var(--g700); }
+  .flow-step:last-child .flow-line { display: none; }
+  pre { background: #1A1A18; color: #E8E6DF; border-radius: 8px; padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; overflow-x: auto; margin: 12px 0; }
+  pre .kw { color: #CF9F6E; } pre .cn { color: #88C0A0; } pre .cm { color: #5F5F5A; } pre .st { color: #A8C97A; } pre .nm { color: #7AABD4; } pre .fn { color: #D97757; }
+  .tip { display: flex; gap: 12px; background: var(--g100); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .tip .tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tip .tip-text { font-size: 13.5px; color: var(--g700); }
+  .tip .tip-text strong { color: var(--slate); }
+  .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .pattern-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 10px; padding: 14px 16px; }
+  .pattern-card .p-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--olive); margin-bottom: 6px; }
+  .pattern-card .p-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .pattern-card .p-desc { font-size: 12.5px; color: var(--g700); }
+  .tabs { display: flex; gap: 4px; margin-bottom: -1px; }
+  .tab-btn { font-family: var(--mono); font-size: 11.5px; padding: 7px 14px; border: 1.5px solid var(--g300); border-bottom: none; border-radius: 7px 7px 0 0; background: var(--g100); color: var(--g500); cursor: pointer; transition: background 120ms, color 120ms; }
+  .tab-btn.active { background: var(--paper); color: var(--slate); }
+  .tab-pane { display: none; border: 1.5px solid var(--g300); border-radius: 0 8px 8px 8px; }
+  .tab-pane.active { display: block; }
+  .tab-pane pre { margin: 0; border-radius: 0 6px 6px 6px; }
+  .q-list { list-style: none; }
+  .q-list li { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--g200); font-size: 13.5px; }
+  .q-list li:last-child { border-bottom: none; }
+  .q-list li .q-icon { color: var(--clay); flex-shrink: 0; font-weight: 700; }
+  .q-list li .q-text strong { display: block; color: var(--slate); margin-bottom: 2px; }
+  .q-list li .q-text span { color: var(--g700); }
+  .rel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rel-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); text-align: left; padding: 6px 10px; border-bottom: 1.5px solid var(--g300); }
+  .rel-table td { padding: 8px 10px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .rel-table td:first-child { font-family: var(--mono); font-size: 11.5px; color: var(--slate); white-space: nowrap; }
+  .rel-table td .badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--g100); color: var(--g500); margin-right: 4px; }
+  .rel-table td .badge.has { background: #EEF3E8; color: var(--olive); }
+  .rel-table td .badge.uses { background: #FEF3EE; color: var(--clay); }
+  .rel-table td .badge.impl { background: #EEF1F8; color: #4A6FA5; }
+  .thread-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .thread-table th { background: var(--g100); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); padding: 8px 12px; text-align: left; }
+  .thread-table td { padding: 9px 12px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .thread-table td:first-child { font-weight: 600; color: var(--slate); }
+  .risk-high { color: #C0392B; font-weight: 600; }
+  .risk-med  { color: #E67E22; font-weight: 600; }
+  .risk-low  { color: var(--olive); font-weight: 600; }
+  .highlight-box { background: #FEF3EE; border-left: 3px solid var(--clay); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0; font-size: 13.5px; color: var(--g700); }
+  .highlight-box strong { color: var(--clay-d); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+  .small-note { font-size: 12px; color: var(--g500); margin-top: 8px; font-family: var(--mono); }
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 30px; font-size: 12.5px; color: var(--g500); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 14px; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--g500); text-decoration: none; font-family: var(--mono); margin-bottom: 24px; }
+  .back-link:hover { color: var(--clay); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <a class="back-link" href="index.html">← Back to all problems</a>
+  <div class="eyebrow">LLD Interview Prep — SDE II/III · System Design</div>
+  <h1>Design an In-Memory <em>Key-Value Store</em></h1>
+  <p class="intro">End-to-end guide: LRU eviction, TTL expiry, transactions with ThreadLocal, ReadWriteLock concurrency — everything to ace this senior-level question.</p>
+  <nav class="toc">
+    <a href="#requirements">Requirements <span class="n">01</span></a>
+    <a href="#clarifications">Clarifying Qs <span class="n">02</span></a>
+    <a href="#entities">Entities <span class="n">03</span></a>
+    <a href="#relations">Relationships <span class="n">04</span></a>
+    <a href="#flows">Key Flows <span class="n">05</span></a>
+    <a href="#code">Code <span class="n">06</span></a>
+    <a href="#patterns">Patterns <span class="n">07</span></a>
+    <a href="#concurrency">Concurrency <span class="n">08</span></a>
+    <a href="#tips">Interview Tips <span class="n">09</span></a>
+  </nav>
+</header>
+
+<!-- 01 REQUIREMENTS -->
+<section id="requirements">
+  <div class="sec-head"><span class="idx">01</span><h2>Requirements</h2></div>
+  <p class="sec-intro">Start here — define exactly what "Key-Value Store" means in the scope of this interview.</p>
+  <div class="content-block">
+    <div class="req-grid">
+      <div class="req-item func"><div class="req-label">Functional</div><p>Core operations: <code>put(key, value)</code>, <code>get(key)</code>, <code>delete(key)</code>, <code>exists(key)</code></p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>TTL support: <code>put(key, value, ttlSeconds)</code> — key auto-expires after TTL</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Capacity limit with eviction: LRU by default when capacity is full</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Transactions: <code>begin()</code>, <code>commit()</code>, <code>rollback()</code> — atomic multi-key ops</p></div>
+      <div class="req-item func"><div class="req-label">Functional (optional)</div><p>Pub/Sub: subscribers notified on key put/delete; prefix scan over keys</p></div>
+      <div class="req-item func"><div class="req-label">Functional (optional)</div><p>Persistence: Write-Ahead Log (WAL) for durability across restarts</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Thread-safe: concurrent reads and writes without data corruption</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Extensible eviction: swap LRU for LFU or FIFO without changing store code</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 CLARIFYING QUESTIONS -->
+<section id="clarifications">
+  <div class="sec-head"><span class="idx">02</span><h2>Clarifying Questions</h2></div>
+  <p class="sec-intro">These questions define the scope and reveal hidden complexity.</p>
+  <div class="content-block">
+    <ul class="q-list">
+      <li><span class="q-icon">?</span><span class="q-text"><strong>What are the key and value types?</strong><span>String/String for simplicity; mention generic K/V if you want to show extensibility.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>What's the eviction policy when full?</strong><span>Start with LRU. Ask if LFU or TTL-based eviction is needed — affects the EvictionPolicy interface design.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>What transaction isolation level is needed?</strong><span>Read-your-own-writes within a transaction is simplest. Mention Snapshot Isolation if asked for more rigor.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>TTL cleanup: eager or lazy?</strong><span>Lazy (check on get) is simpler to implement. Background thread (eager) is more accurate but adds complexity.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Persistence required?</strong><span>In-memory only for interview scope. Note where WAL would plug in if asked.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Single node or distributed?</strong><span>Single-node in-memory for LLD. Distributed would be an HLD question (consistent hashing, replication, etc.).</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 03 ENTITIES -->
+<section id="entities">
+  <div class="sec-head"><span class="idx">03</span><h2>Core Entities</h2></div>
+  <p class="sec-intro">The key insight: the store's behavior is composed of pluggable strategies — eviction, TTL, transactions are all separate concerns.</p>
+  <div class="content-block">
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Interfaces / Strategies</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box"><div class="class-name interface">«interface» KVStore</div><div class="divider"></div><div class="field method">+ get(key): String</div><div class="field method">+ put(key, value, ttl): void</div><div class="field method">+ delete(key): void</div><div class="field method">+ exists(key): boolean</div></div>
+      <div class="class-box"><div class="class-name interface">«interface» EvictionPolicy</div><div class="divider"></div><div class="field method">+ onAccess(key): void</div><div class="field method">+ onPut(key): void</div><div class="field method">+ onDelete(key): void</div><div class="field method">+ evict(): String</div></div>
+      <div class="class-box"><div class="class-name interface">«interface» Subscriber</div><div class="divider"></div><div class="field method">+ onPut(key, value): void</div><div class="field method">+ onDelete(key): void</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Core Models</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box"><div class="class-name">ValueEntry</div><div class="field">- value: String</div><div class="field">- expiresAt: Instant (nullable)</div><div class="field">- version: long</div><div class="divider"></div><div class="field method">+ isExpired(): boolean</div></div>
+      <div class="class-box"><div class="class-name">Transaction</div><div class="field">- txId: String</div><div class="field">- pendingWrites: Map&lt;String,String&gt;</div><div class="field">- deletedKeys: Set&lt;String&gt;</div><div class="divider"></div><div class="field method">+ put(key, value): void</div><div class="field method">+ delete(key): void</div><div class="field method">+ hasPending(key): boolean</div><div class="field method">+ isDeleted(key): boolean</div></div>
+      <div class="class-box"><div class="class-name">InMemoryStore</div><div class="field" style="color:var(--g500);font-style:italic;">implements KVStore</div><div class="field">- storage: Map&lt;String,ValueEntry&gt;</div><div class="field">- eviction: EvictionPolicy</div><div class="field">- capacity: int</div><div class="field">- lock: ReadWriteLock</div><div class="field">- txLocal: ThreadLocal&lt;Transaction&gt;</div><div class="field">- pubSub: PubSubManager</div><div class="divider"></div><div class="field method">+ begin(): void</div><div class="field method">+ commit(): void</div><div class="field method">+ rollback(): void</div></div>
+      <div class="class-box"><div class="class-name">TTLManager</div><div class="field">- queue: DelayQueue&lt;ExpiryEntry&gt;</div><div class="field">- store: InMemoryStore</div><div class="divider"></div><div class="field method">+ register(key, expiresAt): void</div><div class="field method">+ run(): void (background)</div></div>
+      <div class="class-box"><div class="class-name">PubSubManager</div><div class="field">- subs: Map&lt;String,List&lt;Subscriber&gt;&gt;</div><div class="divider"></div><div class="field method">+ subscribe(key, sub): void</div><div class="field method">+ notifyPut(key, value): void</div><div class="field method">+ notifyDelete(key): void</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Eviction Implementations</p>
+    <div class="diagram-wrap">
+      <div class="class-box"><div class="class-name">LRUEvictionPolicy</div><div class="field" style="color:var(--g500);font-style:italic;">implements EvictionPolicy</div><div class="field">- accessOrder: LinkedHashMap</div><div class="field">- capacity: int</div><div class="divider"></div><div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ evict() returns first key (LRU)</div></div>
+      <div class="class-box"><div class="class-name">LFUEvictionPolicy</div><div class="field" style="color:var(--g500);font-style:italic;">implements EvictionPolicy</div><div class="field">- freqMap: Map&lt;String,Integer&gt;</div><div class="field">- minFreq: int</div><div class="divider"></div><div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ evict() removes least frequent</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 RELATIONSHIPS -->
+<section id="relations">
+  <div class="sec-head"><span class="idx">04</span><h2>Relationships</h2></div>
+  <p class="sec-intro">Note how every extension point is behind an interface — the store itself never changes.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>From</th><th>To</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>InMemoryStore</td><td>EvictionPolicy</td><td><span class="badge uses">USES</span></td><td>Strategy — injected at construction, swap LRU/LFU without changing store</td></tr>
+        <tr><td>InMemoryStore</td><td>ValueEntry</td><td><span class="badge has">HAS</span></td><td>Composition — storage map owns ValueEntry objects</td></tr>
+        <tr><td>InMemoryStore</td><td>TTLManager</td><td><span class="badge has">HAS</span></td><td>Has-a — optional; manages background expiry of keys</td></tr>
+        <tr><td>InMemoryStore</td><td>Transaction (ThreadLocal)</td><td><span class="badge has">HAS</span></td><td>ThreadLocal — each thread has its own Transaction, no coordination needed</td></tr>
+        <tr><td>InMemoryStore</td><td>PubSubManager</td><td><span class="badge has">HAS</span></td><td>Has-a — notifies subscribers after each successful put/delete</td></tr>
+        <tr><td>LRUEvictionPolicy</td><td>EvictionPolicy</td><td><span class="badge impl">IMPLEMENTS</span></td><td>Concrete strategy using LinkedHashMap with access-order=true</td></tr>
+        <tr><td>LFUEvictionPolicy</td><td>EvictionPolicy</td><td><span class="badge impl">IMPLEMENTS</span></td><td>Concrete strategy using frequency map + min-heap</td></tr>
+        <tr><td>TTLDecorator</td><td>KVStore</td><td><span class="badge impl">WRAPS</span></td><td>Decorator — wraps any KVStore to add TTL without inheritance</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 05 KEY FLOWS -->
+<section id="flows">
+  <div class="sec-head"><span class="idx">05</span><h2>Key Flows</h2></div>
+  <p class="sec-intro">Three flows to know cold: put, get (with TTL check), and transaction commit.</p>
+  <div class="content-block">
+    <div class="two-col">
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;">put(key, value, ttlSeconds)</p>
+        <div class="flow">
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Check active transaction</div><div class="flow-step-desc">If txLocal.get() != null, buffer in Transaction.pendingWrites. Return early — don't write to store yet.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Acquire write lock</div><div class="flow-step-desc">lock.writeLock().lock() — all readers must finish before write proceeds.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Evict if at capacity</div><div class="flow-step-desc">If storage.size() >= capacity and key is new: eviction.evict() → remove that key from storage.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Store ValueEntry</div><div class="flow-step-desc">Create ValueEntry(value, expiresAt = now+ttl, version++). Put in storage map.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div></div><div class="flow-content"><div class="flow-step-title">Update eviction + notify</div><div class="flow-step-desc">eviction.onPut(key). Release lock. pubSub.notifyPut(key, value).</div></div></div>
+        </div>
+      </div>
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;">get(key) / Transaction commit</p>
+        <div class="flow">
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">get: check transaction first</div><div class="flow-step-desc">If tx active: check deletedKeys → return null; check pendingWrites → return buffered value.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">get: read lock + expiry check</div><div class="flow-step-desc">lock.readLock().lock(). Fetch ValueEntry. If entry.isExpired() → lazy delete, return null. eviction.onAccess(key).</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">commit: acquire write lock</div><div class="flow-step-desc">lock.writeLock().lock() — all in-flight reads must finish before commit applies changes.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">commit: apply writes atomically</div><div class="flow-step-desc">Delete keys in deletedKeys. Put all pendingWrites into storage. All or nothing.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div></div><div class="flow-content"><div class="flow-step-title">commit: clear transaction</div><div class="flow-step-desc">Release lock. txLocal.remove() — thread is now transaction-free.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 CODE -->
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">Focus on ValueEntry, LRU eviction, InMemoryStore's get/put, and transactions.</p>
+  <div class="content-block">
+
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;">ValueEntry &amp; EvictionPolicy</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'ve-entry')">ValueEntry</button>
+        <button class="tab-btn" onclick="switchTab(this,'ve-eviction')">LRUEvictionPolicy</button>
+      </div>
+      <div class="tab-pane active" id="ve-entry"><pre><span class="kw">class</span> <span class="cn">ValueEntry</span> {
+    <span class="kw">private final</span> String value;
+    <span class="kw">private final</span> <span class="cn">Instant</span> expiresAt; <span class="cm">// null = no TTL</span>
+    <span class="kw">private final long</span> version;
+
+    <span class="kw">public boolean</span> <span class="fn">isExpired</span>() {
+        <span class="kw">return</span> expiresAt != <span class="kw">null</span> && <span class="cn">Instant</span>.<span class="fn">now</span>().<span class="fn">isAfter</span>(expiresAt);
+    }
+}</pre></div>
+      <div class="tab-pane" id="ve-eviction"><pre><span class="kw">class</span> <span class="cn">LRUEvictionPolicy</span> <span class="kw">implements</span> <span class="cn">EvictionPolicy</span> {
+    <span class="kw">private final</span> LinkedHashMap&lt;String, Boolean&gt; accessOrder;
+
+    <span class="kw">public</span> <span class="fn">LRUEvictionPolicy</span>(<span class="kw">int</span> capacity) {
+        <span class="cm">// accessOrder=true: get() moves key to end (most recent)</span>
+        accessOrder = <span class="kw">new</span> LinkedHashMap&lt;&gt;(capacity, <span class="nm">0.75f</span>, <span class="kw">true</span>);
+    }
+    <span class="kw">public void</span> <span class="fn">onAccess</span>(String key) { accessOrder.<span class="fn">get</span>(key); }
+    <span class="kw">public void</span> <span class="fn">onPut</span>(String key)    { accessOrder.<span class="fn">put</span>(key, <span class="kw">true</span>); }
+    <span class="kw">public void</span> <span class="fn">onDelete</span>(String key) { accessOrder.<span class="fn">remove</span>(key); }
+
+    <span class="kw">public</span> String <span class="fn">evict</span>() {
+        <span class="cm">// first entry = least recently used</span>
+        String lru = accessOrder.<span class="fn">keySet</span>().<span class="fn">iterator</span>().<span class="fn">next</span>();
+        accessOrder.<span class="fn">remove</span>(lru);
+        <span class="kw">return</span> lru;
+    }
+}</pre></div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;">InMemoryStore — get &amp; put</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'store-get')">get</button>
+        <button class="tab-btn" onclick="switchTab(this,'store-put')">put</button>
+      </div>
+      <div class="tab-pane active" id="store-get"><pre><span class="kw">public</span> String <span class="fn">get</span>(String key) {
+    <span class="cn">Transaction</span> tx = txLocal.<span class="fn">get</span>();
+    <span class="kw">if</span> (tx != <span class="kw">null</span>) {
+        <span class="kw">if</span> (tx.<span class="fn">isDeleted</span>(key))  <span class="kw">return null</span>;
+        <span class="kw">if</span> (tx.<span class="fn">hasPending</span>(key)) <span class="kw">return</span> tx.<span class="fn">getPending</span>(key);
+    }
+    lock.<span class="fn">readLock</span>().<span class="fn">lock</span>();
+    <span class="kw">try</span> {
+        <span class="cn">ValueEntry</span> entry = storage.<span class="fn">get</span>(key);
+        <span class="kw">if</span> (entry == <span class="kw">null</span> || entry.<span class="fn">isExpired</span>()) {
+            <span class="kw">if</span> (entry != <span class="kw">null</span>) storage.<span class="fn">remove</span>(key); <span class="cm">// lazy delete</span>
+            <span class="kw">return null</span>;
+        }
+        eviction.<span class="fn">onAccess</span>(key);
+        <span class="kw">return</span> entry.<span class="fn">getValue</span>();
+    } <span class="kw">finally</span> { lock.<span class="fn">readLock</span>().<span class="fn">unlock</span>(); }
+}</pre></div>
+      <div class="tab-pane" id="store-put"><pre><span class="kw">public void</span> <span class="fn">put</span>(String key, String value, <span class="kw">long</span> ttlSeconds) {
+    <span class="cn">Transaction</span> tx = txLocal.<span class="fn">get</span>();
+    <span class="kw">if</span> (tx != <span class="kw">null</span>) { tx.<span class="fn">put</span>(key, value); <span class="kw">return</span>; }
+
+    lock.<span class="fn">writeLock</span>().<span class="fn">lock</span>();
+    <span class="kw">try</span> {
+        <span class="kw">if</span> (!storage.<span class="fn">containsKey</span>(key) && storage.<span class="fn">size</span>() >= capacity) {
+            String evicted = eviction.<span class="fn">evict</span>();
+            storage.<span class="fn">remove</span>(evicted);
+        }
+        <span class="cn">Instant</span> expiry = ttlSeconds &gt; <span class="nm">0</span>
+            ? <span class="cn">Instant</span>.<span class="fn">now</span>().<span class="fn">plusSeconds</span>(ttlSeconds) : <span class="kw">null</span>;
+        storage.<span class="fn">put</span>(key, <span class="kw">new</span> <span class="cn">ValueEntry</span>(value, expiry, nextVersion.<span class="fn">incrementAndGet</span>()));
+        eviction.<span class="fn">onPut</span>(key);
+    } <span class="kw">finally</span> { lock.<span class="fn">writeLock</span>().<span class="fn">unlock</span>(); }
+    pubSub.<span class="fn">notifyPut</span>(key, value); <span class="cm">// outside lock — don't hold lock during IO</span>
+}</pre></div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;">Transactions</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'tx-class')">Transaction</button>
+        <button class="tab-btn" onclick="switchTab(this,'tx-commit')">commit / rollback</button>
+      </div>
+      <div class="tab-pane active" id="tx-class"><pre><span class="kw">class</span> <span class="cn">Transaction</span> {
+    <span class="kw">private final</span> Map&lt;String, String&gt; pendingWrites = <span class="kw">new</span> LinkedHashMap&lt;&gt;();
+    <span class="kw">private final</span> Set&lt;String&gt; deletedKeys = <span class="kw">new</span> HashSet&lt;&gt;();
+
+    <span class="kw">public void</span> <span class="fn">put</span>(String k, String v) {
+        pendingWrites.<span class="fn">put</span>(k, v);
+        deletedKeys.<span class="fn">remove</span>(k); <span class="cm">// un-delete if previously deleted</span>
+    }
+    <span class="kw">public void</span> <span class="fn">delete</span>(String k) {
+        deletedKeys.<span class="fn">add</span>(k);
+        pendingWrites.<span class="fn">remove</span>(k);
+    }
+    <span class="kw">public boolean</span> <span class="fn">hasPending</span>(String k) { <span class="kw">return</span> pendingWrites.<span class="fn">containsKey</span>(k); }
+    <span class="kw">public boolean</span> <span class="fn">isDeleted</span>(String k)  { <span class="kw">return</span> deletedKeys.<span class="fn">contains</span>(k); }
+}</pre></div>
+      <div class="tab-pane" id="tx-commit"><pre><span class="kw">public void</span> <span class="fn">commit</span>() {
+    <span class="cn">Transaction</span> tx = txLocal.<span class="fn">get</span>();
+    <span class="kw">if</span> (tx == <span class="kw">null</span>) <span class="kw">throw new</span> <span class="cn">NoActiveTransactionException</span>();
+
+    lock.<span class="fn">writeLock</span>().<span class="fn">lock</span>();
+    <span class="kw">try</span> {
+        tx.<span class="fn">getDeletedKeys</span>().<span class="fn">forEach</span>(k -&gt; {
+            storage.<span class="fn">remove</span>(k);
+            eviction.<span class="fn">onDelete</span>(k);
+        });
+        tx.<span class="fn">getPendingWrites</span>().<span class="fn">forEach</span>((k, v) -&gt; {
+            storage.<span class="fn">put</span>(k, <span class="kw">new</span> <span class="cn">ValueEntry</span>(v, <span class="kw">null</span>, nextVersion.<span class="fn">incrementAndGet</span>()));
+            eviction.<span class="fn">onPut</span>(k);
+        });
+    } <span class="kw">finally</span> {
+        lock.<span class="fn">writeLock</span>().<span class="fn">unlock</span>();
+        txLocal.<span class="fn">remove</span>(); <span class="cm">// clear regardless of success/failure</span>
+    }
+}
+
+<span class="kw">public void</span> <span class="fn">rollback</span>() {
+    txLocal.<span class="fn">remove</span>(); <span class="cm">// discard pending writes, done</span>
+}</pre></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 07 DESIGN PATTERNS -->
+<section id="patterns">
+  <div class="sec-head"><span class="idx">07</span><h2>Design Patterns Used</h2></div>
+  <p class="sec-intro">This problem is a showcase for Strategy, Decorator, and Observer.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Strategy</div><div class="p-desc">EvictionPolicy interface — LRU, LFU, FIFO, TTL-based — inject at construction. Swap policy without touching InMemoryStore.</div></div>
+      <div class="pattern-card"><div class="p-name">Structural</div><div class="p-title">Decorator</div><div class="p-desc">TTLDecorator wraps any KVStore, PersistenceDecorator wraps it again. Stack capabilities without inheritance — each decorator adds one concern.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Observer</div><div class="p-desc">PubSubManager notifies Subscribers after each put/delete — without coupling the store to any specific notification logic.</div></div>
+      <div class="pattern-card"><div class="p-name">Concurrency</div><div class="p-title">Thread-Local</div><div class="p-desc">Transaction stored in ThreadLocal — each thread manages its own transaction state with zero coordination overhead.</div></div>
+      <div class="pattern-card"><div class="p-name">Creational</div><div class="p-title">Singleton</div><div class="p-desc">Store instance shared across the application. Multiple named stores possible via a StoreRegistry.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 CONCURRENCY -->
+<section id="concurrency">
+  <div class="sec-head"><span class="idx">08</span><h2>Concurrency &amp; Thread Safety</h2></div>
+  <p class="sec-intro">The entire design is driven by the read/write concurrency requirements — mention ReadWriteLock early.</p>
+  <div class="content-block">
+    <div class="highlight-box"><strong>Key insight:</strong> A key-value store is typically read-heavy. Using <code>synchronized</code> blocks all readers while any write happens. <code>ReadWriteLock</code> allows unlimited concurrent reads — only writes are exclusive.</div>
+    <table class="thread-table" style="margin-top:16px;margin-bottom:16px;">
+      <thead><tr><th>Risk</th><th>Location</th><th>Severity</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Concurrent get + put corrupts HashMap</td><td>storage map</td><td class="risk-high">HIGH</td><td>ReadWriteLock — exclusive write lock prevents structural corruption</td></tr>
+        <tr><td>LRU accessOrder map modified during concurrent reads</td><td>LRUEvictionPolicy.onAccess</td><td class="risk-high">HIGH</td><td>LinkedHashMap not thread-safe; protect with write lock or use ConcurrentLinkedHashMap</td></tr>
+        <tr><td>Transaction commit visibility</td><td>commit()</td><td class="risk-high">HIGH</td><td>Write lock during commit ensures all changes visible atomically after unlock</td></tr>
+        <tr><td>Lazy TTL delete races with concurrent get</td><td>get() expiry check</td><td class="risk-med">MED</td><td>Check expiry inside read lock; delete inside write lock (upgrade or separate call)</td></tr>
+        <tr><td>Background TTL thread deletes key mid-transaction</td><td>TTLManager</td><td class="risk-low">LOW</td><td>TTLManager acquires write lock before deletion — consistent with all other writers</td></tr>
+      </tbody>
+    </table>
+    <p class="small-note">→ For a production implementation, consider ConcurrentHashMap with per-bucket locking for even higher throughput. Caffeine library implements this + LRU efficiently out of the box.</p>
+  </div>
+</section>
+
+<!-- 09 INTERVIEW TIPS -->
+<section id="tips">
+  <div class="sec-head"><span class="idx">09</span><h2>Interview Tips</h2></div>
+  <p class="sec-intro">Senior-level signals that differentiate your answer.</p>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>Lead with ReadWriteLock, not synchronized.</strong> A cache is read-heavy. synchronized blocks every reader when any write happens. ReadWriteLock is the correct default — say it in your first paragraph on concurrency.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>LRU in one line: LinkedHashMap(cap, 0.75f, true).</strong> The third parameter (accessOrder=true) makes get() reorder entries. iterator().next() always returns the LRU. O(1) evict — know this cold.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>Start with lazy TTL, then propose eager.</strong> Lazy expiry (check on get) is simpler. Background thread (DelayQueue + Executors.newSingleThreadScheduledExecutor) is more accurate. Mention both, implement lazy first.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>Transaction isolation: name the level.</strong> This design implements Read-Your-Own-Writes within a transaction. Mention Snapshot Isolation as the next level up (take a snapshot of storage at begin() time).</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Decorator is the key extensibility insight.</strong> TTLDecorator wraps KVStore. PersistenceDecorator wraps TTLDecorator. Each adds one concern. This is far cleaner than subclassing InMemoryStore for every combination.</div></div>
+  </div>
+</section>
+
+<footer>
+  <span class="k">In-Memory Key-Value Store — Low Level Design</span>
+  <span><a href="index.html" style="color:var(--clay);text-decoration:none;">← All LLD Problems</a></span>
+</footer>
+
+</div>
+<script>
+function switchTab(btn, id) {
+  const container = btn.closest('div[style*="margin-bottom"]') || btn.parentElement.parentElement;
+  container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Splitwise — LLD Deep Dive</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 120px; }
+  header.masthead { padding: 72px 0 48px; border-bottom: 1.5px solid var(--g300); margin-bottom: 8px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--g500); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content:""; width:24px; height:1.5px; background:var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 5vw, 56px); line-height: 1.06; letter-spacing: -0.018em; margin-bottom: 8px; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro { font-size: 15.5px; color: var(--g700); margin-top: 18px; max-width: 600px; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 28px; }
+  nav.toc a { font-size: 12px; padding: 6px 14px; border: 1.5px solid var(--g300); border-radius: 999px; text-decoration: none; color: var(--g700); background: var(--paper); transition: border-color 120ms, color 120ms; display: inline-flex; align-items: center; gap: 6px; }
+  nav.toc a .n { font-family: var(--mono); font-size: 10px; color: var(--g500); }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+  section { margin-top: 64px; scroll-margin-top: 24px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .sec-head .idx { font-family: var(--mono); font-size: 12px; color: var(--clay); font-weight: 600; width: 30px; flex-shrink: 0; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 500; font-size: 25px; letter-spacing: -0.012em; }
+  .sec-intro { font-size: 14px; color: var(--g700); max-width: 680px; margin: 0 0 22px 44px; }
+  .content-block { margin-left: 44px; }
+  @media (max-width: 600px) { .content-block, .sec-intro { margin-left: 0; } }
+  .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .req-grid { grid-template-columns: 1fr; } }
+  .req-item { background: var(--g100); border-radius: 8px; padding: 12px 14px; border-left: 3px solid var(--g300); }
+  .req-item.func { border-left-color: var(--clay); }
+  .req-item.nfunc { border-left-color: var(--olive); }
+  .req-item .req-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); margin-bottom: 4px; }
+  .req-item p { font-size: 13.5px; color: var(--g700); }
+  .diagram-wrap { overflow-x: auto; padding: 4px 0 8px; }
+  .class-box { display: inline-block; border: 2px solid var(--g300); border-radius: 8px; overflow: hidden; font-size: 13px; min-width: 170px; background: var(--paper); vertical-align: top; margin: 6px; }
+  .class-box .class-name { background: var(--slate); color: var(--paper); font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 7px 12px; letter-spacing: 0.04em; }
+  .class-box .class-name.interface { background: var(--olive); }
+  .class-box .class-name.enum { background: #4A6FA5; }
+  .class-box .class-name.abstract { background: var(--clay); }
+  .class-box .field { padding: 3px 12px; color: var(--g700); font-family: var(--mono); font-size: 11.5px; border-bottom: 1px solid var(--g100); }
+  .class-box .field.method { color: var(--clay-d); }
+  .class-box .field.enum-val { color: #4A6FA5; }
+  .class-box .divider { height: 1.5px; background: var(--g200); margin: 4px 0; }
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step { display: flex; gap: 0; align-items: stretch; }
+  .flow-left { display: flex; flex-direction: column; align-items: center; width: 40px; flex-shrink: 0; }
+  .flow-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--clay); flex-shrink: 0; margin-top: 3px; border: 2px solid var(--ivory); box-shadow: 0 0 0 2px var(--clay); }
+  .flow-dot.green { background: var(--olive); box-shadow: 0 0 0 2px var(--olive); }
+  .flow-dot.gray { background: var(--g300); box-shadow: 0 0 0 2px var(--g300); }
+  .flow-line { flex: 1; width: 2px; background: var(--g200); margin: 2px 0; }
+  .flow-content { padding: 0 0 20px 0; flex: 1; }
+  .flow-step-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .flow-step-desc { font-size: 13.5px; color: var(--g700); }
+  .flow-step:last-child .flow-line { display: none; }
+  pre { background: #1A1A18; color: #E8E6DF; border-radius: 8px; padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; overflow-x: auto; margin: 12px 0; }
+  pre .kw { color: #CF9F6E; }
+  pre .cn { color: #88C0A0; }
+  pre .cm { color: #5F5F5A; }
+  pre .st { color: #A8C97A; }
+  pre .nm { color: #7AABD4; }
+  pre .fn { color: #D97757; }
+  .tip { display: flex; gap: 12px; background: var(--g100); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .tip .tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tip .tip-text { font-size: 13.5px; color: var(--g700); }
+  .tip .tip-text strong { color: var(--slate); }
+  .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .pattern-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 10px; padding: 14px 16px; }
+  .pattern-card .p-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--olive); margin-bottom: 6px; }
+  .pattern-card .p-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .pattern-card .p-desc { font-size: 12.5px; color: var(--g700); }
+  .tabs { display: flex; gap: 4px; margin-bottom: -1px; flex-wrap: wrap; }
+  .tab-btn { font-family: var(--mono); font-size: 11.5px; padding: 7px 14px; border: 1.5px solid var(--g300); border-bottom: none; border-radius: 7px 7px 0 0; background: var(--g100); color: var(--g500); cursor: pointer; transition: background 120ms, color 120ms; }
+  .tab-btn.active { background: var(--paper); color: var(--slate); border-color: var(--g300); }
+  .tab-pane { display: none; border: 1.5px solid var(--g300); border-radius: 0 8px 8px 8px; }
+  .tab-pane.active { display: block; }
+  .tab-pane pre { border-radius: 0 6px 6px 6px; margin: 0; }
+  .q-list { list-style: none; }
+  .q-list li { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--g200); font-size: 13.5px; }
+  .q-list li:last-child { border-bottom: none; }
+  .q-list li .q-icon { color: var(--clay); flex-shrink: 0; font-weight: 700; }
+  .q-list li .q-text strong { display: block; color: var(--slate); margin-bottom: 2px; }
+  .q-list li .q-text span { color: var(--g700); }
+  .rel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rel-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); text-align: left; padding: 6px 10px; border-bottom: 1.5px solid var(--g300); }
+  .rel-table td { padding: 8px 10px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .rel-table td:first-child { font-family: var(--mono); font-size: 11.5px; color: var(--slate); white-space: nowrap; }
+  .rel-table td .badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--g100); color: var(--g500); margin-right: 4px; }
+  .rel-table td .badge.has { background: #EEF3E8; color: var(--olive); }
+  .rel-table td .badge.uses { background: #FEF3EE; color: var(--clay); }
+  .rel-table td .badge.impl { background: #EEF1F8; color: #4A6FA5; }
+  .highlight-box { background: #FEF3EE; border-left: 3px solid var(--clay); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0; font-size: 13.5px; color: var(--g700); }
+  .highlight-box strong { color: var(--clay-d); }
+  .thread-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .thread-table th { background: var(--g100); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); padding: 8px 12px; text-align: left; }
+  .thread-table td { padding: 9px 12px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .thread-table td:first-child { font-weight: 600; color: var(--slate); }
+  .risk-high { color: #C0392B; font-weight: 600; }
+  .risk-med  { color: #E67E22; font-weight: 600; }
+  .risk-low  { color: var(--olive); font-weight: 600; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+  .small-note { font-size: 12px; color: var(--g500); margin-top: 8px; font-family: var(--mono); }
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 30px; font-size: 12.5px; color: var(--g500); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 14px; }
+  .tab-group { margin-bottom: 24px; }
+  .tab-group-title { font-weight: 600; font-size: 13.5px; margin-bottom: 10px; color: var(--slate); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">LLD Interview Prep — System Design · SDE I/II</div>
+  <h1>Design <em>Splitwise</em></h1>
+  <p class="intro">End-to-end guide: expense splitting strategies, balance tracking, debt simplification, and everything you need to nail this in an interview.</p>
+  <nav class="toc">
+    <a href="#requirements">Requirements <span class="n">01</span></a>
+    <a href="#clarifications">Clarifying Qs <span class="n">02</span></a>
+    <a href="#entities">Entities <span class="n">03</span></a>
+    <a href="#relations">Relationships <span class="n">04</span></a>
+    <a href="#flows">Key Flows <span class="n">05</span></a>
+    <a href="#code">Code <span class="n">06</span></a>
+    <a href="#patterns">Patterns <span class="n">07</span></a>
+    <a href="#concurrency">Concurrency <span class="n">08</span></a>
+    <a href="#tips">Interview Tips <span class="n">09</span></a>
+  </nav>
+</header>
+
+<!-- 01 REQUIREMENTS -->
+<section id="requirements">
+  <div class="sec-head"><span class="idx">01</span><h2>Requirements</h2></div>
+  <p class="sec-intro">State these out loud before touching any class. Shows you understand scope before jumping to code.</p>
+  <div class="content-block">
+    <div class="req-grid">
+      <div class="req-item func"><div class="req-label">Functional</div><p>Users can create groups and add members</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Add expense: who paid, total amount, split type, who owes</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Split types: Equal, Exact, Percentage, Shares-based</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>View balances: what each user owes / is owed</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Settle up between two users</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Simplify debts — minimize total number of transactions</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Thread-safe concurrent expense additions</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Extensible for new split types without touching existing code</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 CLARIFYING QUESTIONS -->
+<section id="clarifications">
+  <div class="sec-head"><span class="idx">02</span><h2>Clarifying Questions</h2></div>
+  <p class="sec-intro">Ask these before designing — each answer changes which classes you need.</p>
+  <div class="content-block">
+    <ul class="q-list">
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Can a non-group expense exist?</strong><span>Yes — two friends splitting a bill without a group. Makes Group optional on Expense.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Can the payer also owe money?</strong><span>Yes — if Alice pays ₹100 for 3 people (equal), Alice owes ₹0 but the others owe ₹33.33 each. The payer is excluded from owing themselves.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Is simplify-debts required or optional?</strong><span>It's an optimization. Ask if it's in scope — it adds significant complexity (greedy graph algorithm).</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Should we support expense deletion or editing?</strong><span>Adds reverse-balance logic. Simplest: support delete by reversing balance deltas.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Currency — single or multi?</strong><span>For an interview, assume single currency. Multi-currency adds an FX conversion layer.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Integer or float amounts?</strong><span>Store in paise/cents (int) to avoid floating-point rounding — e.g., ₹100 = 10000 paise.</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 03 ENTITIES -->
+<section id="entities">
+  <div class="sec-head"><span class="idx">03</span><h2>Core Entities</h2></div>
+  <p class="sec-intro">Identify nouns first — then add methods only for the key flows.</p>
+  <div class="content-block">
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Enums</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name enum">SplitType</div>
+        <div class="field enum-val">EQUAL</div>
+        <div class="field enum-val">EXACT</div>
+        <div class="field enum-val">PERCENTAGE</div>
+        <div class="field enum-val">SHARES</div>
+      </div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Interface</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name interface">«interface» SplitStrategy</div>
+        <div class="divider"></div>
+        <div class="field method">+ calculateSplits(total, participants, extras): List&lt;ExpenseSplit&gt;</div>
+      </div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Core Models</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name">User</div>
+        <div class="field">- id: String</div>
+        <div class="field">- name: String</div>
+        <div class="field">- email: String</div>
+        <div class="field">- phone: String</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Group</div>
+        <div class="field">- id: String</div>
+        <div class="field">- name: String</div>
+        <div class="field">- members: List&lt;User&gt;</div>
+        <div class="divider"></div>
+        <div class="field method">+ addMember(user): void</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Expense</div>
+        <div class="field">- id: String</div>
+        <div class="field">- paidBy: User</div>
+        <div class="field">- amount: long <em style="color:var(--g500)">(paise)</em></div>
+        <div class="field">- description: String</div>
+        <div class="field">- group: Group <em style="color:var(--g500)">(nullable)</em></div>
+        <div class="field">- splits: List&lt;ExpenseSplit&gt;</div>
+        <div class="field">- createdAt: LocalDateTime</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name abstract">«abstract» ExpenseSplit</div>
+        <div class="field">- user: User</div>
+        <div class="field">- amount: long</div>
+        <div class="divider"></div>
+        <div class="field method">+ getAmount(): long</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">Settlement</div>
+        <div class="field">- from: User</div>
+        <div class="field">- to: User</div>
+        <div class="field">- amount: long</div>
+        <div class="field">- settledAt: LocalDateTime</div>
+      </div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">ExpenseSplit Subclasses</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box">
+        <div class="class-name">EqualSplit</div>
+        <div class="field" style="color:var(--g500);font-style:italic;">extends ExpenseSplit</div>
+        <div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ amount = total / n</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">ExactSplit</div>
+        <div class="field" style="color:var(--g500);font-style:italic;">extends ExpenseSplit</div>
+        <div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ amount explicitly provided</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">PercentageSplit</div>
+        <div class="field" style="color:var(--g500);font-style:italic;">extends ExpenseSplit</div>
+        <div class="field">- percentage: double</div>
+        <div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ amount = total * pct / 100</div>
+      </div>
+      <div class="class-box">
+        <div class="class-name">ShareSplit</div>
+        <div class="field" style="color:var(--g500);font-style:italic;">extends ExpenseSplit</div>
+        <div class="field">- shares: int</div>
+        <div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ amount = total * shares / totalShares</div>
+      </div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Facade / Orchestrator</p>
+    <div class="diagram-wrap">
+      <div class="class-box" style="min-width:260px;">
+        <div class="class-name">ExpenseManager</div>
+        <div class="field">- expenses: List&lt;Expense&gt;</div>
+        <div class="field">- balances: Map&lt;User, Map&lt;User, Long&gt;&gt;</div>
+        <div class="field">- strategyFactory: SplitStrategyFactory</div>
+        <div class="divider"></div>
+        <div class="field method">+ addExpense(paidBy, amount, participants, type): void</div>
+        <div class="field method">+ getBalance(user): Map&lt;User, Long&gt;</div>
+        <div class="field method">+ settleUp(from, to): Settlement</div>
+        <div class="field method">+ simplifyDebts(groupId): List&lt;Settlement&gt;</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 RELATIONSHIPS -->
+<section id="relations">
+  <div class="sec-head"><span class="idx">04</span><h2>Relationships</h2></div>
+  <p class="sec-intro">How entities connect — draw this as a UML class diagram in the interview.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>From</th><th>To</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Group</td><td>User</td><td><span class="badge has">HAS</span></td><td>Association — group has many members (0..*)</td></tr>
+        <tr><td>Expense</td><td>User (paidBy)</td><td><span class="badge has">HAS</span></td><td>Association — one expense has exactly one payer</td></tr>
+        <tr><td>Expense</td><td>ExpenseSplit</td><td><span class="badge has">HAS</span></td><td>Composition — expense owns its splits (1..*)</td></tr>
+        <tr><td>Expense</td><td>Group</td><td><span class="badge has">HAS</span></td><td>Association — optional (null for non-group expenses)</td></tr>
+        <tr><td>EqualSplit / ExactSplit / PercentageSplit / ShareSplit</td><td>ExpenseSplit</td><td><span class="badge impl">EXTENDS</span></td><td>Inheritance — each overrides getAmount()</td></tr>
+        <tr><td>ExpenseManager</td><td>SplitStrategy</td><td><span class="badge uses">USES</span></td><td>Strategy — pluggable at runtime via factory</td></tr>
+        <tr><td>ExpenseManager</td><td>Expense</td><td><span class="badge has">HAS</span></td><td>Aggregation — manager stores all expenses</td></tr>
+        <tr><td>EqualSplitStrategy / ExactSplitStrategy / ...</td><td>SplitStrategy</td><td><span class="badge impl">IMPLEMENTS</span></td><td>Strategy pattern — concrete implementations</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 05 KEY FLOWS -->
+<section id="flows">
+  <div class="sec-head"><span class="idx">05</span><h2>Key Flows</h2></div>
+  <p class="sec-intro">Walk through both flows step by step in the interview — shows you understand data flow, not just class structure.</p>
+  <div class="content-block">
+    <div class="two-col">
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;color:var(--slate);">Add Expense Flow</p>
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content"><div class="flow-step-title">Caller provides expense details</div><div class="flow-step-desc">paidBy, amount, participants list, splitType (EQUAL/EXACT/etc), and any extras (percentages, shares).</div></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content"><div class="flow-step-title">Strategy selected via factory</div><div class="flow-step-desc">SplitStrategyFactory.get(splitType) returns the right SplitStrategy implementation.</div></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content"><div class="flow-step-title">Calculate splits</div><div class="flow-step-desc">strategy.calculateSplits(amount, participants, extras) → List&lt;ExpenseSplit&gt;. Validate sum == total.</div></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content"><div class="flow-step-title">Update balance map</div><div class="flow-step-desc">For each split: if split.user != paidBy → balances[split.user][paidBy] += split.amount.</div></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot green"></div></div>
+            <div class="flow-content"><div class="flow-step-title">Store & notify</div><div class="flow-step-desc">Expense persisted. Observers (push notifications) triggered for all participants.</div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;color:var(--slate);">Settle Up Flow</p>
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content"><div class="flow-step-title">User A settles with User B</div><div class="flow-step-desc">Lookup net balance between A and B: balances[A][B] - balances[B][A].</div></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content"><div class="flow-step-title">Create settlement record</div><div class="flow-step-desc">Settlement(from=A, to=B, amount=netOwed) stored for audit history.</div></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+            <div class="flow-content"><div class="flow-step-title">Process payment (optional)</div><div class="flow-step-desc">PaymentProcessor.process(amount) — UPI, card, etc. Can be skipped if offline/manual.</div></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left"><div class="flow-dot green"></div></div>
+            <div class="flow-content"><div class="flow-step-title">Zero out balances</div><div class="flow-step-desc">balances[A][B] = 0 and balances[B][A] = 0. Net between A and B is now cleared.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 CODE -->
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">Focus on the logic that interviewers actually ask about — split calculation, balance update, and debt simplification.</p>
+  <div class="content-block">
+
+    <div class="tab-group">
+      <div class="tab-group-title">ExpenseSplit hierarchy</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'split-abstract')">Abstract</button>
+        <button class="tab-btn" onclick="switchTab(this,'split-equal')">EqualSplit</button>
+        <button class="tab-btn" onclick="switchTab(this,'split-pct')">PercentageSplit</button>
+      </div>
+      <div class="tab-pane active" id="split-abstract">
+<pre><span class="kw">abstract class</span> <span class="cn">ExpenseSplit</span> {
+    <span class="kw">protected final</span> <span class="cn">User</span> user;
+    <span class="kw">protected long</span> amount; <span class="cm">// in paise</span>
+
+    <span class="kw">public abstract long</span> <span class="fn">getAmount</span>();
+    <span class="kw">public</span> <span class="cn">User</span> <span class="fn">getUser</span>() { <span class="kw">return</span> user; }
+}</pre>
+      </div>
+      <div class="tab-pane" id="split-equal">
+<pre><span class="kw">class</span> <span class="cn">EqualSplit</span> <span class="kw">extends</span> <span class="cn">ExpenseSplit</span> {
+    <span class="kw">public</span> <span class="fn">EqualSplit</span>(<span class="cn">User</span> user, <span class="kw">long</span> amount) {
+        <span class="kw">this</span>.user = user;
+        <span class="kw">this</span>.amount = amount; <span class="cm">// set by EqualSplitStrategy</span>
+    }
+    <span class="kw">public long</span> <span class="fn">getAmount</span>() { <span class="kw">return</span> amount; }
+}
+
+<span class="kw">class</span> <span class="cn">EqualSplitStrategy</span> <span class="kw">implements</span> <span class="cn">SplitStrategy</span> {
+    <span class="kw">public</span> List&lt;<span class="cn">ExpenseSplit</span>&gt; <span class="fn">calculateSplits</span>(<span class="kw">long</span> total, List&lt;<span class="cn">User</span>&gt; participants, ...) {
+        <span class="kw">long</span> each = total / participants.<span class="fn">size</span>();
+        <span class="kw">long</span> remainder = total % participants.<span class="fn">size</span>();
+        List&lt;<span class="cn">ExpenseSplit</span>&gt; splits = <span class="kw">new</span> ArrayList&lt;&gt;();
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">0</span>; i &lt; participants.<span class="fn">size</span>(); i++) {
+            <span class="cm">// distribute remainder paise to first users</span>
+            splits.<span class="fn">add</span>(<span class="kw">new</span> <span class="cn">EqualSplit</span>(participants.<span class="fn">get</span>(i), each + (i &lt; remainder ? <span class="nm">1</span> : <span class="nm">0</span>)));
+        }
+        <span class="kw">return</span> splits;
+    }
+}</pre>
+      </div>
+      <div class="tab-pane" id="split-pct">
+<pre><span class="kw">class</span> <span class="cn">PercentageSplit</span> <span class="kw">extends</span> <span class="cn">ExpenseSplit</span> {
+    <span class="kw">private final double</span> percentage;
+
+    <span class="kw">public</span> <span class="fn">PercentageSplit</span>(<span class="cn">User</span> user, <span class="kw">double</span> percentage) {
+        <span class="kw">this</span>.user = user;
+        <span class="kw">this</span>.percentage = percentage;
+    }
+    <span class="kw">public long</span> <span class="fn">getAmount</span>() { <span class="kw">return</span> (<span class="kw">long</span>)(amount * percentage / <span class="nm">100</span>); }
+}
+
+<span class="cm">// validation in strategy: percentages must sum to 100</span>
+<span class="kw">if</span> (percentages.<span class="fn">stream</span>().<span class="fn">mapToDouble</span>(Double::doubleValue).<span class="fn">sum</span>() != <span class="nm">100.0</span>)
+    <span class="kw">throw new</span> <span class="cn">InvalidSplitException</span>(<span class="st">"Percentages must sum to 100"</span>);</pre>
+      </div>
+    </div>
+
+    <div class="tab-group">
+      <div class="tab-group-title">addExpense — balance update</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'add-exp')">addExpense</button>
+        <button class="tab-btn" onclick="switchTab(this,'settle')">settleUp</button>
+      </div>
+      <div class="tab-pane active" id="add-exp">
+<pre><span class="kw">public void</span> <span class="fn">addExpense</span>(<span class="cn">User</span> paidBy, <span class="kw">long</span> amount,
+        List&lt;<span class="cn">User</span>&gt; participants, <span class="cn">SplitType</span> type, Map&lt;String,Object&gt; extras) {
+
+    <span class="cn">SplitStrategy</span> strategy = strategyFactory.<span class="fn">get</span>(type);
+    List&lt;<span class="cn">ExpenseSplit</span>&gt; splits = strategy.<span class="fn">calculateSplits</span>(amount, participants, extras);
+
+    <span class="cm">// validate splits sum to total</span>
+    <span class="kw">long</span> total = splits.<span class="fn">stream</span>().<span class="fn">mapToLong</span>(<span class="cn">ExpenseSplit</span>::<span class="fn">getAmount</span>).<span class="fn">sum</span>();
+    <span class="kw">if</span> (total != amount) <span class="kw">throw new</span> <span class="cn">InvalidSplitException</span>();
+
+    <span class="cn">Expense</span> expense = <span class="kw">new</span> <span class="cn">Expense</span>(<span class="cn">UUID</span>.<span class="fn">randomUUID</span>().<span class="fn">toString</span>(), paidBy, amount, splits);
+
+    <span class="cm">// update balances: each participant owes paidBy their split amount</span>
+    <span class="kw">for</span> (<span class="cn">ExpenseSplit</span> split : splits) {
+        <span class="kw">if</span> (!split.<span class="fn">getUser</span>().<span class="fn">equals</span>(paidBy)) {
+            balances
+                .<span class="fn">computeIfAbsent</span>(split.<span class="fn">getUser</span>(), k -&gt; <span class="kw">new</span> ConcurrentHashMap&lt;&gt;())
+                .<span class="fn">merge</span>(paidBy, split.<span class="fn">getAmount</span>(), Long::sum);
+        }
+    }
+    expenses.<span class="fn">add</span>(expense);
+    observers.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">onExpenseAdded</span>(expense));
+}</pre>
+      </div>
+      <div class="tab-pane" id="settle">
+<pre><span class="kw">public</span> <span class="cn">Settlement</span> <span class="fn">settleUp</span>(<span class="cn">User</span> from, <span class="cn">User</span> to) {
+    <span class="kw">long</span> owes = balances
+        .<span class="fn">getOrDefault</span>(from, Collections.<span class="fn">emptyMap</span>())
+        .<span class="fn">getOrDefault</span>(to, <span class="nm">0L</span>);
+
+    <span class="kw">if</span> (owes &lt;= <span class="nm">0</span>) <span class="kw">throw new</span> <span class="cn">NoBalanceException</span>(<span class="st">"No debt from "</span> + from + <span class="st">" to "</span> + to);
+
+    <span class="cn">Settlement</span> s = <span class="kw">new</span> <span class="cn">Settlement</span>(from, to, owes, <span class="cn">LocalDateTime</span>.<span class="fn">now</span>());
+
+    <span class="cm">// clear balance in both directions</span>
+    balances.<span class="fn">get</span>(from).<span class="fn">put</span>(to, <span class="nm">0L</span>);
+    balances.<span class="fn">computeIfAbsent</span>(to, k -&gt; <span class="kw">new</span> HashMap&lt;&gt;()).<span class="fn">put</span>(from, <span class="nm">0L</span>);
+
+    settlements.<span class="fn">add</span>(s);
+    <span class="kw">return</span> s;
+}</pre>
+      </div>
+    </div>
+
+    <div class="tab-group">
+      <div class="tab-group-title">Simplify Debts — greedy O(n log n)</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'simplify')">simplifyDebts</button>
+      </div>
+      <div class="tab-pane active" id="simplify">
+<pre><span class="kw">public</span> List&lt;<span class="cn">Settlement</span>&gt; <span class="fn">simplifyDebts</span>() {
+    <span class="cm">// Step 1: compute net position for each user (+ve = owed, -ve = owes)</span>
+    Map&lt;<span class="cn">User</span>, Long&gt; net = <span class="kw">new</span> HashMap&lt;&gt;();
+    <span class="kw">for</span> (<span class="kw">var</span> outer : balances.<span class="fn">entrySet</span>()) {
+        <span class="kw">for</span> (<span class="kw">var</span> inner : outer.<span class="fn">getValue</span>().<span class="fn">entrySet</span>()) {
+            net.<span class="fn">merge</span>(outer.<span class="fn">getKey</span>(), -inner.<span class="fn">getValue</span>(), Long::sum);
+            net.<span class="fn">merge</span>(inner.<span class="fn">getKey</span>(),  inner.<span class="fn">getValue</span>(), Long::sum);
+        }
+    }
+    <span class="cm">// Step 2: greedy — match max creditor with max debtor</span>
+    <span class="cn">PriorityQueue</span>&lt;Map.Entry&lt;<span class="cn">User</span>,Long&gt;&gt; creditors =
+        <span class="kw">new</span> <span class="cn">PriorityQueue</span>&lt;&gt;((a,b) -&gt; Long.<span class="fn">compare</span>(b.<span class="fn">getValue</span>(), a.<span class="fn">getValue</span>()));
+    <span class="cn">PriorityQueue</span>&lt;Map.Entry&lt;<span class="cn">User</span>,Long&gt;&gt; debtors =
+        <span class="kw">new</span> <span class="cn">PriorityQueue</span>&lt;&gt;((a,b) -&gt; Long.<span class="fn">compare</span>(a.<span class="fn">getValue</span>(), b.<span class="fn">getValue</span>()));
+
+    net.<span class="fn">entrySet</span>().<span class="fn">forEach</span>(e -&gt; {
+        <span class="kw">if</span> (e.<span class="fn">getValue</span>() &gt; <span class="nm">0</span>) creditors.<span class="fn">add</span>(e);
+        <span class="kw">else if</span> (e.<span class="fn">getValue</span>() &lt; <span class="nm">0</span>) debtors.<span class="fn">add</span>(e);
+    });
+
+    List&lt;<span class="cn">Settlement</span>&gt; result = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">while</span> (!creditors.<span class="fn">isEmpty</span>() &amp;&amp; !debtors.<span class="fn">isEmpty</span>()) {
+        <span class="kw">var</span> creditor = creditors.<span class="fn">poll</span>();
+        <span class="kw">var</span> debtor   = debtors.<span class="fn">poll</span>();
+        <span class="kw">long</span> amt = Math.<span class="fn">min</span>(creditor.<span class="fn">getValue</span>(), -debtor.<span class="fn">getValue</span>());
+        result.<span class="fn">add</span>(<span class="kw">new</span> <span class="cn">Settlement</span>(debtor.<span class="fn">getKey</span>(), creditor.<span class="fn">getKey</span>(), amt));
+        <span class="cm">// re-add remainder if any</span>
+        <span class="kw">if</span> (creditor.<span class="fn">getValue</span>() - amt &gt; <span class="nm">0</span>) creditors.<span class="fn">add</span>(Map.<span class="fn">entry</span>(creditor.<span class="fn">getKey</span>(), creditor.<span class="fn">getValue</span>() - amt));
+        <span class="kw">if</span> (-debtor.<span class="fn">getValue</span>() - amt &gt; <span class="nm">0</span>) debtors.<span class="fn">add</span>(Map.<span class="fn">entry</span>(debtor.<span class="fn">getKey</span>(), debtor.<span class="fn">getValue</span>() + amt));
+    }
+    <span class="kw">return</span> result;
+}</pre>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 07 PATTERNS -->
+<section id="patterns">
+  <div class="sec-head"><span class="idx">07</span><h2>Design Patterns</h2></div>
+  <p class="sec-intro">Name these explicitly in the interview — interviewers want to hear the vocabulary.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="p-name">Behavioral</div>
+        <div class="p-title">Strategy</div>
+        <div class="p-desc">SplitStrategy interface — EqualSplitStrategy, ExactSplitStrategy, etc. Swap split logic without touching ExpenseManager.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Behavioral</div>
+        <div class="p-title">Observer</div>
+        <div class="p-desc">ExpenseManager notifies listeners on expense added or settled — push notifications, audit log, UI refresh.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Structural</div>
+        <div class="p-title">Facade</div>
+        <div class="p-desc">ExpenseManager is the single entry point. Hides strategy selection, balance map updates, and settlement complexity.</div>
+      </div>
+      <div class="pattern-card">
+        <div class="p-name">Creational</div>
+        <div class="p-title">Factory</div>
+        <div class="p-desc">SplitStrategyFactory maps SplitType enum → SplitStrategy instance. Adding a new type = add one entry in the factory.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 CONCURRENCY -->
+<section id="concurrency">
+  <div class="sec-head"><span class="idx">08</span><h2>Concurrency</h2></div>
+  <p class="sec-intro">Bring this up unprompted — most candidates skip it entirely.</p>
+  <div class="content-block">
+    <div class="highlight-box"><strong>The core race condition:</strong> Two threads simultaneously adding expenses for the same user pair can corrupt the balance map — one read-modify-write overwrites the other.</div>
+    <table class="thread-table" style="margin-top:16px;">
+      <thead><tr><th>Risk</th><th>Location</th><th>Severity</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Balance map corruption</td><td>addExpense() — balances.merge()</td><td class="risk-high">HIGH</td><td>ConcurrentHashMap + atomic merge()</td></tr>
+        <tr><td>Stale balance read during settle</td><td>settleUp()</td><td class="risk-high">HIGH</td><td>Synchronized block on user-pair key (ordered to avoid deadlock)</td></tr>
+        <tr><td>expenses list concurrent modification</td><td>expenses.add()</td><td class="risk-med">MED</td><td>Use CopyOnWriteArrayList or synchronized list</td></tr>
+        <tr><td>Observer notification during mutation</td><td>notifyObservers()</td><td class="risk-low">LOW</td><td>Notify after balance update is complete, not during</td></tr>
+      </tbody>
+    </table>
+    <p class="small-note" style="margin-top:12px;">→ For settleUp deadlock prevention: always acquire locks in user-id order (lower id first) so two threads settling A↔B never deadlock.</p>
+  </div>
+</section>
+
+<!-- 09 TIPS -->
+<section id="tips">
+  <div class="sec-head"><span class="idx">09</span><h2>Interview Tips</h2></div>
+  <p class="sec-intro">What separates a good answer from a great one in the interview.</p>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>Store amounts as integers (paise/cents), not doubles.</strong> ₹100 = 10000 paise. Float arithmetic on ₹33.33 × 3 ≠ ₹100. This is a real production bug — interviewers love it when you catch it.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>Normalize the balance key pair.</strong> Instead of balances[A][B] and balances[B][A] separately, always use the user with lower ID as the outer key. Halves memory and avoids inconsistency.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>paidBy can also appear in splits.</strong> If Alice pays ₹100 for herself and two others (equal split), her share is ₹33. She does NOT owe herself — skip her in the balance update loop.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>Simplify debts is optional — ask first.</strong> The greedy PriorityQueue approach minimizes transactions but is O(n log n). The interviewer may not want it — don't over-engineer unless asked.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Group is optional on Expense.</strong> Two friends splitting a dinner bill don't need a group. Keep Group nullable to avoid coupling all expenses to groups.</div></div>
+    <div class="tip"><div class="tip-icon">6</div><div class="tip-text"><strong>Validate before mutating.</strong> In addExpense, validate that splits sum to total BEFORE updating balances. Partial balance updates from invalid splits are very hard to roll back.</div></div>
+  </div>
+</section>
+
+<footer>
+  <span class="k">Splitwise — Low Level Design</span>
+  <span>Software Engineering Interview Prep</span>
+</footer>
+</div>
+
+<script>
+function switchTab(btn, id) {
+  const container = btn.closest('.tab-group') || btn.parentElement.parentElement;
+  container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+}
+</script>
+</body>
+</html>

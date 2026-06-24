@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HLD Problems — SDE Interview Prep</title>
+<style>
+  :root {
+    --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+    --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+    --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+    --blue: #7eb8f7; --blue-bg: #1a1f2e;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 100px; }
+
+  .back { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); text-decoration: none; padding: 32px 0 0; }
+  .back:hover { color: var(--slate); }
+
+  header { padding: 40px 0 56px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--g500); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--blue); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(36px, 5vw, 58px); line-height: 1.06; letter-spacing: -.022em; }
+  h1 em { font-style: italic; color: var(--blue); }
+  .sub { font-size: 17px; color: var(--g700); margin-top: 16px; max-width: 560px; line-height: 1.6; }
+
+  .section-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--g500); margin: 48px 0 16px; display: flex; align-items: center; gap: 12px; }
+  .section-label::after { content: ""; flex: 1; height: 1px; background: var(--g200); }
+
+  .problem-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+
+  a.problem-card {
+    display: flex; flex-direction: column;
+    text-decoration: none; color: inherit;
+    background: var(--paper);
+    border: 1.5px solid var(--g200);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  }
+  a.problem-card:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(20,20,19,.1); border-color: var(--blue); }
+
+  .card-thumb {
+    height: 120px;
+    background: var(--blue-bg);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    position: relative;
+  }
+  .card-thumb svg { width: 100%; max-width: 240px; height: auto; }
+
+  .card-body { padding: 18px 20px 20px; flex: 1; display: flex; flex-direction: column; }
+  .card-tag { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--blue); margin-bottom: 8px; }
+  .card-name { font-family: var(--serif); font-size: 19px; font-weight: 500; letter-spacing: -.01em; margin-bottom: 8px; }
+  .card-desc { font-size: 13px; color: var(--g700); line-height: 1.6; flex: 1; }
+  .card-topics { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; }
+  .topic { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 4px; background: var(--g100); color: var(--g500); }
+
+  .diff-badge { position: absolute; top: 10px; right: 10px; font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; padding: 2px 8px; border-radius: 4px; }
+  .diff-1 { background: rgba(120,140,93,.25); color: #a8c880; }
+  .diff-2 { background: rgba(217,183,87,.2); color: #d4b04a; }
+  .diff-3 { background: rgba(217,87,87,.2); color: #e07070; }
+
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 28px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--g500); }
+  footer a { color: var(--clay); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<a class="back" href="index.html">← Home</a>
+
+<header>
+  <div class="eyebrow">System Design Interview</div>
+  <h1>High Level<br><em>Design Problems</em></h1>
+  <p class="sub">10 classic system design problems with architecture diagrams, scale estimates, database schemas, and deep dives on bottlenecks.</p>
+</header>
+
+<div class="section-label">SDE I / SDE I–II · Starter Problems</div>
+<div class="problem-grid">
+
+  <a class="problem-card" href="url-shortener-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-1">SDE I/II</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="24" width="90" height="32" rx="6" fill="rgba(126,184,247,.15)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="55" y="44" text-anchor="middle" font-family="monospace" font-size="9" fill="#7eb8f7">long-url.com/page</text>
+        <line x1="100" y1="40" x2="140" y2="40" stroke="rgba(126,184,247,.5)" stroke-width="2"/>
+        <polygon points="140,40 132,36 132,44" fill="rgba(126,184,247,.5)"/>
+        <rect x="140" y="24" width="90" height="32" rx="6" fill="rgba(217,119,87,.2)" stroke="rgba(217,119,87,.4)" stroke-width="1.5"/>
+        <text x="185" y="44" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757">sho.rt/xK9m2</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">URL Shortener</div>
+      <div class="card-desc">Design TinyURL — hash generation, 301 vs 302 redirects, analytics, and scaling to 100B URLs.</div>
+      <div class="card-topics">
+        <span class="topic">Hashing</span>
+        <span class="topic">KV Store</span>
+        <span class="topic">CDN</span>
+        <span class="topic">Cache</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="notification-system-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-1">SDE I/II</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="15" width="50" height="50" rx="8" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="35" y="45" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,.6)">Service</text>
+        <line x1="60" y1="40" x2="90" y2="40" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <rect x="90" y="20" width="60" height="40" rx="6" fill="rgba(126,184,247,.15)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="120" y="44" text-anchor="middle" font-family="monospace" font-size="8" fill="#7eb8f7">Notif Queue</text>
+        <line x1="150" y1="30" x2="175" y2="20" stroke="rgba(217,119,87,.5)" stroke-width="1.5"/>
+        <line x1="150" y1="40" x2="175" y2="40" stroke="rgba(120,140,93,.5)" stroke-width="1.5"/>
+        <line x1="150" y1="50" x2="175" y2="60" stroke="rgba(195,155,211,.5)" stroke-width="1.5"/>
+        <text x="178" y="23" font-family="monospace" font-size="7" fill="#D97757">Push</text>
+        <text x="178" y="43" font-family="monospace" font-size="7" fill="#a8c880">Email</text>
+        <text x="178" y="63" font-family="monospace" font-size="7" fill="#C39BD3">SMS</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Notification System</div>
+      <div class="card-desc">Send push, email, and SMS at scale. Message queue, fan-out strategies, deduplication, and retry logic.</div>
+      <div class="card-topics">
+        <span class="topic">Message Queue</span>
+        <span class="topic">Fan-out</span>
+        <span class="topic">Retry</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="rate-limiter-service-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-1">SDE I/II</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="25" width="50" height="30" rx="6" fill="rgba(126,184,247,.15)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="35" y="44" text-anchor="middle" font-family="monospace" font-size="8" fill="#7eb8f7">Request</text>
+        <line x1="60" y1="40" x2="90" y2="40" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+        <rect x="90" y="20" width="65" height="40" rx="6" fill="rgba(217,119,87,.15)" stroke="rgba(217,119,87,.4)" stroke-width="1.5"/>
+        <text x="122" y="38" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757">Rate</text>
+        <text x="122" y="52" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757">Limiter</text>
+        <line x1="155" y1="34" x2="185" y2="24" stroke="rgba(120,140,93,.6)" stroke-width="1.5"/>
+        <line x1="155" y1="46" x2="185" y2="56" stroke="rgba(217,87,87,.4)" stroke-width="1.5" stroke-dasharray="4,2"/>
+        <text x="188" y="27" font-family="monospace" font-size="7" fill="#a8c880">PASS</text>
+        <text x="188" y="59" font-family="monospace" font-size="7" fill="#e07070">429</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Rate Limiter Service</div>
+      <div class="card-desc">Design a distributed rate limiter — token bucket, Redis Lua scripts, middleware placement, and multi-region sync.</div>
+      <div class="card-topics">
+        <span class="topic">Redis</span>
+        <span class="topic">Token Bucket</span>
+        <span class="topic">Distributed</span>
+      </div>
+    </div>
+  </a>
+
+</div>
+
+<div class="section-label">SDE II · Core Problems</div>
+<div class="problem-grid">
+
+  <a class="problem-card" href="twitter-feed-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-2">SDE II</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <circle cx="30" cy="40" r="16" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="30" y="44" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,.6)">User</text>
+        <line x1="46" y1="40" x2="70" y2="40" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <rect x="70" y="24" width="56" height="32" rx="6" fill="rgba(126,184,247,.15)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="98" y="43" text-anchor="middle" font-family="monospace" font-size="8" fill="#7eb8f7">Feed Cache</text>
+        <line x1="126" y1="40" x2="150" y2="28" stroke="rgba(255,255,255,.2)" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <line x1="126" y1="40" x2="150" y2="52" stroke="rgba(255,255,255,.2)" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <circle cx="162" cy="24" r="10" fill="rgba(217,119,87,.2)" stroke="rgba(217,119,87,.4)" stroke-width="1.5"/>
+        <circle cx="162" cy="52" r="10" fill="rgba(217,119,87,.2)" stroke="rgba(217,119,87,.4)" stroke-width="1.5"/>
+        <text x="162" y="27" text-anchor="middle" font-family="monospace" font-size="7" fill="#D97757">F1</text>
+        <text x="162" y="55" text-anchor="middle" font-family="monospace" font-size="7" fill="#D97757">F2</text>
+        <text x="186" y="30" font-family="monospace" font-size="7" fill="rgba(255,255,255,.4)">followers</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Twitter / News Feed</div>
+      <div class="card-desc">Fan-out on write vs. read, celebrity problem, timeline cache, and real-time delivery via WebSockets.</div>
+      <div class="card-topics">
+        <span class="topic">Fan-out</span>
+        <span class="topic">Cache</span>
+        <span class="topic">WebSocket</span>
+        <span class="topic">Graph DB</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="whatsapp-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-2">SDE II</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="20" width="45" height="40" rx="6" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="32" y="44" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(255,255,255,.6)">Alice</text>
+        <line x1="55" y1="36" x2="95" y2="36" stroke="rgba(120,140,93,.6)" stroke-width="1.5"/>
+        <line x1="95" y1="44" x2="55" y2="44" stroke="rgba(120,140,93,.4)" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <rect x="95" y="16" width="60" height="48" rx="6" fill="rgba(120,140,93,.2)" stroke="rgba(120,140,93,.4)" stroke-width="1.5"/>
+        <text x="125" y="36" text-anchor="middle" font-family="monospace" font-size="7" fill="#a8c880">Chat</text>
+        <text x="125" y="49" text-anchor="middle" font-family="monospace" font-size="7" fill="#a8c880">Server</text>
+        <line x1="155" y1="36" x2="185" y2="36" stroke="rgba(120,140,93,.6)" stroke-width="1.5"/>
+        <rect x="185" y="20" width="45" height="40" rx="6" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="207" y="44" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(255,255,255,.6)">Bob</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">WhatsApp / Chat System</div>
+      <div class="card-desc">1:1 and group messaging, message delivery guarantees, read receipts, WebSocket connections, and offline queuing.</div>
+      <div class="card-topics">
+        <span class="topic">WebSocket</span>
+        <span class="topic">Message Queue</span>
+        <span class="topic">Cassandra</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="google-drive-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-2">SDE II</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="28" width="50" height="24" rx="5" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="35" y="44" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,.6)">Client</text>
+        <line x1="60" y1="40" x2="85" y2="40" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <rect x="85" y="22" width="60" height="36" rx="6" fill="rgba(126,184,247,.12)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="115" y="43" text-anchor="middle" font-family="monospace" font-size="7" fill="#7eb8f7">Block Server</text>
+        <line x1="145" y1="32" x2="168" y2="24" stroke="rgba(217,119,87,.5)" stroke-width="1.5"/>
+        <line x1="145" y1="48" x2="168" y2="56" stroke="rgba(120,140,93,.5)" stroke-width="1.5"/>
+        <rect x="168" y="14" width="56" height="22" rx="4" fill="rgba(217,119,87,.15)" stroke="rgba(217,119,87,.3)" stroke-width="1.5"/>
+        <text x="196" y="29" text-anchor="middle" font-family="monospace" font-size="7" fill="#D97757">S3 / Blob</text>
+        <rect x="168" y="46" width="56" height="22" rx="4" fill="rgba(120,140,93,.15)" stroke="rgba(120,140,93,.3)" stroke-width="1.5"/>
+        <text x="196" y="61" text-anchor="middle" font-family="monospace" font-size="7" fill="#a8c880">Metadata DB</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Google Drive / File Storage</div>
+      <div class="card-desc">File chunking, block deduplication, sync conflict resolution, delta sync, and CDN-accelerated downloads.</div>
+      <div class="card-topics">
+        <span class="topic">Blob Store</span>
+        <span class="topic">Delta Sync</span>
+        <span class="topic">Chunking</span>
+        <span class="topic">CDN</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="search-autocomplete-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-2">SDE II</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="28" width="100" height="24" rx="6" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+        <text x="22" y="44" font-family="monospace" font-size="8" fill="rgba(255,255,255,.7)">design sys|</text>
+        <rect x="10" y="54" width="100" height="16" rx="3" fill="rgba(126,184,247,.12)" stroke="rgba(126,184,247,.2)" stroke-width="1"/>
+        <text x="22" y="65" font-family="monospace" font-size="7" fill="#7eb8f7">design system</text>
+        <line x1="110" y1="40" x2="140" y2="40" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <rect x="140" y="22" width="90" height="36" rx="6" fill="rgba(217,119,87,.1)" stroke="rgba(217,119,87,.3)" stroke-width="1.5"/>
+        <text x="185" y="37" text-anchor="middle" font-family="monospace" font-size="7" fill="#D97757">Trie / Top-K</text>
+        <text x="185" y="50" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(255,255,255,.4)">Cache Layer</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Search Autocomplete</div>
+      <div class="card-desc">Trie data structure, top-K suggestions, frequency-based ranking, cache at CDN edge, and real-time updates.</div>
+      <div class="card-topics">
+        <span class="topic">Trie</span>
+        <span class="topic">Top-K</span>
+        <span class="topic">CDN Cache</span>
+      </div>
+    </div>
+  </a>
+
+</div>
+
+<div class="section-label">SDE II / SDE II–III · Advanced Problems</div>
+<div class="problem-grid">
+
+  <a class="problem-card" href="netflix-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-3">SDE II/III</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="24" width="50" height="32" rx="6" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="35" y="38" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(255,255,255,.6)">Upload</text>
+        <text x="35" y="50" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(255,255,255,.4)">Server</text>
+        <line x1="60" y1="40" x2="85" y2="40" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <rect x="85" y="20" width="70" height="40" rx="6" fill="rgba(217,119,87,.15)" stroke="rgba(217,119,87,.35)" stroke-width="1.5"/>
+        <text x="120" y="37" text-anchor="middle" font-family="monospace" font-size="7" fill="#D97757">Transcoding</text>
+        <text x="120" y="50" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(217,119,87,.6)">360p/720p/4K</text>
+        <line x1="155" y1="40" x2="178" y2="40" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <rect x="178" y="24" width="54" height="32" rx="6" fill="rgba(126,184,247,.12)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="205" y="38" text-anchor="middle" font-family="monospace" font-size="7" fill="#7eb8f7">CDN</text>
+        <text x="205" y="50" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(126,184,247,.5)">Edge POP</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Netflix / Video Streaming</div>
+      <div class="card-desc">Video upload pipeline, adaptive bitrate streaming (HLS/DASH), CDN edge caching, recommendation engine.</div>
+      <div class="card-topics">
+        <span class="topic">CDN</span>
+        <span class="topic">HLS/DASH</span>
+        <span class="topic">Transcoding</span>
+        <span class="topic">Blob Store</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="uber-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-3">SDE II/III</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <circle cx="40" cy="40" r="14" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="40" y="44" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(255,255,255,.6)">Rider</text>
+        <line x1="54" y1="40" x2="80" y2="40" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <rect x="80" y="24" width="80" height="32" rx="6" fill="rgba(126,184,247,.12)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="120" y="37" text-anchor="middle" font-family="monospace" font-size="7" fill="#7eb8f7">Matching</text>
+        <text x="120" y="50" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(126,184,247,.5)">Engine</text>
+        <line x1="160" y1="40" x2="186" y2="40" stroke="rgba(120,140,93,.5)" stroke-width="1.5"/>
+        <circle cx="200" cy="40" r="14" fill="rgba(120,140,93,.2)" stroke="rgba(120,140,93,.4)" stroke-width="1.5"/>
+        <text x="200" y="44" text-anchor="middle" font-family="monospace" font-size="7" fill="#a8c880">Driver</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Uber / Ride Sharing</div>
+      <div class="card-desc">Geohash-based driver location, real-time matching engine, surge pricing, ETA calculation, and trip state machine.</div>
+      <div class="card-topics">
+        <span class="topic">Geohash</span>
+        <span class="topic">WebSocket</span>
+        <span class="topic">Matching</span>
+        <span class="topic">State Machine</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="distributed-cache-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-3">SDE II/III</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="28" width="50" height="24" rx="5" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="35" y="44" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(255,255,255,.6)">Client</text>
+        <line x1="60" y1="40" x2="82" y2="40" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+        <circle cx="120" cy="40" r="28" stroke="rgba(126,184,247,.3)" stroke-width="1.5" fill="none"/>
+        <circle cx="120" cy="12" r="7" fill="rgba(126,184,247,.3)" stroke="rgba(126,184,247,.5)" stroke-width="1.5"/>
+        <circle cx="144" cy="54" r="7" fill="rgba(120,140,93,.3)" stroke="rgba(120,140,93,.5)" stroke-width="1.5"/>
+        <circle cx="96" cy="54" r="7" fill="rgba(217,119,87,.3)" stroke="rgba(217,119,87,.5)" stroke-width="1.5"/>
+        <text x="120" y="15" text-anchor="middle" font-family="monospace" font-size="6" fill="#7eb8f7">N1</text>
+        <text x="144" y="57" text-anchor="middle" font-family="monospace" font-size="6" fill="#a8c880">N2</text>
+        <text x="96" y="57" text-anchor="middle" font-family="monospace" font-size="6" fill="#D97757">N3</text>
+        <text x="120" y="43" text-anchor="middle" font-family="monospace" font-size="6" fill="rgba(255,255,255,.3)">Hash Ring</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Distributed Cache (Redis)</div>
+      <div class="card-desc">Consistent hashing for sharding, LRU eviction, replication, cache-aside vs. write-through, and cache stampede prevention.</div>
+      <div class="card-topics">
+        <span class="topic">Consistent Hashing</span>
+        <span class="topic">LRU</span>
+        <span class="topic">Replication</span>
+      </div>
+    </div>
+  </a>
+
+</div>
+
+<div class="section-label">Senior / Staff · Deep Complexity</div>
+<div class="problem-grid">
+
+  <a class="problem-card" href="payment-system-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-3">Senior</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="24" width="55" height="32" rx="6" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="37" y="44" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(255,255,255,.6)">Client</text>
+        <line x1="65" y1="40" x2="90" y2="40" stroke="rgba(217,119,87,.5)" stroke-width="1.5"/>
+        <rect x="90" y="20" width="65" height="40" rx="6" fill="rgba(217,119,87,.15)" stroke="rgba(217,119,87,.4)" stroke-width="1.5"/>
+        <text x="122" y="38" text-anchor="middle" font-family="monospace" font-size="8" fill="#D97757">Payment</text>
+        <text x="122" y="52" text-anchor="middle" font-family="monospace" font-size="8" fill="rgba(217,119,87,.6)">Service</text>
+        <line x1="155" y1="32" x2="178" y2="22" stroke="rgba(120,140,93,.6)" stroke-width="1.5"/>
+        <line x1="155" y1="48" x2="178" y2="58" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <text x="181" y="25" font-family="monospace" font-size="7" fill="#a8c880">Ledger</text>
+        <text x="181" y="61" font-family="monospace" font-size="7" fill="#7eb8f7">Fraud</text>
+        <text x="60" y="16" font-family="monospace" font-size="6" fill="rgba(217,119,87,.5)">idempotency_key</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Payment System</div>
+      <div class="card-desc">Exactly-once processing, idempotency keys, double-entry ledger, PCI-DSS compliance, Saga pattern for distributed transactions.</div>
+      <div class="card-topics">
+        <span class="topic">Idempotency</span>
+        <span class="topic">Saga</span>
+        <span class="topic">Ledger</span>
+        <span class="topic">PCI-DSS</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="booking-system-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-3">Senior</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="10" y="18" width="60" height="44" rx="6" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="40" y="34" text-anchor="middle" font-family="monospace" font-size="6.5" fill="rgba(255,255,255,.5)">Calendar</text>
+        <rect x="16" y="38" width="10" height="10" rx="2" fill="rgba(120,140,93,.5)"/>
+        <rect x="30" y="38" width="10" height="10" rx="2" fill="rgba(120,140,93,.5)"/>
+        <rect x="44" y="38" width="10" height="10" rx="2" fill="rgba(217,119,87,.7)"/>
+        <text x="49" y="47" text-anchor="middle" font-family="monospace" font-size="5" fill="white">✓</text>
+        <line x1="70" y1="40" x2="95" y2="40" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <rect x="95" y="22" width="70" height="36" rx="6" fill="rgba(126,184,247,.12)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="130" y="37" text-anchor="middle" font-family="monospace" font-size="7" fill="#7eb8f7">Inventory</text>
+        <text x="130" y="50" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(126,184,247,.5)">Lock Engine</text>
+        <text x="107" y="16" font-family="monospace" font-size="6" fill="rgba(217,119,87,.6)">HOLD 15min</text>
+        <line x1="165" y1="40" x2="185" y2="40" stroke="rgba(120,140,93,.5)" stroke-width="1.5"/>
+        <rect x="185" y="28" width="45" height="24" rx="4" fill="rgba(120,140,93,.15)" stroke="rgba(120,140,93,.3)" stroke-width="1.5"/>
+        <text x="207" y="43" text-anchor="middle" font-family="monospace" font-size="7" fill="#a8c880">Confirm</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Hotel Booking System</div>
+      <div class="card-desc">Preventing double-booking with inventory locks, hold-then-confirm flow, Elasticsearch for search, and cancellation policies.</div>
+      <div class="card-topics">
+        <span class="topic">Inventory Lock</span>
+        <span class="topic">Optimistic Lock</span>
+        <span class="topic">Elasticsearch</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="real-time-analytics-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-3">Senior</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="6" y="28" width="46" height="24" rx="5" fill="rgba(217,119,87,.15)" stroke="rgba(217,119,87,.3)" stroke-width="1.5"/>
+        <text x="29" y="44" text-anchor="middle" font-family="monospace" font-size="7" fill="#D97757">Events</text>
+        <line x1="52" y1="40" x2="74" y2="40" stroke="rgba(217,119,87,.5)" stroke-width="1.5"/>
+        <rect x="74" y="24" width="42" height="32" rx="5" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="95" y="38" text-anchor="middle" font-family="monospace" font-size="6.5" fill="rgba(255,255,255,.6)">Kafka</text>
+        <text x="95" y="50" text-anchor="middle" font-family="monospace" font-size="6" fill="rgba(255,255,255,.3)">1M/sec</text>
+        <line x1="116" y1="40" x2="138" y2="40" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <rect x="138" y="24" width="42" height="32" rx="5" fill="rgba(126,184,247,.12)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="159" y="38" text-anchor="middle" font-family="monospace" font-size="6.5" fill="#7eb8f7">Flink</text>
+        <text x="159" y="50" text-anchor="middle" font-family="monospace" font-size="6" fill="rgba(126,184,247,.4)">Stream</text>
+        <line x1="180" y1="36" x2="200" y2="24" stroke="rgba(120,140,93,.5)" stroke-width="1.5"/>
+        <line x1="180" y1="44" x2="200" y2="56" stroke="rgba(217,119,87,.4)" stroke-width="1.5"/>
+        <text x="204" y="23" font-family="monospace" font-size="6" fill="#a8c880">Druid</text>
+        <text x="204" y="59" font-family="monospace" font-size="6" fill="#D97757">S3</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Real-time Analytics</div>
+      <div class="card-desc">Kafka ingestion, Flink stream processing, Lambda vs Kappa architecture, OLAP with Druid/ClickHouse, exactly-once semantics.</div>
+      <div class="card-topics">
+        <span class="topic">Kafka</span>
+        <span class="topic">Flink</span>
+        <span class="topic">OLAP</span>
+        <span class="topic">Lambda Arch</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="ad-auction-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-3">Senior</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="6" y="28" width="44" height="24" rx="5" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+        <text x="28" y="44" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(255,255,255,.5)">Publisher</text>
+        <line x1="50" y1="40" x2="74" y2="40" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <rect x="74" y="18" width="70" height="44" rx="6" fill="rgba(126,184,247,.1)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="109" y="34" text-anchor="middle" font-family="monospace" font-size="7" fill="#7eb8f7">Ad Exchange</text>
+        <text x="109" y="47" text-anchor="middle" font-family="monospace" font-size="6" fill="rgba(126,184,247,.4)">&lt;100ms auction</text>
+        <line x1="144" y1="32" x2="168" y2="20" stroke="rgba(217,119,87,.5)" stroke-width="1.5"/>
+        <line x1="144" y1="40" x2="168" y2="40" stroke="rgba(217,119,87,.4)" stroke-width="1.5"/>
+        <line x1="144" y1="48" x2="168" y2="60" stroke="rgba(217,119,87,.3)" stroke-width="1.5"/>
+        <text x="172" y="23" font-family="monospace" font-size="6.5" fill="#D97757">DSP 1</text>
+        <text x="172" y="43" font-family="monospace" font-size="6.5" fill="#D97757">DSP 2</text>
+        <text x="172" y="63" font-family="monospace" font-size="6.5" fill="#D97757">DSP 3</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Ad Auction System</div>
+      <div class="card-desc">Real-time bidding in &lt;100ms, second-price auction, quality score, budget pacing, frequency capping, fraud detection.</div>
+      <div class="card-topics">
+        <span class="topic">RTB</span>
+        <span class="topic">Auction</span>
+        <span class="topic">Budget Pacing</span>
+        <span class="topic">OpenRTB</span>
+      </div>
+    </div>
+  </a>
+
+  <a class="problem-card" href="distributed-tracing-hld.html">
+    <div class="card-thumb">
+      <span class="diff-badge diff-3">Senior</span>
+      <svg viewBox="0 0 240 80" fill="none">
+        <rect x="6" y="30" width="40" height="20" rx="4" fill="rgba(126,184,247,.15)" stroke="rgba(126,184,247,.3)" stroke-width="1.5"/>
+        <text x="26" y="43" text-anchor="middle" font-family="monospace" font-size="6.5" fill="#7eb8f7">svc-A</text>
+        <line x1="46" y1="40" x2="62" y2="40" stroke="rgba(126,184,247,.4)" stroke-width="1.5"/>
+        <rect x="62" y="22" width="40" height="16" rx="4" fill="rgba(120,140,93,.2)" stroke="rgba(120,140,93,.4)" stroke-width="1.5"/>
+        <text x="82" y="33" text-anchor="middle" font-family="monospace" font-size="6.5" fill="#a8c880">svc-B</text>
+        <line x1="62" y1="46" x2="62" y2="60" stroke="rgba(120,140,93,.3)" stroke-width="1.5"/>
+        <rect x="44" y="60" width="40" height="14" rx="4" fill="rgba(217,119,87,.15)" stroke="rgba(217,119,87,.3)" stroke-width="1.5"/>
+        <text x="64" y="70" text-anchor="middle" font-family="monospace" font-size="6.5" fill="#D97757">svc-C</text>
+        <line x1="102" y1="29" x2="126" y2="16" stroke="rgba(255,255,255,.15)" stroke-width="1" stroke-dasharray="3,2"/>
+        <rect x="126" y="8" width="108" height="64" rx="6" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+        <text x="180" y="20" text-anchor="middle" font-family="monospace" font-size="6" fill="rgba(255,255,255,.3)">Jaeger / Zipkin</text>
+        <rect x="134" y="26" width="90" height="8" rx="2" fill="rgba(126,184,247,.4)"/>
+        <rect x="140" y="38" width="60" height="8" rx="2" fill="rgba(120,140,93,.4)"/>
+        <rect x="134" y="50" width="40" height="8" rx="2" fill="rgba(217,119,87,.4)"/>
+        <text x="228" y="32" font-family="monospace" font-size="5" fill="#7eb8f7">svc-A</text>
+        <text x="204" y="44" font-family="monospace" font-size="5" fill="#a8c880">svc-B</text>
+        <text x="178" y="56" font-family="monospace" font-size="5" fill="#D97757">svc-C</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag">High Level Design</div>
+      <div class="card-name">Distributed Tracing</div>
+      <div class="card-desc">Trace context propagation (W3C traceparent), span collection, head vs tail-based sampling, Cassandra storage, Jaeger/Zipkin.</div>
+      <div class="card-topics">
+        <span class="topic">OpenTelemetry</span>
+        <span class="topic">Sampling</span>
+        <span class="topic">Jaeger</span>
+        <span class="topic">Cassandra</span>
+      </div>
+    </div>
+  </a>
+
+</div>
+
+<div class="section-label" style="margin-top:48px;">Framework</div>
+<div class="problem-grid">
+  <a class="problem-card" href="system-design-framework.html" style="border-color:var(--clay);border-width:2px;">
+    <div class="card-thumb" style="background:linear-gradient(135deg,#1a0f08,#2d1810);">
+      <svg viewBox="0 0 240 80" fill="none">
+        <text x="18" y="30" font-family="serif" font-size="14" fill="rgba(217,119,87,.9)" font-weight="500">How to Ace Any</text>
+        <text x="18" y="50" font-family="serif" font-size="14" fill="rgba(217,119,87,.9)" font-weight="500">System Design</text>
+        <text x="18" y="68" font-family="serif" font-size="14" font-style="italic" fill="rgba(217,119,87,.6)">Interview.</text>
+        <text x="172" y="22" font-family="monospace" font-size="7" fill="rgba(255,255,255,.3)">Step 1: Clarify</text>
+        <text x="172" y="34" font-family="monospace" font-size="7" fill="rgba(255,255,255,.3)">Step 2: Estimate</text>
+        <text x="172" y="46" font-family="monospace" font-size="7" fill="rgba(255,255,255,.3)">Step 3: Design</text>
+        <text x="172" y="58" font-family="monospace" font-size="7" fill="rgba(255,255,255,.3)">Step 4: Deep Dive</text>
+        <text x="172" y="70" font-family="monospace" font-size="7" fill="rgba(255,255,255,.3)">Step 5: Scale</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="card-tag" style="color:var(--clay);">Interview Framework</div>
+      <div class="card-name">The System Design Framework</div>
+      <div class="card-desc">6-step approach for any system design interview. Back-of-envelope cheat sheet, trade-off vocabulary, and common mistakes to avoid.</div>
+      <div class="card-topics">
+        <span class="topic">Framework</span>
+        <span class="topic">Back-of-Envelope</span>
+        <span class="topic">Trade-offs</span>
+      </div>
+    </div>
+  </a>
+</div>
+
+<footer>
+  <span>← <a href="index.html">Home</a></span>
+  <span>15 problems · SDE Interview Prep</span>
+</footer>
+
+</div>
+</body>
+</html>

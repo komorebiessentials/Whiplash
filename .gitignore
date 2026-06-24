@@ -1,0 +1,6 @@
+__pycache__/
+_request.txt
+_codex_request.txt
+*.pyc
+.DS_Store
+.claude/

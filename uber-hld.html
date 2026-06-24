@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Uber — HLD Interview Prep</title>
+<style>
+:root {
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 100px}
+.top-bar{display:flex;align-items:center;gap:16px;padding:24px 0 0}
+.back{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none}
+.back:hover{color:var(--clay)}
+header{padding:48px 0 40px;border-bottom:1.5px solid var(--g300);margin-bottom:48px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:20px;height:1.5px;background:var(--clay)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,52px);line-height:1.08;letter-spacing:-.022em}
+h1 em{font-style:italic;color:var(--clay)}
+.sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:560px;line-height:1.65}
+.difficulty{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:4px;background:var(--g200);color:var(--g700)}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:48px}
+.toc a{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;padding:4px 12px;border-radius:20px;background:var(--paper);border:1.5px solid var(--g300);color:var(--g700);text-decoration:none;transition:border-color .15s,color .15s}
+.toc a:hover{border-color:var(--clay);color:var(--clay)}
+section{margin-bottom:56px;scroll-margin-top:24px}
+.section-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--clay);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-label::before{content:"";width:16px;height:1.5px;background:var(--clay)}
+h2{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:-.015em;margin-bottom:8px}
+.hint{font-size:13px;color:var(--g500);font-family:var(--mono);margin-bottom:20px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{padding:14px 18px;border-radius:10px;border-left:3px solid;font-size:14px;line-height:1.5}
+.req-item.func{background:rgba(120,140,93,.08);border-color:var(--olive)}
+.req-item.nfunc{background:rgba(217,119,87,.08);border-color:var(--clay)}
+.req-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.req-item.func .req-label{color:var(--olive)}
+.req-item.nfunc .req-label{color:var(--clay)}
+.est-table{width:100%;border-collapse:collapse;font-size:14px}
+.est-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300)}
+.est-table td{padding:10px 12px;border-bottom:1px solid var(--g200)}
+.est-table tr:last-child td{border-bottom:none}
+.est-table td:first-child{font-weight:500}
+.est-table td code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.highlight-row td{background:rgba(217,119,87,.06)}
+
+/* Interactive Architecture */
+.arch-wrap{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start}
+@media(max-width:720px){.arch-wrap{grid-template-columns:1fr}}
+.arch-box{background:var(--paper);border:1.5px solid var(--g300);border-radius:16px;padding:20px;overflow:auto}
+.arch-box svg{width:100%;height:auto;display:block}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px;transition:border-color .2s}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px 2px 2px 0;color:var(--g700)}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px;color:var(--g700);line-height:1.5}
+.ap-empty{color:var(--g500);font-size:13px;display:flex;height:120px;align-items:center;justify-content:center;text-align:center;line-height:1.6}
+
+/* Flow Stepper */
+.flow-diagram{display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:14px 18px;background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;margin-bottom:16px;overflow-x:auto}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);padding:0 5px;font-size:13px;flex-shrink:0}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin-bottom:14px;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:10px}
+.fnav-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:7px 16px;border-radius:6px;border:1.5px solid var(--g300);background:var(--paper);color:var(--g700);cursor:pointer;transition:all .15s}
+.fnav-btn:hover:not(:disabled){border-color:var(--clay);color:var(--clay)}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:11px;color:var(--g500);flex:1;text-align:center}
+.flow-dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+.fdot{width:7px;height:7px;border-radius:50%;background:var(--g200);cursor:pointer;transition:background .2s}
+.fdot.act{background:var(--clay)}
+.fdot.done{background:var(--g500);opacity:.5}
+
+/* Schema & DB */
+.schema-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+.schema-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300);background:var(--g100)}
+.schema-table td{padding:8px 12px;border-bottom:1px solid var(--g200);font-family:var(--mono);font-size:12px}
+.schema-table td:first-child{color:var(--slate);font-weight:600}
+.schema-table td:nth-child(2){color:var(--clay)}
+.api-block{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;overflow:hidden;margin-top:12px}
+.api-row{display:grid;grid-template-columns:80px 1fr;border-bottom:1px solid var(--g200)}
+.api-row:last-child{border-bottom:none}
+.api-method{padding:12px 14px;font-family:var(--mono);font-size:11px;font-weight:700;display:flex;align-items:center}
+.api-method.get{color:#788C5D;background:#F0F4EA}
+.api-method.post{color:#4A6FA5;background:#EEF2F8}
+.api-method.patch{color:#9C6B0E;background:#FDF4E3}
+.api-path{padding:12px 14px;font-family:var(--mono);font-size:12px;color:var(--slate);display:flex;flex-direction:column;gap:4px}
+.api-desc{font-family:var(--sans);font-size:12px;color:var(--g500)}
+.db-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;padding:20px;margin-top:12px}
+.db-card h4{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--clay);margin-bottom:12px}
+pre{background:var(--slate);color:#E8E6DF;font-family:var(--mono);font-size:12.5px;line-height:1.65;padding:22px 24px;border-radius:12px;overflow-x:auto;margin-top:16px}
+pre .kw{color:#7EB8D4}pre .cn{color:#A8CC8C}pre .cm{color:#6B6B66;font-style:italic}
+pre .st{color:#D97757}pre .nm{color:#B39DDB}pre .pfn{color:#80CBC4}
+
+/* Deep Dive */
+.dive-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:640px){.dive-grid{grid-template-columns:1fr}}
+.dive-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;padding:20px}
+.dive-card h4{font-family:var(--serif);font-size:16px;font-weight:500;margin-bottom:10px;color:var(--slate)}
+.dive-card p,.dive-card li{font-size:13.5px;color:var(--g700);line-height:1.6}
+.dive-card ul{list-style:none;display:flex;flex-direction:column;gap:5px;padding-left:0}
+.dive-card li{padding-left:14px;position:relative}
+.dive-card li::before{content:"→";position:absolute;left:0;color:var(--clay);font-size:11px;top:2px}
+
+/* Scaling */
+.scale-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:16px}
+.scale-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;padding:18px}
+.scale-icon{font-size:20px;margin-bottom:8px}
+.scale-card h4{font-size:13.5px;font-weight:600;color:var(--slate);margin-bottom:6px}
+.scale-card p{font-size:12.5px;color:var(--g500);line-height:1.5}
+
+/* Surge Simulator */
+.surge-sim{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin:28px 0}
+.surge-sim h3{font-family:var(--serif);font-size:19px;font-weight:500;margin-bottom:6px}
+.surge-sub{font-size:13px;color:var(--g500);margin-bottom:20px}
+.surge-sliders{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:550px){.surge-sliders{grid-template-columns:1fr}}
+.surge-slider-group label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);display:block;margin-bottom:6px}
+.surge-slider-group input[type=range]{width:100%;accent-color:var(--clay)}
+.surge-slider-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--slate);display:block;margin-top:4px}
+.surge-result{background:var(--g100);border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.surge-mult{font-family:var(--mono);font-size:40px;font-weight:700;color:var(--clay)}
+.surge-mult-label{font-size:12px;color:var(--g500);margin-top:2px;font-family:var(--mono)}
+.surge-info{flex:1;min-width:180px}
+.surge-info p{font-size:13px;color:var(--g700);line-height:1.55}
+.surge-zones{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:14px}
+.surge-zone{border-radius:8px;padding:10px 12px;text-align:center;border:1.5px solid transparent}
+.surge-zone .sz-mult{font-family:var(--mono);font-size:16px;font-weight:700}
+.surge-zone .sz-label{font-size:11px;color:var(--g500);margin-top:2px}
+.sz-1{background:rgba(120,140,93,.08);border-color:var(--olive)}.sz-1 .sz-mult{color:var(--olive)}
+.sz-15{background:rgba(255,193,7,.08);border-color:#e6a817}.sz-15 .sz-mult{color:#e6a817}
+.sz-2{background:rgba(217,119,87,.1);border-color:var(--clay)}.sz-2 .sz-mult{color:var(--clay)}
+.sz-3{background:rgba(184,92,62,.12);border-color:var(--clay-d)}.sz-3 .sz-mult{color:var(--clay-d)}
+
+/* Self Check */
+.sc-list{display:flex;flex-direction:column;gap:8px}
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-q:hover{background:var(--g100)}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s;font-family:var(--mono)}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-a p{margin-top:10px}
+.sc-a code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+
+/* Tips */
+.tip-list{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.tip{display:flex;gap:14px;background:var(--paper);border:1.5px solid var(--oat);border-radius:12px;padding:16px 18px}
+.tip-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.tip-text{font-size:13.5px;color:var(--g700);line-height:1.6}
+.tip-text strong{color:var(--slate)}
+
+footer{margin-top:64px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--g500)}
+footer a{color:var(--g500);text-decoration:none}
+footer a:hover{color:var(--clay)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top-bar">
+  <a class="back" href="index.html">&#8592; Home</a>
+  <span style="color:var(--g300)">|</span>
+  <a class="back" href="hld-index.html">HLD Problems</a>
+</div>
+
+<header>
+  <div class="eyebrow">High Level Design</div>
+  <h1>Design a <em>Ride-Sharing</em><br>Service</h1>
+  <p class="sub">Uber at scale — geospatial driver matching, real-time location tracking, and surge pricing for 20M rides per day.</p>
+  <span class="difficulty">Difficulty: SDE II-III · Medium-Hard</span>
+</header>
+
+<nav class="toc">
+  <a href="#overview">Requirements</a>
+  <a href="#estimation">Scale</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Ride Flow</a>
+  <a href="#api">API</a>
+  <a href="#database">Database</a>
+  <a href="#deep-dive">Deep Dive</a>
+  <a href="#surge">Surge Sim</a>
+  <a href="#scaling">Scaling</a>
+  <a href="#self-check">Self Check</a>
+</nav>
+
+<!-- 1. Requirements -->
+<section id="overview">
+  <div class="section-label">01</div>
+  <h2>Requirements</h2>
+  <div class="req-grid">
+    <div class="req-item func"><div class="req-label">Functional</div>Rider requests ride with pickup + destination</div>
+    <div class="req-item func"><div class="req-label">Functional</div>System matches nearest available driver</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Real-time driver location tracking (every 5s)</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Fare estimation before booking; final fare on completion</div>
+    <div class="req-item func"><div class="req-label">Functional</div>In-app payment processing (ACID)</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Surge pricing based on supply/demand</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>20M rides/day globally</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>5M active drivers updating location every 5s</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Driver match latency &lt; 30 seconds</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>99.99% availability -- ride requests must not drop</div>
+  </div>
+</section>
+
+<!-- 2. Scale Estimation -->
+<section id="estimation">
+  <div class="section-label">02</div>
+  <h2>Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr class="highlight-row"><td>Location update QPS</td><td>5M drivers x 1 update/5s</td><td><code>1M writes/sec</code></td></tr>
+      <tr><td>Ride request QPS</td><td>20M rides/day / 86,400</td><td><code>~230/sec (peak 2,300)</code></td></tr>
+      <tr><td>Geospatial query QPS</td><td>~10 geo queries per ride request</td><td><code>~23,000 queries/sec</code></td></tr>
+      <tr><td>Active ride tracking reads</td><td>500K concurrent rides x 1 read/2s</td><td><code>250K reads/sec</code></td></tr>
+      <tr><td>Location storage (Redis)</td><td>5M drivers x 64 bytes per geo entry</td><td><code>~320 MB (fits in RAM)</code></td></tr>
+      <tr><td>Trip storage (PostgreSQL)</td><td>20M rides/day x 1 KB x 365 x 5yr</td><td><code>~36 TB historical</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 3. Architecture -- INTERACTIVE -->
+<section id="architecture">
+  <div class="section-label">03</div>
+  <h2>High-Level Architecture</h2>
+  <p class="hint">Click any component to learn why it's here and what happens if it fails.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 820 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#D1CFC5"/>
+          </marker>
+        </defs>
+
+        <g class="arch-node" data-id="rider" onclick="showNode('rider')">
+          <rect x="10" y="55" width="90" height="50" rx="8" fill="#EEF2F8" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="55" y="78" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A6FA5" font-weight="600">Rider</text>
+          <text x="55" y="92" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">App</text>
+        </g>
+
+        <g class="arch-node" data-id="driver" onclick="showNode('driver')">
+          <rect x="10" y="145" width="90" height="50" rx="8" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="55" y="168" text-anchor="middle" font-family="system-ui" font-size="10" fill="#D97757" font-weight="600">Driver</text>
+          <text x="55" y="182" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">App</text>
+        </g>
+
+        <line x1="100" y1="80" x2="148" y2="152" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="100" y1="170" x2="148" y2="163" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <g class="arch-node" data-id="lb" onclick="showNode('lb')">
+          <rect x="150" y="140" width="80" height="48" rx="6" fill="#E6E3DA" stroke="#87867F" stroke-width="1.5"/>
+          <text x="190" y="162" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Load</text>
+          <text x="190" y="177" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A">Balancer</text>
+        </g>
+
+        <line x1="230" y1="164" x2="268" y2="164" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <g class="arch-node" data-id="apigw" onclick="showNode('apigw')">
+          <rect x="270" y="140" width="90" height="48" rx="6" fill="#141413" stroke="#3D3D3A" stroke-width="1.5"/>
+          <text x="315" y="162" text-anchor="middle" font-family="system-ui" font-size="10" fill="#FAF9F5" font-weight="600">API</text>
+          <text x="315" y="176" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Gateway</text>
+        </g>
+
+        <line x1="360" y1="164" x2="406" y2="164" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="406" y1="30" x2="406" y2="310" stroke="#D1CFC5" stroke-width="1"/>
+        <line x1="406" y1="30" x2="450" y2="30" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="406" y1="100" x2="450" y2="100" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="406" y1="164" x2="450" y2="164" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="406" y1="230" x2="450" y2="230" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="406" y1="300" x2="450" y2="300" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <g class="arch-node" data-id="locsvc" onclick="showNode('locsvc')">
+          <rect x="450" y="12" width="120" height="44" rx="6" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="510" y="32" text-anchor="middle" font-family="system-ui" font-size="10" fill="#D97757" font-weight="600">Location Service</text>
+          <text x="510" y="47" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">WebSocket / 5s</text>
+        </g>
+
+        <g class="arch-node" data-id="matchsvc" onclick="showNode('matchsvc')">
+          <rect x="450" y="80" width="120" height="44" rx="6" fill="#EEF2F8" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="510" y="100" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A6FA5" font-weight="600">Matching Service</text>
+          <text x="510" y="115" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Geospatial + ETA</text>
+        </g>
+
+        <g class="arch-node" data-id="tripsvc" onclick="showNode('tripsvc')">
+          <rect x="450" y="147" width="120" height="44" rx="6" fill="#EFF5EA" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="510" y="167" text-anchor="middle" font-family="system-ui" font-size="10" fill="#788C5D" font-weight="600">Trip Service</text>
+          <text x="510" y="182" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">State machine</text>
+        </g>
+
+        <g class="arch-node" data-id="paysvc" onclick="showNode('paysvc')">
+          <rect x="450" y="213" width="120" height="44" rx="6" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="510" y="233" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Payment Service</text>
+          <text x="510" y="248" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">ACID + Stripe</text>
+        </g>
+
+        <g class="arch-node" data-id="notifsvc" onclick="showNode('notifsvc')">
+          <rect x="450" y="283" width="120" height="44" rx="6" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="510" y="303" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Notification</text>
+          <text x="510" y="318" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">APNS / FCM</text>
+        </g>
+
+        <line x1="570" y1="34" x2="620" y2="34" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="570" y1="102" x2="620" y2="94" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="570" y1="169" x2="620" y2="162" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="570" y1="240" x2="620" y2="235" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="620" y="15" width="125" height="48" rx="6" fill="#F0EEE6" stroke="#D97757" stroke-width="1.5"/>
+          <text x="682" y="38" text-anchor="middle" font-family="system-ui" font-size="11" fill="#D97757" font-weight="600">Redis</text>
+          <text x="682" y="53" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">GEOADD / locations</text>
+        </g>
+
+        <g class="arch-node" data-id="postgres" onclick="showNode('postgres')">
+          <rect x="620" y="80" width="125" height="48" rx="6" fill="#EEF2F8" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="682" y="103" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A6FA5" font-weight="600">PostgreSQL</text>
+          <text x="682" y="118" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Trips / Drivers</text>
+        </g>
+
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="620" y="148" width="125" height="48" rx="6" fill="#141413" stroke="#141413" stroke-width="1.5"/>
+          <text x="682" y="171" text-anchor="middle" font-family="system-ui" font-size="11" fill="#D97757" font-weight="600">Kafka</text>
+          <text x="682" y="186" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Async side effects</text>
+        </g>
+
+        <g class="arch-node" data-id="maps" onclick="showNode('maps')">
+          <rect x="620" y="218" width="125" height="48" rx="6" fill="#EFF5EA" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="682" y="241" text-anchor="middle" font-family="system-ui" font-size="11" fill="#788C5D" font-weight="600">Maps API</text>
+          <text x="682" y="256" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">ETA / Road distance</text>
+        </g>
+      </svg>
+    </div>
+    <div class="arch-panel" id="arch-panel">
+      <div class="ap-empty">Click any component<br>to see its role,<br>data flow and failure modes</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Request Flow Stepper -->
+<section id="flow">
+  <div class="section-label">04</div>
+  <h2>Ride Request Flow</h2>
+  <p class="hint">Step through the complete journey from rider tap to driver arrival.</p>
+  <div class="flow-diagram" id="flow-diagram">
+    <span class="fn" id="fn-rider">Rider App</span><span class="farr">&#8594;</span>
+    <span class="fn" id="fn-lb">Load Balancer</span><span class="farr">&#8594;</span>
+    <span class="fn" id="fn-trip">Trip Service</span><span class="farr">&#8594;</span>
+    <span class="fn" id="fn-match">Matching Svc</span><span class="farr">&#8594;</span>
+    <span class="fn" id="fn-redis">Redis GEORADIUS</span><span class="farr">&#8594;</span>
+    <span class="fn" id="fn-maps">Maps ETA</span><span class="farr">&#8594;</span>
+    <span class="fn" id="fn-notif">Driver Notified</span>
+  </div>
+  <div class="flow-card" id="flow-card">
+    <div class="fc-title" id="fc-title">Step 1: Rider Requests a Ride</div>
+    <div class="fc-desc" id="fc-desc">Rider taps Book Ride with pickup and destination coordinates. The app sends a POST to /api/v1/rides/request with the geolocation. Surge multiplier is computed in real-time and shown to the rider before confirmation.</div>
+    <div class="fc-code" id="fc-code">POST /api/v1/rides/request
+{
+  pickupLat: 40.7484, pickupLng: -73.9857,
+  destLat: 40.7580, destLng: -73.9855,
+  surgeAck: 1.8   // rider confirmed surge
+}</div>
+  </div>
+  <div class="flow-nav">
+    <button class="fnav-btn" id="prev-btn" onclick="prevStep()" disabled>&#8592; Prev</button>
+    <span class="fnav-counter" id="step-counter">Step 1 of 7</span>
+    <button class="fnav-btn" id="next-btn" onclick="nextStep()">Next &#8594;</button>
+  </div>
+  <div class="flow-dots" id="flow-dots"></div>
+</section>
+
+<!-- 5. API Design -->
+<section id="api">
+  <div class="section-label">05</div>
+  <h2>API Design</h2>
+  <div class="api-block">
+    <div class="api-row">
+      <div class="api-method post">POST</div>
+      <div class="api-path">/api/v1/rides/request<span class="api-desc">Body: {pickupLat, pickupLng, destLat, destLng} -- {rideId, estimatedWait, estimatedFare, surgeMultiplier}</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method post">POST</div>
+      <div class="api-path">/api/v1/rides/{id}/accept<span class="api-desc">Driver accepts ride. Body: {driverId} -- ride transitions to DRIVER_EN_ROUTE</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method patch">PATCH</div>
+      <div class="api-path">/api/v1/drivers/location<span class="api-desc">Called every 5s by driver app. Body: {lat, lng, heading, speed} -- updates Redis GEOADD</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method get">GET</div>
+      <div class="api-path">/api/v1/rides/{id}/status<span class="api-desc">Ride state + driver location. Can be polled or upgraded to WebSocket</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method post">POST</div>
+      <div class="api-path">/api/v1/rides/{id}/complete<span class="api-desc">Driver marks trip done. Triggers fare calculation -- payment -- rating prompts via Kafka</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Database Design -->
+<section id="database">
+  <div class="section-label">06</div>
+  <h2>Database Design</h2>
+  <div class="db-card">
+    <h4>Driver Locations -- Redis GEOADD (In-Memory, Ephemeral)</h4>
+    <pre style="margin-top:0;border-radius:8px">// Store driver location -- 1M writes/sec
+GEOADD drivers:active -73.9857 40.7484 "driver:42"
+
+// Find available drivers within 2km of pickup
+GEORADIUS drivers:active -73.9900 40.7500 2 km
+  WITHCOORD WITHDIST COUNT 20 ASC</pre>
+    <p style="font-size:12.5px;color:var(--g700);margin-top:8px">5M drivers x 64 bytes = 320 MB -- fits entirely in Redis RAM. Location data is ephemeral; no persistence needed. Only trip start/end coordinates persist to PostgreSQL.</p>
+  </div>
+
+  <div class="db-card" style="margin-top:12px">
+    <h4>trips (PostgreSQL -- ACID for payments)</h4>
+    <table class="schema-table">
+      <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>trip_id</td><td>UUID</td><td>Primary key</td></tr>
+        <tr><td>rider_id</td><td>BIGINT FK</td><td>References riders table</td></tr>
+        <tr><td>driver_id</td><td>BIGINT FK</td><td>References drivers table</td></tr>
+        <tr><td>status</td><td>ENUM</td><td>REQUESTED -- MATCHED -- EN_ROUTE -- IN_PROGRESS -- COMPLETED</td></tr>
+        <tr><td>pickup_lat, pickup_lng</td><td>DECIMAL(9,6)</td><td>Pickup coordinates</td></tr>
+        <tr><td>dropoff_lat, dropoff_lng</td><td>DECIMAL(9,6)</td><td>Destination coordinates</td></tr>
+        <tr><td>fare</td><td>DECIMAL(10,2)</td><td>Final calculated fare (NULL until completion)</td></tr>
+        <tr><td>surge_multiplier</td><td>DECIMAL(3,1)</td><td>Surge at time of booking</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 7. Deep Dive -->
+<section id="deep-dive">
+  <div class="section-label">07</div>
+  <h2>Key Design Decisions</h2>
+  <div class="dive-grid">
+    <div class="dive-card">
+      <h4>Geospatial Indexing</h4>
+      <ul>
+        <li><strong>Geohash:</strong> Earth divided into grid cells (5-7 char = 4km sq)</li>
+        <li>Nearby cells share string prefix -- prefix scan finds neighbours</li>
+        <li><strong>Redis GEOADD</strong> uses sorted set with geo-encoded score</li>
+        <li>GEORADIUS returns drivers within N km in O(N + log M)</li>
+        <li>Alternative: quadtree (dynamic cells), Google S2 (spherical)</li>
+        <li>Redis chosen: sub-millisecond lookups, 320 MB fits in RAM</li>
+      </ul>
+    </div>
+    <div class="dive-card">
+      <h4>Driver Matching Algorithm</h4>
+      <ul>
+        <li>Find all available drivers within 2km via GEORADIUS</li>
+        <li>Rank by ETA (road distance, not straight line) via Maps API</li>
+        <li>Offer to nearest driver with 10s timeout</li>
+        <li>If declined, try next -- extend radius to 5km after 3 attempts</li>
+        <li>Mark driver as "on offer" in Redis (SETNX) to prevent double-send</li>
+        <li>Repeated declines affect match priority scoring</li>
+      </ul>
+    </div>
+    <div class="dive-card">
+      <h4>Location Service Architecture</h4>
+      <ul>
+        <li>Drivers maintain persistent WebSocket to Location Server</li>
+        <li>Consistent hashing routes each driver to specific server</li>
+        <li>Server fail: driver reconnects to hash ring neighbor</li>
+        <li>Each server holds in-memory map: driverId to WS connection</li>
+        <li>Location updates batched: write to Redis every 5s</li>
+        <li>10K drivers per instance -- 500 instances for 5M drivers</li>
+      </ul>
+    </div>
+    <div class="dive-card">
+      <h4>Trip State Machine</h4>
+      <ul>
+        <li>REQUESTED: Rider confirmed, surge acknowledged</li>
+        <li>MATCHED: Driver accepted; marked unavailable in Redis</li>
+        <li>EN_ROUTE: Driver heading to pickup</li>
+        <li>IN_PROGRESS: Rider in car, trip underway</li>
+        <li>COMPLETED: Fare calculated; Kafka fires payment + ratings</li>
+        <li>CANCELLED: Either party cancels; driver re-marked available</li>
+      </ul>
+    </div>
+  </div>
+  <pre>// Driver matching pseudocode
+public Driver matchDriver(RideRequest request) {
+    List candidates = redis.geoRadius(
+        "drivers:active", request.pickup, 2, KM, 20
+    );
+    return candidates.stream()
+        .filter(d -> d.status == AVAILABLE)
+        .sorted(Comparator.comparingInt(d ->
+            mapsApi.getETA(d.location, request.pickup)))
+        .findFirst()
+        .map(d -> {
+            redis.setex("offer:" + d.id, 10, request.id); // 10s lock
+            notificationService.sendOffer(d, request);
+            return d;
+        }).orElse(null);
+}</pre>
+</section>
+
+<!-- 8. Surge Pricing Simulator -->
+<section id="surge">
+  <div class="section-label">08</div>
+  <h2>Surge Pricing Simulator</h2>
+  <div class="surge-sim">
+    <h3>Supply/Demand Calculator</h3>
+    <p class="surge-sub">Adjust drivers and requests in a geohash zone to see how the surge multiplier is computed. Formula: surge = min(3.0, demand / supply).</p>
+    <div class="surge-sliders">
+      <div class="surge-slider-group">
+        <label>Active Ride Requests</label>
+        <input type="range" id="surge-demand" min="1" max="100" value="45" oninput="calcSurge()">
+        <span class="surge-slider-val" id="demand-val">45 requests</span>
+      </div>
+      <div class="surge-slider-group">
+        <label>Available Drivers</label>
+        <input type="range" id="surge-supply" min="1" max="100" value="20" oninput="calcSurge()">
+        <span class="surge-slider-val" id="supply-val">20 drivers</span>
+      </div>
+    </div>
+    <div class="surge-result">
+      <div>
+        <div class="surge-mult" id="surge-mult">2.3x</div>
+        <div class="surge-mult-label">SURGE MULTIPLIER</div>
+      </div>
+      <div class="surge-info">
+        <p id="surge-desc">High demand -- 45 requests for 20 drivers. Surge incentivizes more drivers to enter this zone.</p>
+      </div>
+    </div>
+    <div class="surge-zones" style="margin-top:18px">
+      <div class="surge-zone sz-1"><div class="sz-mult">1.0x</div><div class="sz-label">Normal below 1.2</div></div>
+      <div class="surge-zone sz-15"><div class="sz-mult">1.5x</div><div class="sz-label">Moderate 1.2-1.8</div></div>
+      <div class="surge-zone sz-2"><div class="sz-mult">2.0x</div><div class="sz-label">High 1.8-2.5</div></div>
+      <div class="surge-zone sz-3"><div class="sz-mult">3.0x</div><div class="sz-label">Peak above 2.5 (capped)</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Scaling -->
+<section id="scaling">
+  <div class="section-label">09</div>
+  <h2>Scaling and Bottlenecks</h2>
+  <div class="scale-grid">
+    <div class="scale-card">
+      <div class="scale-icon">&#128205;</div>
+      <h4>Redis Geo Cluster</h4>
+      <p>Partition by geographic region (city-level shards). Prevents hotspot on a single node. 320 MB holds all 5M driver locations -- sharding is for write throughput, not capacity.</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">&#128279;</div>
+      <h4>Consistent Hashing</h4>
+      <p>Route each driver to a specific WebSocket Location Server. Server failure only disconnects its slice of drivers -- they reconnect to the hash ring neighbor. No thundering herd.</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">&#9889;</div>
+      <h4>Kafka Async</h4>
+      <p>Trip completed -- Kafka event -- async payment processing, rating requests, driver stats updates. Decouples ride completion from side effects.</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">&#128506;</div>
+      <h4>Maps API Caching</h4>
+      <p>Pre-compute ETA for popular origin-destination pairs. Cache road graph locally. External Maps API only for novel routes (rate-limited by provider).</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">&#128179;</div>
+      <h4>Payment Idempotency</h4>
+      <p>Each trip charge has an idempotency key (tripId + version). Retries on network failure won't double-charge. Stripe deduplicates on their side too.</p>
+    </div>
+    <div class="scale-card">
+      <div class="scale-icon">&#128202;</div>
+      <h4>Read Replicas</h4>
+      <p>PostgreSQL read replicas for ride history and profiles. Write path (trips, payments) hits primary only. Reads scale horizontally across replicas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10. Self Check -->
+<section id="self-check">
+  <div class="section-label">10</div>
+  <h2>Self Check</h2>
+  <p class="hint">Common Uber design interview follow-up questions. Answer before expanding.</p>
+  <div class="sc-list">
+    <div class="sc-item" id="sc1">
+      <div class="sc-q" onclick="toggleSC('sc1')">
+        Why store driver locations in Redis instead of PostgreSQL?
+        <span class="sc-tag">Geospatial</span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>PostgreSQL with PostGIS can handle geospatial queries, but at 1M writes/sec it would require extreme sharding and still struggle with p99 latency. Redis GEOADD stores coordinates as sorted set scores and executes GEORADIUS in O(N + log M) -- sub-millisecond. More importantly, driver locations are <strong>ephemeral</strong>: they don't need durability, ACID transactions, or history. Redis is purpose-built for this: in-memory, no disk I/O. 320 MB holds all 5M drivers. If Redis restarts, drivers reconnect and re-register -- no meaningful data loss.</p>
+      </div>
+    </div>
+    <div class="sc-item" id="sc2">
+      <div class="sc-q" onclick="toggleSC('sc2')">
+        What prevents two matching services from double-assigning the same driver?
+        <span class="sc-tag">Concurrency</span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>The Matching Service uses Redis SETNX (set if not exists) with a 10-second TTL on key <code>offer:{driverId}</code> before sending the offer notification. If two Matching Service instances race to offer the same driver, the second SETNX returns 0 (failure) and that instance skips to the next candidate driver. This is a distributed lock. When the offer expires (10s timeout) or driver declines, both the Redis key and driver status are cleared -- making the driver available for the next request.</p>
+      </div>
+    </div>
+    <div class="sc-item" id="sc3">
+      <div class="sc-q" onclick="toggleSC('sc3')">
+        How does consistent hashing help with the Location Service?
+        <span class="sc-tag">Distributed Systems</span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>With 500 Location Server instances (10K drivers each), you need to route reconnects to the same server that holds the driver's WebSocket. Consistent hashing maps hash(driverId) mod ring to a specific server node. When a server fails, only the approximately 10K drivers on that node reconnect -- they get re-hashed to the neighboring node on the ring. Without consistent hashing, any server failure could cause all 5M drivers to randomly distribute across servers, destroying all in-memory connection state. The ring minimizes disruption to 1/N of drivers per failure.</p>
+      </div>
+    </div>
+    <div class="sc-item" id="sc4">
+      <div class="sc-q" onclick="toggleSC('sc4')">
+        How is surge pricing computed and stored at scale?
+        <span class="sc-tag">Algorithm</span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>A Surge Service runs every 60 seconds per city zone (geohash cell). It reads two Redis counters: pending ride requests in the last 5 minutes for the zone, and available drivers in the zone. surge = min(3.0, demand / supply). Results are stored as <code>surge:{geohash}</code> with 90-second TTL. When a rider requests a ride, Trip Service reads the pickup geohash's surge value from Redis (single sub-ms read). The Surge Service is stateless -- multiple instances produce the same result (idempotent). No coordination needed; last-write-wins on Redis.</p>
+      </div>
+    </div>
+    <div class="sc-item" id="sc5">
+      <div class="sc-q" onclick="toggleSC('sc5')">
+        How do you handle payment failure after a trip completes?
+        <span class="sc-tag">Reliability</span>
+        <span class="sc-plus">+</span>
+      </div>
+      <div class="sc-a">
+        <p>Trip completion publishes a Kafka event with idempotency key (tripId + version). The Payment Consumer calls Stripe with this key -- Stripe deduplicates on their end. If Stripe call fails, the consumer does NOT commit the Kafka offset, so the message is redelivered. Exponential backoff: 1s, 2s, 4s, 8s retry. After 5 retries, the event moves to a Dead Letter Queue (DLQ) Kafka topic. A DLQ consumer alerts ops and sets trip status to PAYMENT_FAILED. The rider is notified and asked to resolve manually. Crucially, the <strong>trip stays COMPLETED</strong> -- payment failure never un-completes a trip.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11. Interview Tips -->
+<section id="tips">
+  <div class="section-label">11</div>
+  <h2>Interview Tips</h2>
+  <div class="tip-list">
+    <div class="tip">
+      <div class="tip-icon">&#127757;</div>
+      <div class="tip-text"><strong>Geospatial indexing is the crux.</strong> Explain geohash (Earth divided into grid cells, nearby cells share string prefix) and why Redis GEOADD is the right tool -- sub-millisecond lookups, 320 MB fits in RAM for 5M drivers.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">&#129309;</div>
+      <div class="tip-text"><strong>Matching is a two-sided marketplace.</strong> Don't just say "find nearest driver." Discuss offer timeout (10s), driver declining (try next), radius expansion, and how repeated declines affect match priority. This shows operational reality.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">&#128260;</div>
+      <div class="tip-text"><strong>Location data is ephemeral.</strong> Driver locations live only in Redis -- no database persistence. Only trip data (start/end coordinates) persists. Common trick question: "how do you store location history?" -- you don't, except for completed trips.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">&#128176;</div>
+      <div class="tip-text"><strong>Surge pricing = supply-demand signal.</strong> Frame it as balancing supply and demand in a geohash zone, not just revenue extraction. Surge incentivizes drivers toward demand zones. Computed per zone every 60s from request/driver ratio.</div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">&#128208;</div>
+      <div class="tip-text"><strong>Estimation anchor.</strong> 5M drivers x 1 update/5s = 1M location writes/sec. This is the dominant load -- it drives the Redis-based architecture. If you used SQL for live driver locations, it would melt at this QPS. Lead with this calculation.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="hld-index.html">&#8592; All HLD Problems</a>
+  <span>High Level Design -- SDE Interview Prep</span>
+</footer>
+</div>
+
+<script>
+const NODE_INFO = {
+  rider: {
+    title: 'Rider App',
+    body: 'Mobile/web client that initiates ride requests. Sends GPS coordinates for pickup and destination. Displays real-time driver location on map. Receives push notifications for driver assignment.',
+    stats: ['WebSocket for live tracking', 'REST for ride requests', 'APNS/FCM for notifications'],
+    warn: 'If client loses connectivity mid-ride, the trip continues and state is recovered on reconnect via GET /rides/{id}/status.'
+  },
+  driver: {
+    title: 'Driver App',
+    body: 'Mobile app that maintains a persistent WebSocket to the Location Service. Sends GPS updates every 5 seconds. Receives ride offers with 10-second accept/decline window. Driver is removed from available pool when WebSocket drops.',
+    stats: ['WebSocket to Location Service', '5s GPS heartbeat', 'Offer window: 10 seconds'],
+    warn: 'If WebSocket drops, driver is removed from the available pool in Redis until reconnect. GPS resumes within one heartbeat cycle.'
+  },
+  lb: {
+    title: 'Load Balancer',
+    body: 'Layer 7 load balancer distributing traffic across stateless API servers. Uses round-robin for REST endpoints. WebSocket connections for drivers use consistent hashing to preserve socket state.',
+    stats: ['Round-robin for REST', 'Consistent hash for WebSocket', 'Health checks every 5s'],
+    warn: 'LB is a potential SPOF -- deploy in active-active pair with anycast DNS for automatic failover.'
+  },
+  apigw: {
+    title: 'API Gateway',
+    body: 'Single entry point handling JWT authentication, rate limiting (10 req/s per user), and request routing to downstream microservices. Also handles SSL termination and request logging.',
+    stats: ['JWT auth on every request', 'Rate limit: 10 req/s per user', 'Routes to 5 backend services'],
+    warn: 'Gateway overload cascades to all services. Deploy circuit breakers per downstream service to prevent cascading failures.'
+  },
+  locsvc: {
+    title: 'Location Service',
+    body: 'Manages 5M persistent WebSocket connections from drivers. Each driver update writes lat/lng to Redis GEOADD. Uses consistent hashing to distribute drivers across 500 Location Server instances.',
+    stats: ['500 instances x 10K drivers', '1M Redis writes/sec', 'Consistent hash ring routing'],
+    warn: 'Server failure: ~10K drivers disconnect, reconnect to neighbor on hash ring. No data loss -- Redis is the source of truth for locations.'
+  },
+  matchsvc: {
+    title: 'Matching Service',
+    body: 'Queries Redis GEORADIUS to find available drivers within 2km. Calls Maps API for road-based ETA ranking. Sets 10s offer lock in Redis (SETNX) before notifying driver to prevent double-assignment.',
+    stats: ['GEORADIUS: sub-ms lookup', 'SETNX 10s offer lock', 'Radius expands: 2km > 5km > 10km'],
+    warn: 'If no drivers found after 3 radius expansions, trip is cancelled with DRIVERS_UNAVAILABLE and rider is notified.'
+  },
+  tripsvc: {
+    title: 'Trip Service',
+    body: 'Owns the trip state machine: REQUESTED > MATCHED > EN_ROUTE > IN_PROGRESS > COMPLETED. Writes trip records to PostgreSQL with ACID transactions. On completion, publishes to Kafka for async payment and ratings.',
+    stats: ['PostgreSQL for trip records', 'Kafka on trip completion', '6-stage state machine'],
+    warn: 'Trip state transitions must be atomic -- use PostgreSQL row-level locks. Two concurrent transitions on the same trip must not both succeed.'
+  },
+  paysvc: {
+    title: 'Payment Service',
+    body: 'ACID-compliant payment processing. Consumes Kafka trip.completed events. Calls Stripe with idempotency key to prevent double-charges. Handles refunds, cancellations, and dispute resolution via DLQ.',
+    stats: ['Idempotency key: tripId+version', 'Stripe for card processing', 'DLQ after 5 retries'],
+    warn: 'Payment failures go to DLQ. Trip remains COMPLETED regardless -- payment failures are resolved separately via ops flow.'
+  },
+  notifsvc: {
+    title: 'Notification Service',
+    body: 'Sends push notifications via APNS (iOS) and FCM (Android). Triggered by Kafka events: driver assigned, driver arrived, trip completed, rating request. Handles token expiry cleanup.',
+    stats: ['APNS: iOS push', 'FCM: Android push', 'Events: 4 notification types'],
+    warn: 'Invalid device tokens (410 from APNS/FCM) must be cleaned up. Stale tokens waste requests and count against rate limits.'
+  },
+  redis: {
+    title: 'Redis',
+    body: 'In-memory store for driver locations (GEOADD sorted sets), surge multipliers per geohash, offer locks (SETNX with TTL), and driver availability status. Sub-millisecond read/write at 1M writes/sec.',
+    stats: ['GEOADD: 5M drivers in 320 MB', 'SETNX offer locks with 10s TTL', 'Surge values: geohash zone keys'],
+    warn: '320 MB of location data fits on a single Redis node. Cluster sharding is for write throughput (1M/sec), not storage capacity.'
+  },
+  postgres: {
+    title: 'PostgreSQL',
+    body: 'Persistent store for trips, drivers, riders, and payment records. ACID transactions ensure payment consistency. Read replicas handle ride history and profile reads, scaling horizontally.',
+    stats: ['36 TB historical over 5 years', 'Read replicas for history queries', 'ACID for trip and payment writes'],
+    warn: 'Never store driver GPS history in PostgreSQL in the hot path -- 1M writes/sec would overwhelm it. Use Kafka to a data warehouse for analytics.'
+  },
+  kafka: {
+    title: 'Kafka',
+    body: 'Async event bus for trip completion side effects: payment processing, rating prompts, driver stats updates. Decouples Trip Service from Payment Service so a slow payment does not delay trip completion acknowledgment.',
+    stats: ['Topics: trip.completed, payments, ratings', 'At-least-once delivery', 'Consumers: Payment, Rating, Analytics'],
+    warn: 'Consumers must be idempotent -- Kafka may redeliver on consumer restart. Use idempotency keys for payment, dedup by tripId for ratings.'
+  },
+  maps: {
+    title: 'Maps API',
+    body: 'External service (Google Maps, HERE, Mapbox) for road-based ETA calculation. Only called for novel routes -- popular origin-destination pairs are cached in Redis. Used for driver ranking and fare estimation.',
+    stats: ['Called per match attempt', 'Cache popular routes in Redis', 'Fallback: straight-line distance'],
+    warn: 'Maps API failure degrades to straight-line distance as fallback. ETA will be less accurate but matching continues to function.'
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(function(g){g.classList.remove('sel');});
+  var node = document.querySelector('.arch-node[data-id="' + id + '"]');
+  if (node) node.classList.add('sel');
+  var info = NODE_INFO[id];
+  if (!info) return;
+  var panel = document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  panel.innerHTML =
+    '<div class="ap-title">' + info.title + '</div>' +
+    '<div class="ap-body">' + info.body + '</div>' +
+    '<div style="margin-bottom:10px">' + info.stats.map(function(s){return '<span class="ap-stat">'+s+'</span>';}).join('') + '</div>' +
+    '<div class="ap-warn">' + info.warn + '</div>';
+}
+
+var STEPS = [
+  {
+    nodes: ['fn-rider'],
+    title: 'Step 1: Rider Requests a Ride',
+    desc: 'Rider taps Book Ride with pickup and destination coordinates. The app sends a POST to /api/v1/rides/request with geolocation. Surge multiplier is computed in real-time and shown to the rider before confirmation.',
+    code: 'POST /api/v1/rides/request\n{\n  pickupLat: 40.7484, pickupLng: -73.9857,\n  destLat: 40.7580, destLng: -73.9855,\n  surgeAck: 1.8   // rider confirmed surge\n}'
+  },
+  {
+    nodes: ['fn-rider','fn-lb'],
+    title: 'Step 2: Load Balancer Routes Request',
+    desc: 'The Load Balancer receives the request and routes it to an available API server via round-robin. JWT token is validated at the API Gateway. Rate limiting: 10 requests/sec per rider.',
+    code: '// API Gateway validates JWT\nAuthorization: Bearer eyJhbGciOiJSUzI1NiJ9...\nX-User-Id: usr_789\n// Routes to Trip Service'
+  },
+  {
+    nodes: ['fn-rider','fn-lb','fn-trip'],
+    title: 'Step 3: Trip Service Creates Ride Record',
+    desc: 'Trip Service creates a new trip record in PostgreSQL with status=REQUESTED. It reads the surge multiplier for the pickup geohash from Redis and stores it. The rideId is returned to the rider immediately.',
+    code: 'INSERT INTO trips (trip_id, rider_id, status,\n  pickup_lat, pickup_lng, surge_multiplier)\nVALUES (\'trip_abc\', \'usr_789\', \'REQUESTED\',\n  40.7484, -73.9857, 1.8);'
+  },
+  {
+    nodes: ['fn-rider','fn-lb','fn-trip','fn-match'],
+    title: 'Step 4: Matching Service Queries Drivers',
+    desc: 'Matching Service calls Redis GEORADIUS on the drivers:active sorted set to find all available drivers within 2km of pickup, ranked by distance. Returns up to 20 candidates for ETA ranking.',
+    code: 'GEORADIUS drivers:active -73.9857 40.7484 2 km\n  WITHCOORD WITHDIST COUNT 20 ASC\n\n// Returns: ["driver:42", 0.34km],\n//          ["driver:18", 0.89km] ...'
+  },
+  {
+    nodes: ['fn-rider','fn-lb','fn-trip','fn-match','fn-redis'],
+    title: 'Step 5: Lock Driver to Prevent Double-Offer',
+    desc: 'For the best candidate, Matching Service sets an offer lock in Redis using SETNX with 10s TTL. This prevents two Matching Service instances from sending the same driver simultaneous offers.',
+    code: '// Atomic: set only if not exists\nSETNX offer:driver_42 trip_abc\nEXPIRE offer:driver_42 10\n\n// SETNX returns 0 if key exists\n// -> driver already has an offer\n// -> try next candidate'
+  },
+  {
+    nodes: ['fn-rider','fn-lb','fn-trip','fn-match','fn-redis','fn-maps'],
+    title: 'Step 6: ETA Ranking via Maps API',
+    desc: 'Matching Service calls Maps API with each driver location and rider pickup to get road-based ETA (not straight-line). Drivers are re-sorted by actual ETA. Result cached in Redis for popular routes.',
+    code: 'GET /maps/eta\n  ?origin=40.7510,-73.9830\n  &destination=40.7484,-73.9857\n\n// { eta: 4.2, distanceKm: 0.89,\n//   via: "5th Ave" }\n// Re-rank candidates by ETA'
+  },
+  {
+    nodes: ['fn-rider','fn-lb','fn-trip','fn-match','fn-redis','fn-maps','fn-notif'],
+    title: 'Step 7: Driver Notified via Push',
+    desc: 'Notification Service sends push notification to the driver via FCM/APNS. Driver has 10 seconds to accept. If accepted: trip moves to MATCHED, driver marked unavailable in Redis. If declined or timeout: try next candidate driver.',
+    code: '// FCM push to driver device\n{\n  "to": "fcm_token_driver42",\n  "data": {\n    "type": "RIDE_OFFER",\n    "rideId": "trip_abc",\n    "pickup": "40.7484,-73.9857",\n    "fare": "~$12.60",\n    "surge": "1.8x"\n  }\n}\n// Driver has 10s to accept or decline'
+  }
+];
+
+var currentStep = 0;
+var ALL_FN_IDS = ['fn-rider','fn-lb','fn-trip','fn-match','fn-redis','fn-maps','fn-notif'];
+
+function renderStep() {
+  var s = STEPS[currentStep];
+  ALL_FN_IDS.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'fn';
+    if (s.nodes.indexOf(id) !== -1) {
+      if (s.nodes[s.nodes.length-1] === id) el.classList.add('act');
+      else el.classList.add('done');
+    }
+  });
+  document.getElementById('fc-title').textContent = s.title;
+  document.getElementById('fc-desc').textContent = s.desc;
+  document.getElementById('fc-code').textContent = s.code;
+  document.getElementById('step-counter').textContent = 'Step ' + (currentStep+1) + ' of ' + STEPS.length;
+  document.getElementById('prev-btn').disabled = currentStep === 0;
+  document.getElementById('next-btn').disabled = currentStep === STEPS.length-1;
+  document.querySelectorAll('.fdot').forEach(function(d,i){
+    d.className = 'fdot' + (i===currentStep?' act':(i<currentStep?' done':''));
+  });
+}
+function nextStep(){if(currentStep<STEPS.length-1){currentStep++;renderStep();}}
+function prevStep(){if(currentStep>0){currentStep--;renderStep();}}
+function goStep(i){currentStep=i;renderStep();}
+
+(function(){
+  var dots = document.getElementById('flow-dots');
+  STEPS.forEach(function(_,i){
+    var d = document.createElement('span');
+    d.className = 'fdot' + (i===0?' act':'');
+    d.onclick = function(){goStep(i);};
+    dots.appendChild(d);
+  });
+  renderStep();
+})();
+
+function calcSurge() {
+  var demand = parseInt(document.getElementById('surge-demand').value);
+  var supply = parseInt(document.getElementById('surge-supply').value);
+  document.getElementById('demand-val').textContent = demand + ' requests';
+  document.getElementById('supply-val').textContent = supply + ' drivers';
+  var raw = demand / supply;
+  var mult = Math.min(3.0, Math.max(1.0, Math.round(raw * 10) / 10));
+  document.getElementById('surge-mult').textContent = mult.toFixed(1) + 'x';
+  var desc = '';
+  if (mult <= 1.0) desc = 'Normal conditions -- ' + demand + ' requests for ' + supply + ' drivers. No surge applied.';
+  else if (mult < 1.5) desc = 'Mild demand -- ' + demand + ' requests for ' + supply + ' drivers. Slight surge to attract nearby drivers.';
+  else if (mult < 2.0) desc = 'Moderate surge -- ' + demand + ' requests, only ' + supply + ' drivers available. Drivers in nearby zones are incentivized to move in.';
+  else if (mult < 2.5) desc = 'High surge -- ' + demand + ' requests competing for ' + supply + ' drivers. Rider must confirm the elevated price before booking.';
+  else desc = 'Peak surge (capped at 3.0x) -- ' + demand + ' requests, critically low ' + supply + ' drivers. Cap prevents extreme pricing during emergencies.';
+  document.getElementById('surge-desc').textContent = desc;
+}
+calcSurge();
+
+function toggleSC(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payment System — HLD Interview Prep</title>
+<style>
+:root {
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 120px}
+.back{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none;padding:28px 0 0}
+.back:hover{color:var(--slate)}
+header{padding:40px 0 52px;border-bottom:1.5px solid var(--g200);margin-bottom:52px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);margin-bottom:16px}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(30px,5vw,48px);line-height:1.08;letter-spacing:-.02em}
+.sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:600px;line-height:1.65}
+section{margin-bottom:64px}
+h2{font-family:var(--serif);font-size:26px;font-weight:500;letter-spacing:-.01em;margin-bottom:20px;padding-bottom:10px;border-bottom:1.5px solid var(--g200)}
+h3{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--g500);margin:28px 0 12px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.55;position:relative;padding-left:36px}
+.req-item::before{content:"";position:absolute;left:14px;top:18px;width:8px;height:8px;border-radius:50%}
+.req-item.func::before{background:var(--olive)}
+.req-item.nfunc::before{background:var(--clay)}
+.req-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);margin-bottom:4px}
+.est-table{width:100%;border-collapse:collapse;font-size:14px}
+.est-table th{background:var(--g100);padding:10px 14px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);border-bottom:1.5px solid var(--g300)}
+.est-table td{padding:11px 14px;border-bottom:1px solid var(--g100);vertical-align:top}
+.est-table tr:last-child td{border-bottom:none}
+.est-table td:first-child{font-weight:500;color:var(--g700);width:36%}
+.est-num{font-family:var(--mono);color:var(--clay);font-size:13px;font-weight:600}
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:700px){.arch-wrap{grid-template-columns:1fr}}
+.arch-box{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;overflow:hidden}
+.arch-box svg{width:100%;height:auto;display:block}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:200px}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px}
+.ap-empty{color:var(--g500);font-size:13px;text-align:center;padding-top:40px}
+.flow-pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;min-height:160px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:14px;color:var(--g700);line-height:1.65;margin-bottom:14px}
+.fc-code{background:var(--slate);color:#e8e6df;border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;justify-content:space-between;margin-top:16px}
+.flow-btn{background:var(--paper);border:1.5px solid var(--g300);border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;color:var(--g700)}
+.flow-btn:hover{border-color:var(--clay);color:var(--clay)}
+.flow-btn:disabled{opacity:.35;cursor:default}
+.flow-dots{display:flex;gap:6px}
+.flow-dot{width:8px;height:8px;border-radius:50%;background:var(--g300);cursor:pointer;transition:background .2s}
+.flow-dot.cur{background:var(--clay)}
+.flow-ctr{font-family:var(--mono);font-size:11px;color:var(--g500)}
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.sc-q{display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;user-select:none}
+.sc-q:hover{background:var(--g100)}
+.sc-plus{width:22px;height:22px;border-radius:50%;background:var(--g200);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;transition:transform .2s,background .2s}
+.sc-item.open .sc-plus{transform:rotate(45deg);background:var(--clay);color:white}
+.sc-qtext{font-size:14px;font-weight:500;flex:1}
+.sc-a{display:none;padding:0 18px 16px 52px;font-size:14px;color:var(--g700);line-height:1.65}
+.sc-item.open .sc-a{display:block}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:auto;flex-shrink:0}
+pre.api{background:var(--slate);color:#e8e6df;border-radius:10px;padding:20px 22px;font-family:var(--mono);font-size:13px;line-height:1.7;overflow-x:auto;margin-bottom:14px}
+.method{color:var(--clay);font-weight:700}.path{color:#7eb8f7}.comment{color:var(--g500);font-style:italic}
+.schema-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:18px 20px;margin-bottom:14px}
+.schema-name{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--clay);margin-bottom:10px}
+.schema-fields{font-family:var(--mono);font-size:12px;line-height:1.9;color:var(--g700)}
+.field-name{color:var(--slate)}.field-type{color:var(--olive)}.field-note{color:var(--g500);font-style:italic}
+.deep-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:22px 24px;margin-bottom:16px}
+.deep-title{font-size:15px;font-weight:600;margin-bottom:10px}
+.deep-body{font-size:14px;color:var(--g700);line-height:1.7}
+.deep-body strong{color:var(--slate)}
+.scale-item{border-left:3px solid var(--g300);padding:10px 0 10px 18px;margin-bottom:14px;font-size:14px;color:var(--g700);line-height:1.65}
+.scale-item strong{color:var(--slate);display:block;margin-bottom:3px}
+.scale-item.highlight{border-color:var(--clay)}
+.tip{display:flex;gap:14px;background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:16px 18px;margin-bottom:12px}
+.tip-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.tip-text{font-size:14px;line-height:1.6;color:var(--g700)}
+.tip-text strong{color:var(--slate)}
+.idem-sim{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px}
+.idem-header{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.idem-key-box{font-family:var(--mono);font-size:12px;background:var(--g100);border:1.5px solid var(--g300);border-radius:6px;padding:7px 12px;color:var(--slate);flex:1;min-width:180px}
+.idem-btn{padding:8px 16px;border-radius:8px;border:1.5px solid var(--g300);font-size:13px;font-weight:600;cursor:pointer;background:var(--paper);color:var(--g700);transition:all .2s}
+.idem-btn:hover:not(:disabled){border-color:var(--clay);color:var(--clay)}
+.idem-btn.primary{background:var(--clay);border-color:var(--clay);color:white}
+.idem-btn.primary:hover:not(:disabled){background:var(--clay-d)}
+.idem-btn:disabled{opacity:.38;cursor:default}
+.idem-steps{display:flex;gap:0;margin-bottom:16px}
+.is{flex:1;padding:9px 3px;text-align:center;border:1.5px solid var(--g300);font-family:var(--mono);font-size:9px;background:var(--g100);color:var(--g500);transition:all .3s;line-height:1.4}
+.is:first-child{border-radius:8px 0 0 8px}
+.is:last-child{border-radius:0 8px 8px 0}
+.is.active{background:var(--clay);border-color:var(--clay);color:white;font-weight:700}
+.is.done{background:var(--olive);border-color:var(--olive);color:white}
+.is.skip{background:var(--g200);border-color:var(--g200);color:var(--g300);text-decoration:line-through}
+.idem-log{background:var(--slate);border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.85;min-height:110px;color:#e8e6df;white-space:pre-wrap}
+footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;font-size:12px;color:var(--g500)}
+footer a{color:var(--clay);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&#8592; Home</a>
+
+<header>
+  <div class="eyebrow">High Level Design &middot; Senior SDE</div>
+  <h1>Design a Payment System</h1>
+  <p class="sub">Stripe-like payment processing at scale &mdash; exactly-once semantics, idempotency, double-entry ledger, PCI compliance, and distributed transaction handling.</p>
+</header>
+
+<section id="overview">
+  <h2>1. Requirements</h2>
+  <h3>Functional</h3>
+  <div class="req-grid">
+    <div class="req-item func"><div class="req-label">Functional</div>Process payments via card, bank transfer, and wallet</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Payouts to merchants; refunds with partial support</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Recurring billing and subscription management</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Multi-currency with FX conversion</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Real-time fraud detection and risk scoring</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Webhooks for payment events; audit trail</div>
+  </div>
+  <h3>Non-Functional</h3>
+  <div class="req-grid">
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Exactly-once processing &mdash; zero double charges</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>p99 latency &lt; 500ms; 99.999% availability</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>PCI-DSS compliance; card data never in plaintext</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Full idempotency on all mutating operations</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>7-year data retention (regulatory requirement)</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Reconciliation accuracy: every cent accounted for</div>
+  </div>
+</section>
+
+<section id="estimation">
+  <h2>2. Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Transaction volume</td><td>1 billion payments / day</td><td class="est-num">11,600 TPS avg</td></tr>
+      <tr><td>Peak TPS</td><td>11,600 &times; 3 (Black Friday peak)</td><td class="est-num">35,000 TPS</td></tr>
+      <tr><td>Storage / day</td><td>1B &times; 500 bytes per record</td><td class="est-num">500 GB / day</td></tr>
+      <tr><td>7-year retention</td><td>500 GB &times; 365 &times; 7</td><td class="est-num">~1.3 PB</td></tr>
+      <tr><td>Idempotency keys</td><td>1B keys &times; 200 bytes, 24h TTL</td><td class="est-num">200 GB in Redis</td></tr>
+      <tr><td>Fraud scoring latency</td><td>Must complete within payment flow</td><td class="est-num">&lt; 50 ms</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="architecture">
+  <h2>3. High-Level Architecture</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:14px;">Click any component to explore its role and design choices.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 760 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#D1CFC5"/>
+          </marker>
+        </defs>
+        <line x1="110" y1="195" x2="153" y2="195" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="265" y1="195" x2="306" y2="195" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="369" y1="153" x2="369" y2="107" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr)"/>
+        <line x1="430" y1="195" x2="471" y2="195" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="591" y1="195" x2="614" y2="195" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="369" y1="235" x2="369" y2="268" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="210" y1="268" x2="553" y2="268" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="210" y1="268" x2="210" y2="306" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="330" y1="268" x2="330" y2="306" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="440" y1="268" x2="440" y2="306" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="553" y1="268" x2="553" y2="306" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="20" y="170" width="90" height="50" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="65" y="191" text-anchor="middle" font-family="monospace" font-size="10" fill="#3D3D3A" font-weight="700">Client /</text>
+          <text x="65" y="206" text-anchor="middle" font-family="monospace" font-size="10" fill="#3D3D3A">SDK</text>
+        </g>
+        <g class="arch-node" data-id="api" onclick="showNode('api')">
+          <rect x="155" y="155" width="110" height="80" rx="8" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="210" y="183" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">API Gateway</text>
+          <text x="210" y="198" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">TLS &middot; Auth</text>
+          <text x="210" y="212" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Rate Limit</text>
+        </g>
+        <g class="arch-node" data-id="payment-svc" onclick="showNode('payment-svc')">
+          <rect x="306" y="153" width="126" height="82" rx="8" fill="#141413" stroke="#D97757" stroke-width="1.5"/>
+          <text x="369" y="182" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">Payment</text>
+          <text x="369" y="197" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">Service</text>
+          <text x="369" y="218" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Idempotency Layer</text>
+        </g>
+        <g class="arch-node" data-id="fraud" onclick="showNode('fraud')">
+          <rect x="306" y="60" width="126" height="44" rx="8" fill="#F0EEE6" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="369" y="78" text-anchor="middle" font-family="monospace" font-size="10" fill="#788C5D" font-weight="700">Fraud Service</text>
+          <text x="369" y="94" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">&lt;50ms ML scoring</text>
+        </g>
+        <g class="arch-node" data-id="processor" onclick="showNode('processor')">
+          <rect x="471" y="160" width="120" height="70" rx="8" fill="#F0EEE6" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="531" y="187" text-anchor="middle" font-family="monospace" font-size="10" fill="#4A6FA5" font-weight="700">Payment</text>
+          <text x="531" y="202" text-anchor="middle" font-family="monospace" font-size="10" fill="#4A6FA5" font-weight="700">Processor</text>
+          <text x="531" y="218" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Visa &middot; MC &middot; ACH</text>
+        </g>
+        <g class="arch-node" data-id="ledger" onclick="showNode('ledger')">
+          <rect x="614" y="155" width="104" height="70" rx="8" fill="#F0EEE6" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="666" y="182" text-anchor="middle" font-family="monospace" font-size="10" fill="#788C5D" font-weight="700">Ledger</text>
+          <text x="666" y="197" text-anchor="middle" font-family="monospace" font-size="10" fill="#788C5D" font-weight="700">Service</text>
+          <text x="666" y="213" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Double-entry</text>
+        </g>
+        <g class="arch-node" data-id="postgres" onclick="showNode('postgres')">
+          <rect x="155" y="306" width="110" height="50" rx="8" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="210" y="326" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">PostgreSQL</text>
+          <text x="210" y="342" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Ledger &middot; ACID</text>
+        </g>
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="285" y="306" width="90" height="50" rx="8" fill="#FAF9F5" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="330" y="326" text-anchor="middle" font-family="monospace" font-size="10" fill="#788C5D" font-weight="700">Redis</text>
+          <text x="330" y="342" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Idempotency</text>
+        </g>
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="395" y="306" width="90" height="50" rx="8" fill="#FAF9F5" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="440" y="326" text-anchor="middle" font-family="monospace" font-size="10" fill="#4A6FA5" font-weight="700">Kafka</text>
+          <text x="440" y="342" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Events</text>
+        </g>
+        <g class="arch-node" data-id="vault" onclick="showNode('vault')">
+          <rect x="508" y="306" width="90" height="50" rx="8" fill="#141413" stroke="#D97757" stroke-width="1.5"/>
+          <text x="553" y="326" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">Vault</text>
+          <text x="553" y="342" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">PCI Card Data</text>
+        </g>
+      </svg>
+    </div>
+    <div class="arch-panel" id="arch-panel">
+      <p class="ap-empty">Click a component<br>to see details</p>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>4. Payment Request Flow</h2>
+  <div class="flow-pill-row" id="flow-pills"></div>
+  <div class="flow-card" id="flow-card"></div>
+  <div class="flow-nav">
+    <button class="flow-btn" onclick="prevStep()" id="btn-prev" disabled>&#8592; Prev</button>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div class="flow-dots" id="flow-dots"></div>
+      <span class="flow-ctr" id="flow-ctr"></span>
+    </div>
+    <button class="flow-btn" onclick="nextStep()" id="btn-next">Next &#8594;</button>
+  </div>
+</section>
+
+<section id="idem-sim">
+  <h2>5. Idempotency Simulator</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:16px;">Watch the atomic Redis Lua script prevent double charges. Press "First Request" then "Simulate Retry" with the same key.</p>
+  <div class="idem-sim">
+    <div class="idem-header">
+      <div class="idem-key-box">Idempotency-Key: <strong id="idem-key-display">idem-a3f9b2c1-d4e5</strong></div>
+      <button class="idem-btn primary" id="idem-btn-first" onclick="runIdem('first')">First Request</button>
+      <button class="idem-btn" id="idem-btn-retry" onclick="runIdem('retry')" disabled>Simulate Retry</button>
+      <button class="idem-btn" onclick="resetIdem()">Reset</button>
+    </div>
+    <div class="idem-steps">
+      <div class="is" id="is-1">1. Check<br>Redis</div>
+      <div class="is" id="is-2">2. Mark<br>PROCESSING</div>
+      <div class="is" id="is-3">3. Fraud<br>Score</div>
+      <div class="is" id="is-4">4. Charge<br>Visa</div>
+      <div class="is" id="is-5">5. Write<br>Ledger</div>
+      <div class="is" id="is-6">6. Cache<br>Response</div>
+    </div>
+    <div class="idem-log" id="idem-log">Ready. Press "First Request" to simulate a payment.</div>
+  </div>
+</section>
+
+<section id="api">
+  <h2>6. API Design</h2>
+  <pre class="api"><span class="comment"># Step 1: Create a payment intent (idempotent)</span>
+<span class="method">POST</span> <span class="path">/v1/payment_intents</span>
+Idempotency-Key: &lt;uuid-per-request&gt;
+{
+  "amount": 2000, "currency": "usd",
+  "payment_method_id": "pm_xxx",
+  "metadata": { "order_id": "ord_123" }
+}
+&#8594; { "id": "pi_xxx", "status": "requires_confirmation", "client_secret": "..." }</pre>
+
+  <pre class="api"><span class="comment"># Step 2: Confirm the payment intent</span>
+<span class="method">POST</span> <span class="path">/v1/payment_intents/{id}/confirm</span>
+Idempotency-Key: &lt;same or new uuid&gt;
+&#8594; { "id": "pi_xxx", "status": "succeeded" | "requires_action" | "failed" }</pre>
+
+  <pre class="api"><span class="comment"># Refund (partial or full)</span>
+<span class="method">POST</span> <span class="path">/v1/refunds</span>
+{ "payment_intent_id": "pi_xxx", "amount": 1000, "reason": "requested_by_customer" }
+&#8594; { "id": "re_xxx", "status": "pending" | "succeeded" }</pre>
+
+  <pre class="api"><span class="comment"># Merchant payout</span>
+<span class="method">POST</span> <span class="path">/v1/payouts</span>
+{ "amount": 50000, "currency": "usd", "method": "standard" }
+
+<span class="comment"># Webhook delivery to merchant endpoint</span>
+<span class="method">POST</span> <span class="path">https://merchant.com/webhooks/stripe</span>
+{ "type": "payment_intent.succeeded", "data": { "object": { ... } } }</pre>
+</section>
+
+<section id="database">
+  <h2>7. Database Design</h2>
+  <div class="schema-card">
+    <div class="schema-name">payment_intents</div>
+    <div class="schema-fields">
+      <span class="field-name">id</span>             <span class="field-type">UUID PRIMARY KEY</span>  <span class="field-note">-- generated server-side</span><br>
+      <span class="field-name">merchant_id</span>     <span class="field-type">UUID NOT NULL</span><br>
+      <span class="field-name">amount</span>          <span class="field-type">BIGINT NOT NULL</span>       <span class="field-note">-- in cents, never FLOAT</span><br>
+      <span class="field-name">currency</span>         <span class="field-type">CHAR(3) NOT NULL</span>     <span class="field-note">-- ISO 4217</span><br>
+      <span class="field-name">status</span>           <span class="field-type">VARCHAR(32) NOT NULL</span>  <span class="field-note">-- state machine</span><br>
+      <span class="field-name">idempotency_key</span>  <span class="field-type">VARCHAR(255) UNIQUE</span>  <span class="field-note">-- per merchant+key</span><br>
+      <span class="field-name">payment_method_id</span> <span class="field-type">VARCHAR(64)</span>          <span class="field-note">-- token, not card #</span><br>
+      <span class="field-name">created_at</span>       <span class="field-type">TIMESTAMPTZ NOT NULL</span>
+    </div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">ledger_entries &mdash; append-only, NEVER UPDATE</div>
+    <div class="schema-fields">
+      <span class="field-name">id</span>          <span class="field-type">UUID PRIMARY KEY</span><br>
+      <span class="field-name">payment_id</span>  <span class="field-type">UUID NOT NULL</span><br>
+      <span class="field-name">type</span>        <span class="field-type">ENUM('debit','credit') NOT NULL</span><br>
+      <span class="field-name">amount</span>      <span class="field-type">BIGINT NOT NULL</span><br>
+      <span class="field-name">currency</span>    <span class="field-type">CHAR(3) NOT NULL</span><br>
+      <span class="field-name">account_id</span>  <span class="field-type">UUID NOT NULL</span>  <span class="field-note">-- merchant or platform</span><br>
+      <span class="field-name">created_at</span>  <span class="field-type">TIMESTAMPTZ NOT NULL</span>
+    </div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">idempotency_keys &mdash; Redis (24h TTL)</div>
+    <div class="schema-fields">
+      key: <span class="field-type">"idem:{merchant_id}:{idempotency_key}"</span><br>
+      value: <span class="field-type">serialized HTTP response body</span><br>
+      TTL: <span class="field-type">86400 seconds</span><br><br>
+      <span class="field-note">-- Lua script for atomic check-and-set prevents race</span>
+    </div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">fraud_signals</div>
+    <div class="schema-fields">
+      <span class="field-name">payment_id</span>   <span class="field-type">UUID PRIMARY KEY</span><br>
+      <span class="field-name">risk_score</span>   <span class="field-type">DECIMAL(5,4)</span>  <span class="field-note">-- 0.0 to 1.0</span><br>
+      <span class="field-name">signals</span>      <span class="field-type">JSONB</span>          <span class="field-note">-- velocity, geo, device fingerprint</span><br>
+      <span class="field-name">decision</span>     <span class="field-type">ENUM('allow','review','block')</span><br>
+      <span class="field-name">model_version</span> <span class="field-type">VARCHAR(32)</span>   <span class="field-note">-- for model drift tracking</span>
+    </div>
+  </div>
+</section>
+
+<section id="deep-dive">
+  <h2>8. Key Design Decisions</h2>
+
+  <div class="deep-card">
+    <div class="deep-title">Idempotency &mdash; Preventing Double Charges</div>
+    <div class="deep-body">
+      <strong>The problem:</strong> Network fails after charge hits Visa but before response returns. Client retries. Naive system charges twice.<br><br>
+      <strong>Solution:</strong> Client sends unique <code style="font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 5px;border-radius:4px">Idempotency-Key</code> header per logical operation. Server algorithm:<br>
+      1. Compute Redis key = hash(merchant_id + idempotency_key)<br>
+      2. Run Lua script: <code style="font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 5px;border-radius:4px">if not EXISTS key then SET key "PROCESSING" EX 86400; return nil else return GET key end</code><br>
+      3. If nil &rarr; process payment &rarr; update Redis key with full response<br>
+      4. If "PROCESSING" &rarr; another thread is handling it &rarr; wait + retry<br>
+      5. If response JSON &rarr; return cached response immediately<br><br>
+      <strong>Key invariant:</strong> The Lua script is atomic in Redis &mdash; no two threads can both see "not exists" simultaneously.
+    </div>
+  </div>
+
+  <div class="deep-card">
+    <div class="deep-title">Double-Entry Ledger &mdash; Immutable Financial Records</div>
+    <div class="deep-body">
+      <strong>Rule:</strong> Every payment creates exactly two ledger entries &mdash; a debit and a credit. The ledger always sums to zero.<br><br>
+      Example &mdash; $20 payment from customer to merchant:<br>
+      &bull; DEBIT &nbsp; customer_receivable &nbsp;&nbsp; $20<br>
+      &bull; CREDIT merchant_payable &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; $20<br><br>
+      <strong>Why:</strong> Enables reconciliation (sum both sides = 0 always), audit trail (no UPDATE ever &mdash; only INSERT), and debugging (replay ledger to reconstruct any account balance at any point in time).<br><br>
+      <strong>Implementation:</strong> ledger_entries table has no UPDATE permission granted to the payment service. Immutability enforced at DB level.
+    </div>
+  </div>
+
+  <div class="deep-card">
+    <div class="deep-title">Distributed Transaction &mdash; Saga Pattern</div>
+    <div class="deep-body">
+      Payment flow spans multiple services. Two-phase commit (2PC) is too slow and locks resources.<br><br>
+      <strong>Saga approach:</strong><br>
+      1. PaymentService calls Visa API &rarr; success (charge authorized)<br>
+      2. PaymentService writes to LedgerService &rarr; success<br>
+      3. PaymentService emits payment.succeeded to Kafka<br><br>
+      <strong>Failure at step 2:</strong> Compensating transaction &mdash; PaymentService calls Visa to void the authorization. If void fails &rarr; alerts for manual reconciliation.<br><br>
+      <strong>Outbox pattern:</strong> LedgerService write + Kafka emit are in the same DB transaction. A relay process publishes to Kafka from the outbox table asynchronously, guaranteeing atomicity.
+    </div>
+  </div>
+
+  <div class="deep-card">
+    <div class="deep-title">PCI-DSS Scope Reduction</div>
+    <div class="deep-body">
+      Strategy: minimize PCI scope to a single isolated service.<br><br>
+      &bull; Card number tokenized at API Gateway &mdash; never reaches Payment Service<br>
+      &bull; Token (e.g., <code style="font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 5px;border-radius:4px">pm_xxx</code>) is stored and passed everywhere<br>
+      &bull; Only Vault service has the token&rarr;PAN mapping, in isolated network zone<br>
+      &bull; All logs must scrub card numbers &mdash; enforced by log sanitization middleware<br>
+      &bull; Vault is the only system that communicates with card networks directly
+    </div>
+  </div>
+</section>
+
+<section id="scaling">
+  <h2>9. Scaling &amp; Bottlenecks</h2>
+  <div class="scale-item highlight">
+    <strong>PostgreSQL (Ledger)</strong>
+    ACID transactions are non-negotiable for financial records. Scale reads with read replicas for reporting. Partition ledger_entries by created_at month &mdash; old partitions become read-only and can be archived to cold storage.
+  </div>
+  <div class="scale-item">
+    <strong>Redis (Idempotency)</strong>
+    200 GB for 1B daily keys. Use Redis Cluster for horizontal scale. Keys expire in 24h &mdash; storage is self-maintaining. For 35K TPS peak, Redis handles ~1M ops/sec comfortably.
+  </div>
+  <div class="scale-item">
+    <strong>Fraud Detection Latency</strong>
+    ML model must score in &lt;50ms. Pre-compute user feature vectors and store in feature store (Redis). Scoring = low-latency vector lookup + model inference. Rule-based engine as fallback if ML unavailable.
+  </div>
+  <div class="scale-item">
+    <strong>Kafka (Async Fan-out)</strong>
+    payment.succeeded &rarr; webhook delivery, payout scheduler, analytics, fraud model retraining. All async &mdash; keeps payment API fast. Webhook worker retries with exponential backoff + dead-letter queue.
+  </div>
+  <div class="scale-item">
+    <strong>Multi-Region Active-Active</strong>
+    Use active-active with global database (CockroachDB or Aurora Global). Route user to nearest region. Idempotency keys must be globally unique &mdash; include region prefix. Quorum write for ledger entries.
+  </div>
+</section>
+
+<section id="self-check">
+  <h2>10. Self-Check</h2>
+
+  <div class="sc-item" id="sc1">
+    <div class="sc-q" onclick="toggleSC('sc1')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">What happens if a client retries with the same idempotency key after a network timeout?</div>
+      <div class="sc-tag">Idempotency</div>
+    </div>
+    <div class="sc-a">The Lua script on the second request sees the cached response in Redis (or "PROCESSING" if still in-flight). If cached: return the same 200 response immediately &mdash; no charge happens. If "PROCESSING": the client should wait and retry. This guarantees exactly-once semantics even across network failures. The key insight: the idempotency key is per logical payment attempt, not per HTTP request &mdash; the same key must be reused on all retries of the same payment.</div>
+  </div>
+
+  <div class="sc-item" id="sc2">
+    <div class="sc-q" onclick="toggleSC('sc2')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">Why store monetary amounts as BIGINT in cents instead of FLOAT or DECIMAL?</div>
+      <div class="sc-tag">Data Types</div>
+    </div>
+    <div class="sc-a">FLOAT uses binary floating-point &mdash; 0.1 + 0.2 = 0.30000000000000004 in IEEE 754. For money this is catastrophic: rounding errors compound over millions of transactions. DECIMAL avoids binary issues but is slower and variable-width. BIGINT in smallest unit (cents): $20.00 stored as 2000 &mdash; exact integer arithmetic, no rounding, fixed 8 bytes, fast. Always convert at display time: amount / 100. This is non-negotiable in financial systems; Stripe, PayPal, and every serious payment processor use integer cents.</div>
+  </div>
+
+  <div class="sc-item" id="sc3">
+    <div class="sc-q" onclick="toggleSC('sc3')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">What is a double-entry ledger and why is it required in payment systems?</div>
+      <div class="sc-tag">Accounting</div>
+    </div>
+    <div class="sc-a">Double-entry bookkeeping records every financial transaction in at least two accounts: a debit to one and a credit to another. Every payment creates exactly two rows: DEBIT customer_account $20 and CREDIT merchant_account $20. The sum of all debits always equals the sum of all credits &mdash; this invariant detects data corruption. It also enables: 1) reconciliation at any time by summing all entries, 2) an immutable audit trail (never UPDATE, only INSERT), 3) replay ability (compute any balance at any historical point purely from the ledger).</div>
+  </div>
+
+  <div class="sc-item" id="sc4">
+    <div class="sc-q" onclick="toggleSC('sc4')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">If the Ledger write fails after Visa has already authorized the charge, what happens?</div>
+      <div class="sc-tag">Saga Pattern</div>
+    </div>
+    <div class="sc-a">This is the distributed transaction problem. With the Saga pattern, the Payment Service runs a compensating transaction: it calls the Visa API to void the authorization. The customer is never charged. If the void itself fails, the system alerts on-call for manual intervention and logs the orphaned authorization. The Outbox pattern prevents this scenario at the source: the Ledger write and the Kafka emit are in the same DB transaction &mdash; if either fails, both roll back. The relay retries the Kafka publish from the outbox table until it succeeds.</div>
+  </div>
+
+  <div class="sc-item" id="sc5">
+    <div class="sc-q" onclick="toggleSC('sc5')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">Why tokenize card data at the API Gateway rather than in a backend service?</div>
+      <div class="sc-tag">PCI-DSS</div>
+    </div>
+    <div class="sc-a">PCI-DSS compliance requires strict controls on any system that touches raw card data (PAN). By tokenizing at the API Gateway, the raw card number is immediately replaced with a token (pm_xxx) &mdash; the Payment Service, Fraud Service, and all downstream systems only ever see the token. This reduces PCI scope to a single, hardened gateway + Vault service. Without this, every backend service, log pipeline, and cache that handles payment data would need PCI audit &mdash; an enormous compliance burden. The SDK iframe approach goes further: the PAN never even hits the merchant's servers.</div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2>11. Interview Tips</h2>
+  <div class="tip">
+    <div class="tip-icon">&#128273;</div>
+    <div class="tip-text"><strong>Lead with idempotency.</strong> Interviewers at payment companies expect you to immediately identify the double-charge problem. Explain the Lua atomic check-and-set in Redis before they ask.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">&#128218;</div>
+    <div class="tip-text"><strong>Double-entry ledger is not optional.</strong> Any answer without immutable double-entry bookkeeping misses the fundamentals. Explain: DEBIT + CREDIT, always balanced, never UPDATE.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">&#128274;</div>
+    <div class="tip-text"><strong>Mention PCI-DSS scope reduction proactively.</strong> "I'd tokenize card data at the API gateway so only Vault is in PCI scope." This shows production awareness beyond pure system design.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">&#9888;&#65039;</div>
+    <div class="tip-text"><strong>Never use FLOAT for money.</strong> FLOAT has binary rounding errors. Always store amounts as BIGINT in smallest currency unit (cents). Classic gotcha question.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">&#128260;</div>
+    <div class="tip-text"><strong>Webhooks need reliability.</strong> Deliver with retry + exponential backoff. Store delivery attempts. Let merchants replay. Idempotency on webhook delivery too &mdash; merchants may receive same event twice.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">&#128202;</div>
+    <div class="tip-text"><strong>Consistency model choice:</strong> Ledger needs strong consistency (ACID). Analytics and fraud dashboards can be eventually consistent. State this explicitly &mdash; shows understanding of trade-offs.</div>
+  </div>
+</section>
+
+<footer>
+  <span>&#8592; <a href="index.html">Home</a></span>
+  <span>SDE Interview Prep &middot; HLD</span>
+  <span><a href="hld-index.html">All HLD Problems &#8594;</a></span>
+</footer>
+</div>
+
+<script>
+const NODE_INFO = {
+  client: {
+    title: 'Client / SDK',
+    body: 'Mobile or web application. Generates a unique UUID as the idempotency key before the first attempt &mdash; this same key is reused on all retries. Card data is collected via the SDK iframe; raw PAN never touches the merchant server.',
+    stats: ['UUID per payment attempt', 'SDK tokenizes card client-side', 'Retry with same key = safe'],
+    warn: 'The idempotency key must be generated before the first attempt &mdash; not regenerated on retry &mdash; so all retries reuse the same key and hit the Redis cache.'
+  },
+  api: {
+    title: 'API Gateway',
+    body: 'Handles TLS termination, merchant API key authentication, and per-merchant rate limiting (1000 req/min). Performs card tokenization: exchanges raw card number for a token (pm_xxx) with Vault. Only the safe token flows downstream.',
+    stats: ['TLS 1.3 termination', 'Rate: 1000 req/min/merchant', 'Card number &rarr; pm_xxx token'],
+    warn: 'PCI-DSS boundary. Raw card numbers must not go past this point &mdash; only tokens reach the Payment Service. Logs at this layer must be scrubbed.'
+  },
+  'payment-svc': {
+    title: 'Payment Service',
+    body: 'Core orchestrator. Runs idempotency check via Redis Lua, calls Fraud Service in parallel with Vault lookup, calls Payment Processor, then calls Ledger Service. Implements the Saga pattern with compensating transactions on failure.',
+    stats: ['Idempotency: Redis Lua atomic', 'Orchestrates fraud + processor + ledger', 'Saga compensating tx on failure'],
+    warn: null
+  },
+  fraud: {
+    title: 'Fraud Service',
+    body: 'ML-based risk scoring. Must complete in under 50ms to stay on the synchronous payment path. Pre-computes feature vectors (velocity, geo, device fingerprint) in a Redis feature store. Risk score 0.0&ndash;1.0 determines allow/review/block.',
+    stats: ['< 50ms SLA on scoring', 'Pre-computed Redis feature store', '0.0 (safe) to 1.0 (block)'],
+    warn: 'If Fraud Service is unavailable, fall back to a rule-based engine. Never block the entire payment flow on ML infrastructure availability.'
+  },
+  processor: {
+    title: 'Payment Processor',
+    body: 'External card network integration (Visa, Mastercard, ACH). The actual money movement &mdash; this is the point of no return. The idempotency key is forwarded to the processor to prevent double-charges at their end. Vault provides the PAN directly to the processor.',
+    stats: ['Visa / MC / ACH networks', 'Authorization + capture', 'Idempotency key forwarded'],
+    warn: 'Once authorization succeeds and the response is lost, you must use the same idempotency key to detect duplication on retry &mdash; never charge twice.'
+  },
+  ledger: {
+    title: 'Ledger Service',
+    body: 'Writes double-entry bookkeeping records to PostgreSQL. Every payment creates exactly two rows: DEBIT customer account + CREDIT merchant account. The table has no UPDATE permission &mdash; append-only enforced at the database level.',
+    stats: ['Append-only: INSERT only', 'DEBIT + CREDIT per payment', 'Sum of all entries = 0'],
+    warn: null
+  },
+  postgres: {
+    title: 'PostgreSQL',
+    body: 'ACID database for payment intents and ledger entries. Partitioned by created_at month for manageability. Read replicas serve reporting queries. The ledger_entries table is append-only by permission constraint at the DB level.',
+    stats: ['ACID: serializable isolation', 'Partitioned by month', 'Read replicas for reporting'],
+    warn: null
+  },
+  redis: {
+    title: 'Redis &mdash; Idempotency Store',
+    body: 'Stores idempotency keys with 24h TTL. Key = "idem:{merchant_id}:{idempotency_key}". Value transitions: absent &rarr; "PROCESSING" &rarr; full response JSON. The check-and-set is a single Lua script for atomicity.',
+    stats: ['200 GB for 1B daily keys', '24h TTL auto-expiry', 'Lua atomic check-and-set'],
+    warn: null
+  },
+  kafka: {
+    title: 'Kafka &mdash; Event Bus',
+    body: 'Receives payment.succeeded events via the Outbox pattern. Consumers: webhook delivery worker, payout scheduler, analytics pipeline, fraud model retraining. Decouples payment processing from all side effects.',
+    stats: ['payment.succeeded topic', 'Outbox pattern for atomicity', 'Webhooks / payouts / analytics'],
+    warn: null
+  },
+  vault: {
+    title: 'Vault &mdash; PCI Card Data',
+    body: 'The only service in PCI-DSS scope. Stores the token&rarr;PAN mapping in an isolated network zone. When the processor needs the actual card number, Vault provides it directly. No other service ever touches raw card data.',
+    stats: ['Only PCI-scoped service', 'Token &rarr; PAN mapping', 'Isolated network zone'],
+    warn: 'Must be in a separate VPC with strict egress rules. Logs from Vault must never include the PAN &mdash; enforced by OS-level log sanitization.'
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  const sel = document.querySelector(`.arch-node[data-id="${id}"]`);
+  if (sel) sel.classList.add('sel');
+  const n = NODE_INFO[id];
+  if (!n) return;
+  const p = document.getElementById('arch-panel');
+  p.classList.add('lit');
+  p.innerHTML = `<p class="ap-title">${n.title}</p><p class="ap-body">${n.body}</p><div style="margin-bottom:10px">${n.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>${n.warn ? `<div class="ap-warn">${n.warn}</div>` : ''}`;
+}
+
+const STEPS = [
+  {
+    title: 'Client Sends Payment Request',
+    desc: 'The client SDK generates a UUID as the idempotency key before the first attempt. This same key is reused on all retries. The POST includes a card token (pm_xxx) &mdash; the raw PAN was tokenized inside the SDK iframe.',
+    code: 'POST /v1/payment_intents\nIdempotency-Key: a3f9b2c1-d4e5-6f78\n{\n  "amount": 2000,\n  "currency": "usd",\n  "payment_method_id": "pm_4xK9bW"\n}'
+  },
+  {
+    title: 'API Gateway: Auth & Rate Limit',
+    desc: 'API Gateway validates the merchant Bearer token, checks rate limits, and routes to the Payment Service. Card data was tokenized client-side &mdash; the raw PAN never reached the backend.',
+    code: 'Authorization: Bearer sk_live_abc123\n→ JWT verified: merchant_id = "acct_xyz"\n→ Rate check: 423/1000 OK\n→ Route to Payment Service'
+  },
+  {
+    title: 'Idempotency Check &mdash; Redis Lua',
+    desc: 'Payment Service computes Redis key = hash(merchant_id + idempotency_key) and runs an atomic Lua script. If the key has a cached response, return it immediately &mdash; no double charge. Otherwise mark PROCESSING and proceed.',
+    code: '-- Atomic Lua (single Redis command)\nlocal v = redis.call("GET", KEY)\nif v ~= nil then\n  return v  -- return cached: no double charge\nend\nredis.call("SET", KEY, "PROCESSING", "EX", 86400)\nreturn nil  -- proceed'
+  },
+  {
+    title: 'Fraud Scoring &mdash; Under 50ms',
+    desc: 'Fraud Service fetches pre-computed feature vectors from a Redis feature store and runs ML inference. Must complete in <50ms. Score 0.0&ndash;1.0 determines allow/review/block. Falls back to rule engine if ML is down.',
+    code: '// Feature store lookup (< 5ms)\n{\n  "velocity_1h": 2,      // charges in last hour\n  "geo_match": true,     // IP matches billing addr\n  "device_known": true,  // seen device before\n  "risk_score": 0.07\n}\n→ Decision: ALLOW'
+  },
+  {
+    title: 'Processor: Authorize & Capture',
+    desc: 'Payment Service calls the external card network via the Processor. This is the critical, irreversible step. The idempotency key is forwarded to prevent double-charges at the processor end. Vault provides the PAN to the processor directly.',
+    code: '→ Processor Request:\n  pan_token: pm_4xK9bW\n  amount: 2000  // cents\n  currency: "usd"\n  idempotency_key: "a3f9b2c1-..."\n\n← Response:\n  auth_code: "VIS-ABC123"\n  status: "authorized"'
+  },
+  {
+    title: 'Ledger Write + Kafka Fan-out',
+    desc: 'Ledger Service writes two rows atomically (DEBIT + CREDIT &mdash; sum = 0). Outbox pattern ensures Kafka emit and DB write are in the same transaction. Consumers: webhook delivery, payout scheduler, fraud retraining, analytics.',
+    code: '-- Double-entry (one DB transaction)\nINSERT INTO ledger_entries VALUES\n  (uuid1, "debit",  2000, customer_acc),\n  (uuid2, "credit", 2000, merchant_acc);\n-- Sum always = 0\n\n-- Outbox relay publishes async:\n→ Kafka: payment.succeeded'
+  }
+];
+
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  document.getElementById('flow-pills').innerHTML = STEPS.map((st,i) => {
+    const cls = i < curStep ? 'fn done' : i === curStep ? 'fn act' : 'fn';
+    const label = st.title.split(' ').slice(0,2).join(' ');
+    return `<span class="${cls}">${label}</span>`;
+  }).join('');
+  document.getElementById('flow-card').innerHTML = `<p class="fc-title">${s.title}</p><p class="fc-desc">${s.desc}</p><pre class="fc-code">${s.code}</pre>`;
+  document.getElementById('btn-prev').disabled = curStep === 0;
+  document.getElementById('btn-next').disabled = curStep === STEPS.length - 1;
+  document.getElementById('flow-ctr').textContent = `Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('flow-dots').innerHTML = STEPS.map((_,i) => `<div class="flow-dot${i===curStep?' cur':''}" onclick="goStep(${i})"></div>`).join('');
+}
+
+function nextStep(){if(curStep<STEPS.length-1){curStep++;renderStep();}}
+function prevStep(){if(curStep>0){curStep--;renderStep();}}
+function goStep(n){curStep=n;renderStep();}
+renderStep();
+
+// Idempotency Simulator
+let idemRunning = false;
+
+function setIS(id, cls) {
+  document.getElementById('is-' + id).className = 'is' + (cls ? ' ' + cls : '');
+}
+
+function appendLog(msg) {
+  document.getElementById('idem-log').textContent += '\n' + msg;
+}
+
+function resetIdem() {
+  if (idemRunning) return;
+  [1,2,3,4,5,6].forEach(i => setIS(i, ''));
+  document.getElementById('idem-log').textContent = 'Ready. Press "First Request" to simulate a payment.';
+  document.getElementById('idem-btn-first').disabled = false;
+  document.getElementById('idem-btn-retry').disabled = true;
+}
+
+function runIdem(mode) {
+  if (idemRunning) return;
+  idemRunning = true;
+  const key = document.getElementById('idem-key-display').textContent;
+  document.getElementById('idem-btn-first').disabled = true;
+  document.getElementById('idem-btn-retry').disabled = true;
+
+  if (mode === 'first') {
+    document.getElementById('idem-log').textContent = '';
+    [1,2,3,4,5,6].forEach(i => setIS(i, ''));
+    const seq = [
+      [0,    () => { setIS(1,'active'); appendLog('> Redis GET "idem:merchant:' + key + '"'); }],
+      [700,  () => { appendLog('< MISS: key not found → proceed with payment'); }],
+      [1100, () => { setIS(1,'done'); setIS(2,'active'); appendLog('> Lua SET "PROCESSING" EX 86400 (atomic)'); }],
+      [1700, () => { setIS(2,'done'); setIS(3,'active'); appendLog('> Fraud score: velocity=2, geo=match, device=known'); }],
+      [2200, () => { appendLog('< Fraud: risk_score=0.07 → ALLOW'); }],
+      [2600, () => { setIS(3,'done'); setIS(4,'active'); appendLog('> Processor: charge $20.00 (auth + capture)'); }],
+      [3400, () => { appendLog('< Processor: authorized (auth_code: VIS-ABC123)'); }],
+      [3800, () => { setIS(4,'done'); setIS(5,'active'); appendLog('> Ledger: DEBIT $20 customer + CREDIT $20 merchant'); }],
+      [4400, () => { setIS(5,'done'); setIS(6,'active'); appendLog('> Redis SET "' + key + '" = {status:"succeeded"} EX 86400'); }],
+      [5000, () => {
+        setIS(6,'done');
+        appendLog('< 200 OK: {"id":"pi_xxx","status":"succeeded"}');
+        appendLog('\nDone! Now press "Simulate Retry" to see idempotency.');
+        idemRunning = false;
+        document.getElementById('idem-btn-retry').disabled = false;
+      }]
+    ];
+    seq.forEach(([d,fn]) => setTimeout(fn, d));
+  } else {
+    document.getElementById('idem-log').textContent = '--- RETRY (same Idempotency-Key) ---';
+    [1,2,3,4,5,6].forEach(i => setIS(i, ''));
+    const seq = [
+      [0,    () => { setIS(1,'active'); appendLog('> Redis GET "idem:merchant:' + key + '"'); }],
+      [700,  () => {
+        appendLog('< HIT: cached response found!');
+        [2,3,4,5,6].forEach(i => setIS(i,'skip'));
+      }],
+      [1200, () => { setIS(1,'done'); appendLog('< 200 OK: {"id":"pi_xxx","status":"succeeded"} (from cache)'); }],
+      [1600, () => {
+        appendLog('\n✓ No second charge. Customer saved from double-charge!');
+        idemRunning = false;
+        document.getElementById('idem-btn-first').disabled = false;
+      }]
+    ];
+    seq.forEach(([d,fn]) => setTimeout(fn, d));
+  }
+}
+
+function toggleSC(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+</script>
+</body>
+</html>

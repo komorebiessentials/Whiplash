@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booking System — HLD Interview Prep</title>
+<style>
+:root {
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 120px}
+.back{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none;padding:28px 0 0}
+.back:hover{color:var(--slate)}
+header{padding:40px 0 52px;border-bottom:1.5px solid var(--g200);margin-bottom:52px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);margin-bottom:16px}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(30px,5vw,48px);line-height:1.08;letter-spacing:-.02em}
+.sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:600px;line-height:1.65}
+section{margin-bottom:64px}
+h2{font-family:var(--serif);font-size:26px;font-weight:500;letter-spacing:-.01em;margin-bottom:20px;padding-bottom:10px;border-bottom:1.5px solid var(--g200)}
+h3{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--g500);margin:28px 0 12px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.55;position:relative;padding-left:36px}
+.req-item::before{content:"";position:absolute;left:14px;top:18px;width:8px;height:8px;border-radius:50%}
+.req-item.func::before{background:var(--olive)}
+.req-item.nfunc::before{background:var(--clay)}
+.req-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);margin-bottom:4px}
+.est-table{width:100%;border-collapse:collapse;font-size:14px}
+.est-table th{background:var(--g100);padding:10px 14px;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);border-bottom:1.5px solid var(--g300)}
+.est-table td{padding:11px 14px;border-bottom:1px solid var(--g100);vertical-align:top}
+.est-table tr:last-child td{border-bottom:none}
+.est-table td:first-child{font-weight:500;color:var(--g700);width:36%}
+.est-num{font-family:var(--mono);color:var(--clay);font-size:13px;font-weight:600}
+/* arch */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:700px){.arch-wrap{grid-template-columns:1fr}}
+.arch-box{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;overflow:hidden}
+.arch-box svg{width:100%;height:auto;display:block}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:200px}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px}
+.ap-empty{color:var(--g500);font-size:13px;text-align:center;padding-top:40px}
+/* flow stepper */
+.flow-pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;min-height:160px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:14px;color:var(--g700);line-height:1.65;margin-bottom:14px}
+.fc-code{background:var(--slate);color:#e8e6df;border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;justify-content:space-between;margin-top:16px}
+.flow-btn{background:var(--paper);border:1.5px solid var(--g300);border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;color:var(--g700)}
+.flow-btn:hover{border-color:var(--clay);color:var(--clay)}
+.flow-btn:disabled{opacity:.35;cursor:default}
+.flow-dots{display:flex;gap:6px}
+.flow-dot{width:8px;height:8px;border-radius:50%;background:var(--g300);cursor:pointer;transition:background .2s}
+.flow-dot.cur{background:var(--clay)}
+.flow-ctr{font-family:var(--mono);font-size:11px;color:var(--g500)}
+/* self-check */
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.sc-q{display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;user-select:none}
+.sc-q:hover{background:var(--g100)}
+.sc-plus{width:22px;height:22px;border-radius:50%;background:var(--g200);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;transition:transform .2s,background .2s}
+.sc-item.open .sc-plus{transform:rotate(45deg);background:var(--clay);color:white}
+.sc-qtext{font-size:14px;font-weight:500;flex:1}
+.sc-a{display:none;padding:0 18px 16px 52px;font-size:14px;color:var(--g700);line-height:1.65}
+.sc-item.open .sc-a{display:block}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:auto;flex-shrink:0}
+/* api */
+pre.api{background:var(--slate);color:#e8e6df;border-radius:10px;padding:20px 22px;font-family:var(--mono);font-size:13px;line-height:1.7;overflow-x:auto;margin-bottom:14px}
+.method{color:var(--clay);font-weight:700}.path{color:#7eb8f7}.comment{color:var(--g500);font-style:italic}
+.schema-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:18px 20px;margin-bottom:14px}
+.schema-name{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--clay);margin-bottom:10px}
+.schema-fields{font-family:var(--mono);font-size:12px;line-height:1.9;color:var(--g700)}
+.field-name{color:var(--slate)}.field-type{color:var(--olive)}.field-note{color:var(--g500);font-style:italic}
+.deep-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:22px 24px;margin-bottom:16px}
+.deep-title{font-size:15px;font-weight:600;margin-bottom:10px}
+.deep-body{font-size:14px;color:var(--g700);line-height:1.7}
+.deep-body strong{color:var(--slate)}
+.deep-body code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 5px;border-radius:4px}
+.scale-item{border-left:3px solid var(--g300);padding:10px 0 10px 18px;margin-bottom:14px;font-size:14px;color:var(--g700);line-height:1.65}
+.scale-item strong{color:var(--slate);display:block;margin-bottom:3px}
+.scale-item.highlight{border-color:var(--clay)}
+.tip{display:flex;gap:14px;background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:16px 18px;margin-bottom:12px}
+.tip-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.tip-text{font-size:14px;line-height:1.6;color:var(--g700)}
+.tip-text strong{color:var(--slate)}
+/* concurrency simulator */
+.conc-sim{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px}
+.conc-tabs{display:flex;gap:0;margin-bottom:20px;border-radius:8px;overflow:hidden;border:1.5px solid var(--g300)}
+.conc-tab{flex:1;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;background:var(--g100);color:var(--g500);border:none;transition:all .2s;text-align:center}
+.conc-tab.act{background:var(--slate);color:white}
+.conc-timeline{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
+.conc-row{display:flex;align-items:center;gap:12px}
+.conc-label{font-family:var(--mono);font-size:11px;font-weight:700;width:60px;flex-shrink:0;color:var(--g700)}
+.conc-track{flex:1;height:32px;background:var(--g100);border-radius:6px;position:relative;overflow:visible}
+.conc-event{position:absolute;top:4px;height:24px;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-family:var(--mono);font-size:9px;font-weight:700;white-space:nowrap;transition:opacity .4s,transform .4s}
+.conc-result{background:var(--paper);border:1.5px solid var(--g200);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--g700);min-height:44px;display:flex;align-items:center;gap:10px}
+.conc-result.ok{border-color:var(--olive);background:rgba(120,140,93,.06)}
+.conc-result.bad{border-color:#e07;background:rgba(221,0,119,.04)}
+.conc-badge{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;flex-shrink:0}
+.conc-badge.ok{background:var(--olive);color:white}
+.conc-badge.bad{background:#c03;color:white}
+.conc-btn{padding:8px 18px;border-radius:8px;border:1.5px solid var(--g300);font-size:13px;font-weight:600;cursor:pointer;background:var(--paper);color:var(--g700);transition:all .2s;margin-top:14px}
+.conc-btn:hover:not(:disabled){border-color:var(--clay);color:var(--clay)}
+.conc-btn:disabled{opacity:.38;cursor:default}
+footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;font-size:12px;color:var(--g500)}
+footer a{color:var(--clay);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">&#8592; Home</a>
+
+<header>
+  <div class="eyebrow">High Level Design &middot; Senior SDE</div>
+  <h1>Design a Hotel/Flight Booking System</h1>
+  <p class="sub">Airbnb / Expedia at scale &mdash; inventory management, double-booking prevention, hold-confirm two-phase booking, geo search, and pricing engine.</p>
+</header>
+
+<section id="overview">
+  <h2>1. Requirements</h2>
+  <h3>Functional</h3>
+  <div class="req-grid">
+    <div class="req-item func"><div class="req-label">Functional</div>Search listings by location, dates, guests, price, amenities</div>
+    <div class="req-item func"><div class="req-label">Functional</div>View availability calendar per listing</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Two-phase booking: hold (15 min) &rarr; confirm with payment</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Cancellation with tiered refund policy</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Host manages availability and pricing rules</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Reviews and ratings for listings and guests</div>
+  </div>
+  <h3>Non-Functional</h3>
+  <div class="req-grid">
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>No double-booking &mdash; strong consistency on inventory</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Search latency &lt; 200ms at 58K QPS peak</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Availability update visible within 1s of booking</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>100M DAU; 1M bookings/day</div>
+  </div>
+</section>
+
+<section id="estimation">
+  <h2>2. Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Search QPS (avg)</td><td>100M users &times; 5 searches/day &divide; 86400</td><td class="est-num">5,800 QPS</td></tr>
+      <tr><td>Search QPS (peak)</td><td>5,800 &times; 10 (weekend peak)</td><td class="est-num">58,000 QPS</td></tr>
+      <tr><td>Booking QPS</td><td>1M bookings/day &divide; 86400</td><td class="est-num">~12 bookings/sec</td></tr>
+      <tr><td>Inventory records</td><td>10M listings &times; 365 days per year</td><td class="est-num">3.65B rows</td></tr>
+      <tr><td>Listing storage</td><td>10M listings &times; 10 KB avg</td><td class="est-num">100 GB</td></tr>
+      <tr><td>Image storage</td><td>10M listings &times; 20 images &times; 2 MB</td><td class="est-num">400 TB (CDN)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="architecture">
+  <h2>3. High-Level Architecture</h2>
+  <p style="font-size:13px;color:var(--g500);margin-bottom:14px;">Click any component to explore its role and design choices.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 760 390" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#D1CFC5"/>
+          </marker>
+        </defs>
+        <!-- Connectors -->
+        <line x1="98" y1="192" x2="138" y2="192" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- API GW to Search (dashed) -->
+        <line x1="238" y1="170" x2="278" y2="90" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr)"/>
+        <!-- API GW to Availability -->
+        <line x1="238" y1="192" x2="278" y2="192" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- API GW to Booking (dashed) -->
+        <line x1="238" y1="214" x2="278" y2="300" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr)"/>
+        <!-- Availability to Kafka -->
+        <line x1="398" y1="192" x2="448" y2="192" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arr)"/>
+        <!-- Booking to Kafka -->
+        <line x1="398" y1="305" x2="490" y2="220" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arr)"/>
+        <!-- Kafka to downstreams -->
+        <line x1="538" y1="182" x2="578" y2="115" stroke="#D1CFC5" stroke-width="1" stroke-dasharray="3,2"/>
+        <line x1="538" y1="192" x2="578" y2="163" stroke="#D1CFC5" stroke-width="1" stroke-dasharray="3,2"/>
+        <line x1="538" y1="202" x2="578" y2="215" stroke="#D1CFC5" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Redis cache from Availability -->
+        <line x1="338" y1="235" x2="338" y2="330" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="338" y1="330" x2="490" y2="330" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="490" y1="330" x2="490" y2="285" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- Client -->
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="18" y="170" width="80" height="44" rx="7" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="58" y="197" text-anchor="middle" font-family="monospace" font-size="10" fill="#3D3D3A" font-weight="700">Client</text>
+        </g>
+
+        <!-- API Gateway -->
+        <g class="arch-node" data-id="api-gw" onclick="showNode('api-gw')">
+          <rect x="138" y="155" width="100" height="74" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="188" y="178" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">API Gateway</text>
+          <text x="188" y="193" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Auth &middot; Rate Limit</text>
+          <text x="188" y="207" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">SSL Termination</text>
+        </g>
+
+        <!-- Search Service -->
+        <g class="arch-node" data-id="search" onclick="showNode('search')">
+          <rect x="278" y="60" width="120" height="50" rx="7" fill="#F0EEE6" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="338" y="80" text-anchor="middle" font-family="monospace" font-size="10" fill="#788C5D" font-weight="700">Search</text>
+          <text x="338" y="95" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Elasticsearch</text>
+        </g>
+
+        <!-- Availability Service -->
+        <g class="arch-node" data-id="availability" onclick="showNode('availability')">
+          <rect x="278" y="165" width="120" height="70" rx="7" fill="#141413" stroke="#D97757" stroke-width="1.5"/>
+          <text x="338" y="188" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757" font-weight="700">Availability</text>
+          <text x="338" y="203" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">PostgreSQL</text>
+          <text x="338" y="218" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">+ Dist. Lock</text>
+        </g>
+
+        <!-- Booking Service -->
+        <g class="arch-node" data-id="booking" onclick="showNode('booking')">
+          <rect x="278" y="275" width="120" height="54" rx="7" fill="#141413" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="338" y="295" text-anchor="middle" font-family="monospace" font-size="10" fill="#7eb8f7" font-weight="700">Booking</text>
+          <text x="338" y="310" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">ACID &middot; Hold</text>
+          <text x="338" y="323" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">&rarr; Confirm</text>
+        </g>
+
+        <!-- Kafka -->
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="448" y="165" width="90" height="54" rx="7" fill="#FAF9F5" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="493" y="192" text-anchor="middle" font-family="monospace" font-size="10" fill="#4A6FA5" font-weight="700">Kafka</text>
+          <text x="493" y="207" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">booking events</text>
+        </g>
+
+        <!-- Downstream -->
+        <g class="arch-node" data-id="payment" onclick="showNode('payment')">
+          <rect x="578" y="90" width="110" height="38" rx="7" fill="#F0EEE6" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="633" y="113" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D">Payment Service</text>
+        </g>
+        <g class="arch-node" data-id="notification" onclick="showNode('notification')">
+          <rect x="578" y="143" width="110" height="38" rx="7" fill="#F0EEE6" stroke="#87867F" stroke-width="1.5"/>
+          <text x="633" y="166" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Notification</text>
+        </g>
+        <g class="arch-node" data-id="es-update" onclick="showNode('es-update')">
+          <rect x="578" y="196" width="110" height="38" rx="7" fill="#F0EEE6" stroke="#87867F" stroke-width="1.5"/>
+          <text x="633" y="219" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">ES Index Update</text>
+        </g>
+
+        <!-- Redis -->
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="448" y="265" width="90" height="44" rx="7" fill="#FAF9F5" stroke="#D97757" stroke-width="1.5"/>
+          <text x="493" y="285" text-anchor="middle" font-family="monospace" font-size="9" fill="#D97757" font-weight="700">Redis</text>
+          <text x="493" y="299" text-anchor="middle" font-family="monospace" font-size="8" fill="#87867F">Avail. Cache</text>
+        </g>
+      </svg>
+    </div>
+    <div class="arch-panel" id="arch-panel">
+      <p class="ap-empty">Click a component<br>to see details</p>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>4. Booking Request Flow</h2>
+  <div class="flow-pill-row" id="flow-pills"></div>
+  <div class="flow-card" id="flow-card"></div>
+  <div class="flow-nav">
+    <button class="flow-btn" onclick="prevStep()" id="btn-prev" disabled>&#8592; Prev</button>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div class="flow-dots" id="flow-dots"></div>
+      <span class="flow-ctr" id="flow-ctr"></span>
+    </div>
+    <button class="flow-btn" onclick="nextStep()" id="btn-next">Next &#8594;</button>
+  </div>
+</section>
+
+<section id="conc-sim">
+  <h2>5. Concurrency Simulator</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:16px;">See what happens when two users try to book the same listing at the same time &mdash; with and without a distributed lock.</p>
+  <div class="conc-sim">
+    <div class="conc-tabs">
+      <button class="conc-tab act" id="tab-bad" onclick="switchTab('bad')">Without Lock (Race Condition)</button>
+      <button class="conc-tab" id="tab-ok" onclick="switchTab('ok')">With Lock (Correct)</button>
+    </div>
+
+    <div class="conc-timeline" id="conc-timeline">
+      <div class="conc-row">
+        <div class="conc-label">User A</div>
+        <div class="conc-track" id="track-a"></div>
+      </div>
+      <div class="conc-row">
+        <div class="conc-label">User B</div>
+        <div class="conc-track" id="track-b"></div>
+      </div>
+      <div class="conc-row">
+        <div class="conc-label">DB</div>
+        <div class="conc-track" id="track-db"></div>
+      </div>
+    </div>
+
+    <div class="conc-result" id="conc-result">
+      Press "Run Simulation" to see the timeline.
+    </div>
+    <button class="conc-btn" id="conc-run-btn" onclick="runConc()">&#9654; Run Simulation</button>
+  </div>
+</section>
+
+<section id="api">
+  <h2>6. API Design</h2>
+  <pre class="api"><span class="comment"># Search listings</span>
+<span class="method">GET</span> <span class="path">/api/v1/search</span>?location=NYC&amp;checkin=2026-08-01&amp;checkout=2026-08-05
+         &amp;guests=2&amp;maxPrice=200&amp;amenities=wifi,pool&amp;page=1
+&#8594; { "results": [...], "total": 1240, "cursor": "..." }
+
+<span class="comment"># Availability calendar</span>
+<span class="method">GET</span> <span class="path">/api/v1/listings/{id}/availability</span>?month=2026-08
+&#8594; { "dates": { "2026-08-01": "available", "2026-08-02": "booked", ... } }</pre>
+
+  <pre class="api"><span class="comment"># Step 1: Hold dates (15-minute TTL)</span>
+<span class="method">POST</span> <span class="path">/api/v1/bookings/hold</span>
+{ "listingId": "lst_xxx", "checkin": "2026-08-01", "checkout": "2026-08-05", "guestId": "usr_xxx" }
+&#8594; { "holdId": "hold_xxx", "expiresAt": "2026-08-01T12:15:00Z", "totalPrice": 80000 }
+
+<span class="comment"># Step 2: Confirm with payment</span>
+<span class="method">POST</span> <span class="path">/api/v1/bookings/confirm</span>
+{ "holdId": "hold_xxx", "paymentMethodId": "pm_xxx", "idempotencyKey": "client-uuid" }
+&#8594; { "bookingId": "bk_xxx", "status": "confirmed", "confirmationCode": "AIRXYZ" }
+
+<span class="comment"># Cancel booking</span>
+<span class="method">DELETE</span> <span class="path">/api/v1/bookings/{id}</span>
+&#8594; { "refundAmount": 60000, "refundPolicy": "partial_refund_48h" }</pre>
+</section>
+
+<section id="database">
+  <h2>7. Database Design</h2>
+  <div class="schema-card">
+    <div class="schema-name">listings &mdash; PostgreSQL + Elasticsearch</div>
+    <div class="schema-fields">
+      <span class="field-name">listing_id</span>    <span class="field-type">UUID PRIMARY KEY</span><br>
+      <span class="field-name">host_id</span>        <span class="field-type">UUID NOT NULL</span><br>
+      <span class="field-name">title</span>          <span class="field-type">TEXT</span><br>
+      <span class="field-name">location</span>       <span class="field-type">GEOGRAPHY(POINT)</span>   <span class="field-note">-- PostGIS for geo queries</span><br>
+      <span class="field-name">price_per_night</span> <span class="field-type">BIGINT NOT NULL</span>    <span class="field-note">-- cents</span><br>
+      <span class="field-name">max_guests</span>      <span class="field-type">SMALLINT NOT NULL</span><br>
+      <span class="field-name">amenities</span>       <span class="field-type">TEXT[]</span>             <span class="field-note">-- indexed in ES</span>
+    </div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">availability &mdash; the core inventory table</div>
+    <div class="schema-fields">
+      <span class="field-name">listing_id</span>   <span class="field-type">UUID NOT NULL</span><br>
+      <span class="field-name">date</span>         <span class="field-type">DATE NOT NULL</span><br>
+      <span class="field-name">status</span>       <span class="field-type">ENUM('available','held','booked','blocked')</span><br>
+      <span class="field-name">booking_id</span>   <span class="field-type">UUID</span>              <span class="field-note">-- NULL if available</span><br>
+      <span class="field-name">hold_expires</span> <span class="field-type">TIMESTAMPTZ</span>       <span class="field-note">-- for 'held' status</span><br>
+      <span class="field-note">UNIQUE (listing_id, date)                   -- prevents double-booking at DB level</span>
+    </div>
+  </div>
+  <div class="schema-card">
+    <div class="schema-name">bookings</div>
+    <div class="schema-fields">
+      <span class="field-name">booking_id</span>      <span class="field-type">UUID PRIMARY KEY</span><br>
+      <span class="field-name">listing_id</span>      <span class="field-type">UUID NOT NULL</span><br>
+      <span class="field-name">guest_id</span>        <span class="field-type">UUID NOT NULL</span><br>
+      <span class="field-name">checkin</span>         <span class="field-type">DATE NOT NULL</span><br>
+      <span class="field-name">checkout</span>        <span class="field-type">DATE NOT NULL</span><br>
+      <span class="field-name">total_price</span>     <span class="field-type">BIGINT NOT NULL</span>   <span class="field-note">-- cents</span><br>
+      <span class="field-name">status</span>          <span class="field-type">ENUM('held','confirmed','cancelled')</span><br>
+      <span class="field-name">hold_expires_at</span> <span class="field-type">TIMESTAMPTZ</span>      <span class="field-note">-- NULL after confirm</span><br>
+      <span class="field-name">cancellation_policy</span> <span class="field-type">JSONB</span>         <span class="field-note">-- snapshot at booking time</span>
+    </div>
+  </div>
+</section>
+
+<section id="deep-dive">
+  <h2>8. Key Design Decisions</h2>
+
+  <div class="deep-card">
+    <div class="deep-title">Preventing Double-Booking &mdash; The Core Problem</div>
+    <div class="deep-body">
+      <strong>Race condition:</strong> Two users request the same listing for Aug 1&ndash;5. Both read availability &rarr; both see "available" &rarr; both try to book &rarr; one must fail.<br><br>
+      <strong>Best approach &mdash; UNIQUE Constraint:</strong> The <code>UNIQUE(listing_id, date)</code> constraint on the availability table is the key. Use an INSERT-based approach:<br><br>
+      <pre style="background:var(--g100);padding:12px;border-radius:8px;font-size:12px;font-family:var(--mono);line-height:1.8;margin-top:8px;">BEGIN;
+INSERT INTO availability (listing_id, date, status, booking_id)
+SELECT $listing_id, d::date, 'held', $booking_id
+FROM generate_series($checkin, $checkout - 1, '1 day') d
+WHERE NOT EXISTS (
+  SELECT 1 FROM availability
+  WHERE listing_id=$listing_id AND date=d::date
+  AND status IN ('held','booked')
+);
+-- If any date conflicts: 0 rows inserted → ROLLBACK
+COMMIT;</pre>
+      If the INSERT violates the unique constraint or returns 0 rows for any date, the entire transaction rolls back. No explicit locking needed; the DB handles it atomically.
+    </div>
+  </div>
+
+  <div class="deep-card">
+    <div class="deep-title">Hold + Confirm Two-Phase Flow</div>
+    <div class="deep-body">
+      <strong>Why two phases?</strong> Payment takes 1&ndash;3 seconds. If we mark dates as 'booked' immediately, then payment fails &mdash; dates are stuck until manual intervention.<br><br>
+      <strong>Hold phase (15 min TTL):</strong><br>
+      &bull; Mark availability rows as 'held' with hold_expires_at = now + 15 min<br>
+      &bull; Return holdId to client; client completes payment form<br><br>
+      <strong>Confirm phase:</strong><br>
+      &bull; Verify holdId is valid and not expired<br>
+      &bull; Charge payment (idempotent with idempotency key)<br>
+      &bull; On payment success: update availability to 'booked', booking to 'confirmed'<br>
+      &bull; On payment failure: release hold (set back to 'available')<br><br>
+      <strong>Hold cleanup:</strong> Cron runs every 5 min: <code>UPDATE availability SET status='available' WHERE status='held' AND hold_expires &lt; NOW()</code>
+    </div>
+  </div>
+
+  <div class="deep-card">
+    <div class="deep-title">Search Architecture &mdash; Consistency vs Performance</div>
+    <div class="deep-body">
+      Search (Elasticsearch) and booking (PostgreSQL) are completely decoupled.<br><br>
+      &bull; <strong>Search needs:</strong> full-text, geo-distance, faceted filters, sub-200ms &rarr; Elasticsearch<br>
+      &bull; <strong>Booking needs:</strong> ACID, row-level locking, exact availability &rarr; PostgreSQL<br><br>
+      <strong>Eventual consistency on search:</strong> When a booking is confirmed, Kafka event &rarr; Elasticsearch index updated async (within 1&ndash;2s). Handle at display time: click a listing &rarr; real-time check against PostgreSQL.<br><br>
+      <strong>Pricing engine:</strong> base_price &times; rule multipliers (weekend=1.2, peak_season=1.5, 7day_discount=0.9). Snapshot the pricing at booking time &mdash; so cancellation refund is based on what the guest actually paid.
+    </div>
+  </div>
+</section>
+
+<section id="scaling">
+  <h2>9. Scaling &amp; Bottlenecks</h2>
+  <div class="scale-item highlight">
+    <strong>Availability Table (3.65B rows)</strong>
+    Partition by listing_id range (hash partition). All date rows for a listing co-located on same shard &rarr; booking transaction stays on one node. Alternatively, partition by date (monthly) for easy archival.
+  </div>
+  <div class="scale-item">
+    <strong>Search at 58K QPS</strong>
+    Elasticsearch cluster with dedicated search nodes. Cache GET /search responses in Redis for 30s TTL. CDN caches popular search results for city-level queries.
+  </div>
+  <div class="scale-item">
+    <strong>Availability Cache (Redis)</strong>
+    Cache per-listing monthly availability as a bitset (1 bit per day = 31 bytes per listing per month). Read from Redis for calendar display. Invalidate on booking. Reduces PostgreSQL read load by 90%.
+  </div>
+  <div class="scale-item">
+    <strong>Kafka Fan-out</strong>
+    booking.confirmed &rarr; Payment Service, Notification Service, Elasticsearch updater, Analytics pipeline. All async, decoupled, independently scalable.
+  </div>
+</section>
+
+<section id="self-check">
+  <h2>10. Self-Check</h2>
+
+  <div class="sc-item" id="sc1">
+    <div class="sc-q" onclick="toggleSC('sc1')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">Why do you need a hold phase? Why not just book the dates immediately?</div>
+      <div class="sc-tag">Two-Phase</div>
+    </div>
+    <div class="sc-a">Payment processing takes 1&ndash;3 seconds. If you mark dates as 'booked' immediately and then payment fails, the dates are permanently blocked until manual cleanup. The hold phase creates a temporary reservation (15 min TTL) that gives the user time to complete payment. On success &rarr; promote to 'booked'. On failure or timeout &rarr; automatically release back to 'available'. This gives you a clean rollback path and avoids permanently blocking inventory on payment failures.</div>
+  </div>
+
+  <div class="sc-item" id="sc2">
+    <div class="sc-q" onclick="toggleSC('sc2')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">How does UNIQUE(listing_id, date) prevent double-booking?</div>
+      <div class="sc-tag">Consistency</div>
+    </div>
+    <div class="sc-a">The constraint makes it physically impossible for two rows to exist with the same listing_id + date in the 'held' or 'booked' state. The INSERT-based booking approach tries to insert one row per date in the requested range. If any row would violate the unique constraint (another request already holds that date), the entire INSERT fails and the transaction rolls back. No application-level locking needed &mdash; the database enforces the invariant atomically. This is stronger than SELECT FOR UPDATE because it doesn't require explicit lock acquisition.</div>
+  </div>
+
+  <div class="sc-item" id="sc3">
+    <div class="sc-q" onclick="toggleSC('sc3')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">What happens if the hold expires before the user completes payment?</div>
+      <div class="sc-tag">TTL &amp; Expiry</div>
+    </div>
+    <div class="sc-a">A cron job runs every 5 minutes: UPDATE availability SET status='available' WHERE status='held' AND hold_expires &lt; NOW(). The dates are released back to 'available' state. Lazy cleanup also happens: if another user tries to book a 'held' date whose TTL has passed, the system checks hold_expires and treats expired holds as available. If the original user tries to confirm after expiry, the confirm endpoint validates that holdId is still valid &mdash; if expired, it returns 409 "Hold expired" and the user must start over.</div>
+  </div>
+
+  <div class="sc-item" id="sc4">
+    <div class="sc-q" onclick="toggleSC('sc4')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">Why are search (Elasticsearch) and booking (PostgreSQL) in completely separate systems?</div>
+      <div class="sc-tag">Architecture</div>
+    </div>
+    <div class="sc-a">They have fundamentally different requirements. Search needs: full-text search, geo-distance queries, faceted filters, relevance ranking &mdash; Elasticsearch is purpose-built for this at sub-200ms. Booking needs: ACID guarantees, row-level locking, exact availability, zero double-bookings &mdash; PostgreSQL with UNIQUE constraints handles this. Trying to do both in one system means compromising on both. The trade-off is eventual consistency in search (ES may lag PostgreSQL by 1&ndash;2s), handled by doing a real-time PostgreSQL check when a user actually clicks a listing.</div>
+  </div>
+
+  <div class="sc-item" id="sc5">
+    <div class="sc-q" onclick="toggleSC('sc5')">
+      <div class="sc-plus">+</div>
+      <div class="sc-qtext">How does a Redis distributed lock differ from SELECT FOR UPDATE in this context?</div>
+      <div class="sc-tag">Locking</div>
+    </div>
+    <div class="sc-a">SELECT FOR UPDATE is a pessimistic row-level lock in PostgreSQL &mdash; it serializes all booking attempts for a listing by making each wait for the previous transaction to commit. For a popular listing during a flash sale, this creates a queue and risks deadlocks if lock order varies. A Redis distributed lock (SETNX on "lock:listing:{id}:{dates}" with 30s TTL) is faster to acquire (in-memory) and allows the system to immediately return "currently being booked, try again" rather than waiting. However, the UNIQUE constraint approach is usually preferred because it's simpler: let the DB enforce the invariant and handle contention at the INSERT level.</div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2>11. Interview Tips</h2>
+  <div class="tip">
+    <div class="tip-icon">&#128683;</div>
+    <div class="tip-text"><strong>Double-booking is THE question.</strong> Don't just say "use a lock." Explain the UNIQUE constraint + INSERT approach &mdash; it's atomic, elegant, and shows DB-level thinking rather than application-level synchronization.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">&#9201;&#65039;</div>
+    <div class="tip-text"><strong>Explain why you need two-phase booking.</strong> "If I mark it booked immediately and payment fails, the dates are stuck forever. The hold-confirm pattern gives us a clean rollback path."</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">&#128256;</div>
+    <div class="tip-text"><strong>Separate search from booking.</strong> "These have fundamentally different requirements &mdash; search optimizes for speed and relevance, booking optimizes for consistency. They should use different databases."</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">&#128181;</div>
+    <div class="tip-text"><strong>Snapshot pricing at booking time.</strong> Store the cancellation policy and pricing breakdown in the booking record. If the host changes prices later, the guest's refund should be based on what they originally paid.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">&#127758;</div>
+    <div class="tip-text"><strong>Geo search nuance.</strong> Use PostGIS on PostgreSQL for exact geo queries, but Elasticsearch with geo_distance for search-time filtering. "Within 2km" queries need spatial indexing, not a table scan.</div>
+  </div>
+</section>
+
+<footer>
+  <span>&#8592; <a href="index.html">Home</a></span>
+  <span>SDE Interview Prep &middot; HLD</span>
+  <span><a href="hld-index.html">All HLD Problems &#8594;</a></span>
+</footer>
+</div>
+
+<script>
+const NODE_INFO = {
+  client: {
+    title: 'Client',
+    body: 'Web or mobile application. Interacts with the search API for discovery and the booking API for reservations. The two-phase hold+confirm pattern is orchestrated at the client: receive holdId, display payment form, then confirm.',
+    stats: ['Search → hold → confirm flow', 'Hold expires in 15 min', 'Idempotency key on confirm'],
+    warn: null
+  },
+  'api-gw': {
+    title: 'API Gateway',
+    body: 'Handles SSL termination, authentication (JWT), and per-user rate limiting. Routes to the appropriate microservice: search requests go to Search Service, booking requests to Availability + Booking Services.',
+    stats: ['SSL termination', 'JWT auth', 'Routes search / booking'],
+    warn: null
+  },
+  search: {
+    title: 'Search Service',
+    body: 'Backed by Elasticsearch for full-text search, geo-distance queries, and faceted filtering (amenities, price range). ES index is eventually consistent with PostgreSQL &mdash; updated asynchronously via Kafka on booking events.',
+    stats: ['Elasticsearch backend', 'Geo-distance + full-text', '< 200ms at 58K QPS'],
+    warn: 'ES may show a listing as available briefly after it\'s booked (1-2s lag). Always do a real-time PostgreSQL check when a user actually selects a listing to book.'
+  },
+  availability: {
+    title: 'Availability Service',
+    body: 'The critical service for preventing double-bookings. Uses UNIQUE(listing_id, date) constraint in PostgreSQL. Implements the INSERT-based atomic hold. Manages the 15-minute hold TTL. All date-range queries and holds go here.',
+    stats: ['UNIQUE(listing_id, date)', 'INSERT-based atomic hold', '15-min TTL on holds'],
+    warn: 'This is the consistency bottleneck. All booking attempts must go through this service. For extreme-contention listings, add a Redis distributed lock in front.'
+  },
+  booking: {
+    title: 'Booking Service',
+    body: 'Orchestrates the confirm phase: verifies holdId is valid, triggers payment, updates availability to "booked", updates booking status to "confirmed", emits booking.confirmed to Kafka. Implements idempotency on confirm.',
+    stats: ['Verifies hold expiry', 'ACID confirm transaction', 'Kafka: booking.confirmed'],
+    warn: null
+  },
+  kafka: {
+    title: 'Kafka',
+    body: 'Event bus for booking lifecycle events. booking.confirmed fans out to Payment Service (charge), Notification Service (email/push to guest & host), and Elasticsearch updater (mark dates unavailable in search index).',
+    stats: ['booking.confirmed topic', 'booking.cancelled topic', 'Fan-out to 3+ consumers'],
+    warn: null
+  },
+  payment: {
+    title: 'Payment Service',
+    body: 'Downstream consumer of booking.confirmed events. Charges the guest\'s payment method using an idempotency key from the booking ID. Handles refunds on cancellation according to the snapshotted cancellation policy.',
+    stats: ['Idempotent charge on confirm', 'Refund on cancellation', 'Snapshotted policy'],
+    warn: null
+  },
+  notification: {
+    title: 'Notification Service',
+    body: 'Sends confirmation emails and push notifications to guests and hosts on booking.confirmed, booking.cancelled, and hold.expired events. Async consumer of Kafka events.',
+    stats: ['Email + push on confirm', 'Host notification on new booking', 'Hold expiry reminders'],
+    warn: null
+  },
+  'es-update': {
+    title: 'Elasticsearch Updater',
+    body: 'Kafka consumer that updates the Elasticsearch search index when bookings are confirmed or cancelled. Marks dates as unavailable in the search index so future searches reflect the current state.',
+    stats: ['Async: 1-2s lag after booking', 'Updates availability in ES index', 'Eventual consistency'],
+    warn: null
+  },
+  redis: {
+    title: 'Redis &mdash; Availability Cache',
+    body: 'Caches per-listing monthly availability as a bitset (1 bit per day = 31 bytes/listing/month). Used for calendar display in the UI. Invalidated on booking confirmation. Reduces PostgreSQL read load by 90%.',
+    stats: ['Bitset: 31 bytes/listing/month', 'Read: calendar display', 'Invalidate: on booking'],
+    warn: null
+  }
+};
+
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g => g.classList.remove('sel'));
+  const sel = document.querySelector(`.arch-node[data-id="${id}"]`);
+  if (sel) sel.classList.add('sel');
+  const n = NODE_INFO[id];
+  if (!n) return;
+  const p = document.getElementById('arch-panel');
+  p.classList.add('lit');
+  p.innerHTML = `<p class="ap-title">${n.title}</p><p class="ap-body">${n.body}</p><div style="margin-bottom:10px">${n.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>${n.warn ? `<div class="ap-warn">${n.warn}</div>` : ''}`;
+}
+
+const STEPS = [
+  {
+    title: 'Guest Searches Listings',
+    desc: 'Guest submits a search with location, dates, guest count, and filters. API Gateway routes to Search Service backed by Elasticsearch. Sub-200ms response. Results may be cached in Redis for 30s for popular city queries.',
+    code: 'GET /api/v1/search\n  ?location=NYC&checkin=2026-08-01\n  &checkout=2026-08-05&guests=2\n  &maxPrice=200&amenities=wifi\n\n← { "results": [...], "total": 1240 }\n← Elasticsearch p99: 45ms'
+  },
+  {
+    title: 'Guest Selects Listing',
+    desc: 'Guest clicks a listing. Client makes a real-time availability check against PostgreSQL (not ES, which may lag). This prevents showing a "book now" button for dates that were just booked by someone else.',
+    code: 'GET /api/v1/listings/lst_abc/availability\n  ?checkin=2026-08-01&checkout=2026-08-05\n\n← PostgreSQL (real-time):\n  { "2026-08-01": "available",\n    "2026-08-02": "available",\n    "2026-08-05": "available" }'
+  },
+  {
+    title: 'Hold Request — Atomic INSERT',
+    desc: 'Guest requests a hold. Availability Service runs an atomic INSERT with UNIQUE(listing_id, date) constraint. If any date is already held/booked, the INSERT fails and returns 409 Conflict. On success, hold expires in 15 minutes.',
+    code: 'POST /api/v1/bookings/hold\n{ "listingId": "lst_abc",\n  "checkin": "2026-08-01",\n  "checkout": "2026-08-05" }\n\n← 200: { "holdId": "hold_xyz",\n  "expiresAt": "2026-08-01T12:15:00Z",\n  "totalPrice": 80000 }'
+  },
+  {
+    title: 'Guest Completes Payment Form',
+    desc: 'Client shows the payment form with the price locked in for 15 minutes. A countdown timer shows hold expiry. If the guest takes too long, the hold expires and they must restart.',
+    code: 'Client state:\n{\n  holdId: "hold_xyz",\n  totalPrice: 80000,  // $800.00\n  expiresAt: "12:15:00",\n  countdown: "14:32 remaining"\n}\n\nGuest enters card details...'
+  },
+  {
+    title: 'Confirm with Payment',
+    desc: 'Guest submits payment. Booking Service verifies holdId is valid, calls Payment Service (with idempotency key), and on success atomically updates availability to "booked" and booking status to "confirmed".',
+    code: 'POST /api/v1/bookings/confirm\n{ "holdId": "hold_xyz",\n  "paymentMethodId": "pm_xxx",\n  "idempotencyKey": "client-uuid" }\n\n← 200: { "bookingId": "bk_123",\n  "status": "confirmed",\n  "confirmationCode": "AIRXYZ" }'
+  },
+  {
+    title: 'Kafka Fan-out',
+    desc: 'Booking Service emits booking.confirmed to Kafka. Three consumers act in parallel: Payment Service charges the card, Notification Service sends emails to guest and host, and ES Updater marks the dates unavailable in the search index.',
+    code: '→ Kafka: booking.confirmed\n\n// Consumers run in parallel:\nPayment Service:\n  → charge $800.00 to pm_xxx\nNotification Service:\n  → email guest + host\nES Updater:\n  → mark Aug 1-5 as unavailable\n  (search results updated in ~1s)'
+  }
+];
+
+let curStep = 0;
+
+function renderStep() {
+  const s = STEPS[curStep];
+  document.getElementById('flow-pills').innerHTML = STEPS.map((st,i) => {
+    const cls = i < curStep ? 'fn done' : i === curStep ? 'fn act' : 'fn';
+    return `<span class="${cls}">${st.title.split(' ').slice(0,2).join(' ')}</span>`;
+  }).join('');
+  document.getElementById('flow-card').innerHTML = `<p class="fc-title">${s.title}</p><p class="fc-desc">${s.desc}</p><pre class="fc-code">${s.code}</pre>`;
+  document.getElementById('btn-prev').disabled = curStep === 0;
+  document.getElementById('btn-next').disabled = curStep === STEPS.length - 1;
+  document.getElementById('flow-ctr').textContent = `Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('flow-dots').innerHTML = STEPS.map((_,i) => `<div class="flow-dot${i===curStep?' cur':''}" onclick="goStep(${i})"></div>`).join('');
+}
+
+function nextStep(){if(curStep<STEPS.length-1){curStep++;renderStep();}}
+function prevStep(){if(curStep>0){curStep--;renderStep();}}
+function goStep(n){curStep=n;renderStep();}
+renderStep();
+
+// Concurrency Simulator
+let concMode = 'bad';
+let concRunning = false;
+
+function switchTab(mode) {
+  concMode = mode;
+  document.getElementById('tab-bad').className = 'conc-tab' + (mode==='bad'?' act':'');
+  document.getElementById('tab-ok').className = 'conc-tab' + (mode==='ok'?' act':'');
+  clearTracks();
+  document.getElementById('conc-result').className = 'conc-result';
+  document.getElementById('conc-result').innerHTML = 'Press "Run Simulation" to see the timeline.';
+}
+
+function clearTracks() {
+  ['track-a','track-b','track-db'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+}
+
+function makeEvent(track, left, width, bg, text) {
+  const el = document.createElement('div');
+  el.className = 'conc-event';
+  el.style.left = left + '%';
+  el.style.width = width + '%';
+  el.style.background = bg;
+  el.style.color = '#fff';
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(4px)';
+  el.textContent = text;
+  document.getElementById(track).appendChild(el);
+  return el;
+}
+
+function showEvent(el, delay) {
+  setTimeout(() => {
+    el.style.opacity = '1';
+    el.style.transform = 'translateY(0)';
+  }, delay);
+}
+
+function runConc() {
+  if (concRunning) return;
+  concRunning = true;
+  clearTracks();
+  const btn = document.getElementById('conc-run-btn');
+  btn.disabled = true;
+  const res = document.getElementById('conc-result');
+  res.className = 'conc-result';
+  res.innerHTML = 'Running...';
+
+  if (concMode === 'bad') {
+    // Without lock: race condition
+    const eA1 = makeEvent('track-a', 0, 28, '#4A6FA5', 'SELECT → available');
+    const eB1 = makeEvent('track-b', 8, 28, '#4A6FA5', 'SELECT → available');
+    const eA2 = makeEvent('track-a', 38, 30, '#D97757', 'INSERT booking A');
+    const eB2 = makeEvent('track-b', 46, 30, '#D97757', 'INSERT booking B');
+    const eDB1 = makeEvent('track-db', 38, 20, '#788C5D', 'Write A ✓');
+    const eDB2 = makeEvent('track-db', 62, 20, '#788C5D', 'Write B ✓');
+    const eA3 = makeEvent('track-a', 72, 24, '#788C5D', 'BOOKED ✓');
+    const eB3 = makeEvent('track-b', 80, 18, '#788C5D', 'BOOKED ✓');
+
+    [eA1,eB1].forEach((e,i) => showEvent(e, i*300));
+    [eA2,eB2].forEach((e,i) => showEvent(e, 800 + i*200));
+    [eDB1,eDB2].forEach((e,i) => showEvent(e, 1000 + i*600));
+    [eA3,eB3].forEach((e,i) => showEvent(e, 1400 + i*400));
+
+    setTimeout(() => {
+      res.className = 'conc-result bad';
+      res.innerHTML = '<span class="conc-badge bad">BUG</span> Double-booking! Both User A and User B are shown as confirmed for the same dates. The host has two guests for Aug 1-5.';
+      btn.disabled = false;
+      concRunning = false;
+    }, 2600);
+
+  } else {
+    // With lock: correct
+    const eA1 = makeEvent('track-a', 0, 26, '#4A6FA5', 'Acquire lock ✓');
+    const eB1 = makeEvent('track-b', 4, 24, '#87867F', 'Try lock... WAIT');
+    const eA2 = makeEvent('track-a', 30, 28, '#D97757', 'INSERT + hold ✓');
+    const eDB1 = makeEvent('track-db', 30, 18, '#788C5D', 'Write A ✓');
+    const eA3 = makeEvent('track-a', 60, 18, '#788C5D', 'Release lock');
+    const eB2 = makeEvent('track-b', 30, 28, '#87867F', 'Waiting...');
+    const eB3 = makeEvent('track-b', 62, 24, '#4A6FA5', 'Acquire lock ✓');
+    const eB4 = makeEvent('track-b', 80, 18, '#c03', '409 Conflict');
+
+    [eA1,eB1].forEach((e,i) => showEvent(e, i*200));
+    showEvent(eA2, 600);
+    showEvent(eDB1, 700);
+    showEvent(eB2, 600);
+    showEvent(eA3, 1100);
+    showEvent(eB3, 1400);
+    showEvent(eB4, 1800);
+
+    setTimeout(() => {
+      res.className = 'conc-result ok';
+      res.innerHTML = '<span class="conc-badge ok">CORRECT</span> Only User A booked. User B gets a clean 409 "Dates no longer available." No double-booking possible.';
+      btn.disabled = false;
+      concRunning = false;
+    }, 2400);
+  }
+}
+
+function toggleSC(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+</script>
+</body>
+</html>

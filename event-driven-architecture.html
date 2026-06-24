@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event-Driven Architecture — SDE Interview Prep</title>
+<style>
+  :root {
+    --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+    --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+    --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+    --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px 100px}
+  .back{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none;padding:28px 0 0}
+  .back:hover{color:var(--slate)}
+  header{padding:44px 0 52px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--g500);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay)}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,56px);line-height:1.06;letter-spacing:-.022em}
+  h1 em{font-style:italic;color:var(--clay)}
+  .sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:580px;line-height:1.6}
+  .layout{display:grid;grid-template-columns:200px 1fr;gap:48px;align-items:start}
+  @media(max-width:760px){.layout{grid-template-columns:1fr}}
+  .toc{position:sticky;top:32px;background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:16px}
+  .toc-title{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--g500);margin-bottom:12px}
+  .toc a{display:block;font-size:12.5px;color:var(--g700);text-decoration:none;padding:5px 0;border-left:2px solid transparent;padding-left:10px;transition:all 120ms}
+  .toc a:hover{color:var(--clay);border-left-color:var(--clay)}
+  section{margin-bottom:56px;scroll-margin-top:24px}
+  h2{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:-.014em;margin-bottom:18px;display:flex;align-items:center;gap:12px}
+  h2::before{content:attr(data-n);font-family:var(--mono);font-size:12px;color:var(--clay);font-weight:600}
+  h3{font-family:var(--serif);font-size:19px;font-weight:500;margin:24px 0 10px}
+  p{font-size:15px;color:var(--g700);margin-bottom:14px;line-height:1.65}
+  .svg-wrap{background:var(--g100);border:1.5px solid var(--g200);border-radius:12px;padding:28px;margin-bottom:28px;display:flex;justify-content:center}
+  .svg-wrap svg{max-width:640px;width:100%;height:auto}
+  .variant-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:24px}
+  .variant-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:18px 20px}
+  .variant-card h4{font-family:var(--serif);font-size:16px;font-weight:500;margin-bottom:8px;color:var(--slate)}
+  .variant-card p{font-size:13px;margin-bottom:0;line-height:1.55}
+  .tradeoff-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:24px}
+  .tradeoff-table th{background:var(--slate);color:var(--paper);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:10px 14px;text-align:left}
+  .tradeoff-table td{padding:10px 14px;border-bottom:1px solid var(--g200);vertical-align:top}
+  .tradeoff-table tr:nth-child(even) td{background:var(--g100)}
+  .tabs{display:flex;gap:0;margin-bottom:-1px;flex-wrap:wrap}
+  .tab-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:8px 16px;border:1.5px solid var(--g300);border-bottom:none;background:var(--g100);color:var(--g500);cursor:pointer;border-radius:8px 8px 0 0;transition:all 120ms;margin-right:4px}
+  .tab-btn.active{background:var(--paper);color:var(--slate);border-color:var(--g300)}
+  .tab-pane{display:none;background:var(--paper);border:1.5px solid var(--g300);border-radius:0 12px 12px 12px;padding:0;overflow:hidden}
+  .tab-pane.active{display:block}
+  pre{background:var(--slate);color:#e8e6e0;font-family:var(--mono);font-size:13px;line-height:1.6;padding:24px;overflow-x:auto}
+  .kw{color:#7eb8f7}.cn{color:#a8c880}.cm{color:#87867F;font-style:italic}.st{color:#D97757}.nm{color:#c39bd3}.fn{color:#79c9c0}
+  .tip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .tip{background:var(--paper);border:1.5px solid var(--g200);border-left:4px solid var(--clay);border-radius:0 10px 10px 0;padding:14px 16px}
+  .tip strong{display:block;font-size:13px;margin-bottom:4px;color:var(--slate)}
+  .tip p{font-size:12.5px;margin-bottom:0;line-height:1.5}
+  footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:28px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--g500)}
+  footer a{color:var(--clay);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← Home</a>
+<header>
+  <div class="eyebrow">Key Concepts · Advanced</div>
+  <h1>Event-Driven<br><em>Architecture</em></h1>
+  <p class="sub">CQRS, Event Sourcing, Saga Pattern, and the Outbox Pattern — the design paradigms that power scalable, decoupled microservices at senior SDE level.</p>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <a href="#what">What Is It</a>
+  <a href="#problem">The Problem</a>
+  <a href="#how">How It Works</a>
+  <a href="#types">Patterns</a>
+  <a href="#tradeoffs">Trade-offs</a>
+  <a href="#code">Code</a>
+  <a href="#real-world">Real World</a>
+  <a href="#tips">Interview Tips</a>
+</nav>
+
+<div>
+
+<section id="what">
+  <h2 data-n="01">What Is It</h2>
+  <p>Event-Driven Architecture (EDA) is a design paradigm where components communicate by producing and consuming <strong>events</strong> — immutable facts about things that happened — rather than making direct synchronous calls. Three patterns build on this foundation:</p>
+  <div class="variant-grid">
+    <div class="variant-card"><h4>Event Sourcing</h4><p>Store all changes as a sequence of events rather than current state. Rebuild state by replaying the event log.</p></div>
+    <div class="variant-card"><h4>CQRS</h4><p>Separate the write model (commands → events) from the read model (optimised query projections).</p></div>
+    <div class="variant-card"><h4>Saga Pattern</h4><p>Manage distributed transactions across microservices using compensating transactions instead of 2PC.</p></div>
+    <div class="variant-card"><h4>Outbox Pattern</h4><p>Atomically write to a DB and publish an event by using an outbox table and a relay process.</p></div>
+  </div>
+</section>
+
+<section id="problem">
+  <h2 data-n="02">The Problem It Solves</h2>
+  <p><strong>Tight coupling:</strong> In a monolith, when you complete an order you might call inventory.reserve(), payment.charge(), notification.send() synchronously. If any one fails, the whole operation is at risk and all services are coupled together.</p>
+  <p><strong>Distributed transaction impossibility:</strong> Spanning a business transaction across multiple microservices with ACID guarantees requires 2PC, which blocks all participants and is a single point of failure.</p>
+  <p><strong>Audit and temporal queries:</strong> Traditional state-based storage overwrites data. You can't answer "what was the account balance 3 months ago?" without separate audit tables.</p>
+  <p>EDA solves these by making communication asynchronous, decoupled, and durable through an event log.</p>
+</section>
+
+<section id="how">
+  <h2 data-n="03">How It Works</h2>
+  <div class="svg-wrap">
+    <svg viewBox="0 0 640 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Command -->
+      <rect x="20" y="110" width="90" height="40" rx="6" fill="#D97757" opacity=".85"/>
+      <text x="65" y="134" text-anchor="middle" font-family="monospace" font-size="11" fill="white" font-weight="700">Command</text>
+      <!-- Handler -->
+      <rect x="150" y="100" width="100" height="60" rx="6" fill="#141413"/>
+      <text x="200" y="128" text-anchor="middle" font-family="monospace" font-size="10" fill="white">Command</text>
+      <text x="200" y="143" text-anchor="middle" font-family="monospace" font-size="10" fill="#D97757">Handler</text>
+      <!-- Arrow -->
+      <line x1="110" y1="130" x2="148" y2="130" stroke="#D97757" stroke-width="2"/>
+      <polygon points="148,130 141,126 141,134" fill="#D97757"/>
+      <!-- Event Store -->
+      <rect x="295" y="90" width="110" height="80" rx="6" fill="#1a1f2e" stroke="#7eb8f7" stroke-width="1.5"/>
+      <text x="350" y="122" text-anchor="middle" font-family="monospace" font-size="10" fill="#7eb8f7">Event</text>
+      <text x="350" y="137" text-anchor="middle" font-family="monospace" font-size="10" fill="#7eb8f7">Store</text>
+      <text x="350" y="156" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.35)">append-only</text>
+      <line x1="250" y1="130" x2="293" y2="130" stroke="#7eb8f7" stroke-width="2"/>
+      <polygon points="293,130 286,126 286,134" fill="#7eb8f7"/>
+      <text x="270" y="122" text-anchor="middle" font-family="monospace" font-size="9" fill="#a8c880">emit event</text>
+      <!-- Event Bus -->
+      <rect x="295" y="196" width="110" height="36" rx="6" fill="#3d3d3a" stroke="#D1CFC5" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="350" y="218" text-anchor="middle" font-family="monospace" font-size="10" fill="#E3DACC">Event Bus</text>
+      <line x1="350" y1="170" x2="350" y2="194" stroke="#7eb8f7" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <polygon points="350,194 346,187 354,187" fill="#7eb8f7"/>
+      <!-- Projections -->
+      <rect x="460" y="60" width="110" height="40" rx="6" fill="#788C5D" opacity=".8"/>
+      <text x="515" y="78" text-anchor="middle" font-family="monospace" font-size="10" fill="white">Read Model</text>
+      <text x="515" y="93" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.7)">(Projection)</text>
+      <!-- Saga -->
+      <rect x="460" y="120" width="110" height="40" rx="6" fill="#4A6FA5" opacity=".8"/>
+      <text x="515" y="138" text-anchor="middle" font-family="monospace" font-size="10" fill="white">Saga</text>
+      <text x="515" y="153" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.7)">Orchestrator</text>
+      <!-- Notif -->
+      <rect x="460" y="180" width="110" height="40" rx="6" fill="#3d3d3a" stroke="#D1CFC5" stroke-width="1.5"/>
+      <text x="515" y="198" text-anchor="middle" font-family="monospace" font-size="10" fill="#E3DACC">Notification</text>
+      <text x="515" y="213" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">Service</text>
+      <!-- Arrows from bus -->
+      <line x1="405" y1="214" x2="458" y2="80" stroke="#87867F" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="405" y1="214" x2="458" y2="140" stroke="#87867F" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="405" y1="214" x2="458" y2="200" stroke="#87867F" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <!-- Labels -->
+      <text x="350" y="30" text-anchor="middle" font-family="monospace" font-size="9" fill="#87867F">subscribe</text>
+    </svg>
+  </div>
+  <p>The core flow: a <strong>Command</strong> arrives → the Command Handler validates it and emits one or more <strong>Domain Events</strong> to the Event Store → events are published to the Event Bus → multiple subscribers react independently: a Projection updates the read model, a Saga orchestrates downstream steps, a Notification service sends emails. No subscriber blocks the others.</p>
+</section>
+
+<section id="types">
+  <h2 data-n="04">Patterns in Depth</h2>
+
+  <h3>Event Sourcing</h3>
+  <p>Instead of storing the current state of an entity (e.g., balance = 100), store the sequence of events that produced it: [Deposited(200), Withdrew(100)]. To read current state, replay the events. Advantages: full audit trail, time-travel queries (replay up to timestamp T), ability to create new projections from history. Disadvantages: querying current state requires projections; event schema evolution is painful.</p>
+
+  <h3>CQRS (Command Query Responsibility Segregation)</h3>
+  <p>The write model handles commands and emits events to the event store. The read model maintains separate, denormalised views (projections) optimised for specific queries — updated asynchronously by consuming events. This separates write consistency (the command side) from read performance (the query side). Can be used without Event Sourcing, but they complement each other well.</p>
+
+  <h3>Saga Pattern</h3>
+  <p>When a business transaction spans multiple services, avoid 2PC (which locks all participants and is fragile). Instead, each step emits an event; if a step fails, <strong>compensating transactions</strong> are run in reverse order.</p>
+  <div class="variant-grid">
+    <div class="variant-card"><h4>Choreography Saga</h4><p>Each service listens for events and reacts. No central coordinator. Decoupled but hard to visualise the overall flow and diagnose failures.</p></div>
+    <div class="variant-card"><h4>Orchestration Saga</h4><p>A central Saga Orchestrator sends commands, awaits replies, and decides next steps or compensations. Easier to understand and debug; single coordinator is a design-time dependency.</p></div>
+  </div>
+  <p>Example: Order saga — CreateOrder → ReserveInventory → ChargePayment → ShipOrder. If ChargePayment fails → ReleaseInventory → CancelOrder.</p>
+
+  <h3>Outbox Pattern</h3>
+  <p>The dual-write problem: you can't atomically write to a DB and publish to Kafka in the same operation (they're separate systems). Solution: write the event to an <code>outbox</code> table in the <em>same DB transaction</em> as your domain write → a relay process (or Debezium CDC) reads the outbox and publishes to Kafka → marks the row as sent. Guarantees at-least-once event delivery without 2PC.</p>
+</section>
+
+<section id="tradeoffs">
+  <h2 data-n="05">Trade-offs</h2>
+  <table class="tradeoff-table">
+    <thead><tr><th>Pattern</th><th>Benefits</th><th>Drawbacks</th><th>Use When</th></tr></thead>
+    <tbody>
+      <tr><td>Event Sourcing</td><td>Full audit trail, time travel, replay projections</td><td>Eventual consistency on reads, schema evolution hard, high storage</td><td>Banking, legal, complex domain with temporal requirements</td></tr>
+      <tr><td>CQRS</td><td>Optimised reads, independent scaling of read/write</td><td>Eventual consistency, data duplication, operational complexity</td><td>High read/write ratio difference, complex query requirements</td></tr>
+      <tr><td>Orchestration Saga</td><td>Visible flow, easy debugging, clear compensation logic</td><td>Orchestrator is a central dependency, can become complex</td><td>Complex multi-step transactions needing visibility</td></tr>
+      <tr><td>Choreography Saga</td><td>Fully decoupled services, no single point of failure</td><td>Hard to trace overall flow, difficult to add steps</td><td>Simple 2-3 step sagas between independent services</td></tr>
+      <tr><td>Outbox Pattern</td><td>Atomic DB write + event publish guarantee</td><td>Relay process adds operational complexity</td><td>Any microservice that writes to DB and publishes events</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="code">
+  <h2 data-n="06">Code</h2>
+  <div class="tabs">
+    <button class="tab-btn active" data-group="code" onclick="switchTab('code','es')">Event Sourcing</button>
+    <button class="tab-btn" data-group="code" onclick="switchTab('code','cqrs')">CQRS</button>
+    <button class="tab-btn" data-group="code" onclick="switchTab('code','saga')">Saga Orchestrator</button>
+    <button class="tab-btn" data-group="code" onclick="switchTab('code','outbox')">Outbox Pattern</button>
+  </div>
+  <div class="tab-pane active" data-group="code" data-tab="code-es">
+<pre><span class="cm">// Event Sourcing — BankAccount</span>
+<span class="kw">sealed interface</span> <span class="cn">AccountEvent</span> {}
+<span class="kw">record</span> <span class="cn">MoneyDeposited</span>(<span class="kw">long</span> amount) <span class="kw">implements</span> <span class="cn">AccountEvent</span> {}
+<span class="kw">record</span> <span class="cn">MoneyWithdrawn</span>(<span class="kw">long</span> amount) <span class="kw">implements</span> <span class="cn">AccountEvent</span> {}
+<span class="kw">record</span> <span class="cn">AccountOpened</span>(<span class="cn">String</span> owner) <span class="kw">implements</span> <span class="cn">AccountEvent</span> {}
+
+<span class="kw">class</span> <span class="cn">BankAccount</span> {
+    <span class="kw">private</span> <span class="cn">List</span>&lt;<span class="cn">AccountEvent</span>&gt; events = <span class="kw">new</span> <span class="cn">ArrayList</span>&lt;&gt;();
+    <span class="kw">private long</span> balance = <span class="nm">0</span>;
+
+    <span class="kw">void</span> <span class="fn">deposit</span>(<span class="kw">long</span> amount) {
+        <span class="kw">if</span> (amount &lt;= <span class="nm">0</span>) <span class="kw">throw new</span> <span class="cn">IllegalArgumentException</span>();
+        <span class="fn">apply</span>(<span class="kw">new</span> <span class="cn">MoneyDeposited</span>(amount));
+    }
+
+    <span class="kw">void</span> <span class="fn">withdraw</span>(<span class="kw">long</span> amount) {
+        <span class="kw">if</span> (amount &gt; balance) <span class="kw">throw new</span> <span class="cn">InsufficientFundsException</span>();
+        <span class="fn">apply</span>(<span class="kw">new</span> <span class="cn">MoneyWithdrawn</span>(amount));
+    }
+
+    <span class="kw">private void</span> <span class="fn">apply</span>(<span class="cn">AccountEvent</span> e) {
+        events.<span class="fn">add</span>(e); <span class="cm">// append to event store</span>
+        <span class="kw">switch</span> (e) {
+            <span class="kw">case</span> <span class="cn">MoneyDeposited</span> d  -&gt; balance += d.<span class="fn">amount</span>();
+            <span class="kw">case</span> <span class="cn">MoneyWithdrawn</span> w  -&gt; balance -= w.<span class="fn">amount</span>();
+            <span class="kw">case</span> <span class="cn">AccountOpened</span>  o  -&gt; {} <span class="cm">// no state change on open</span>
+        }
+    }
+
+    <span class="cm">// Rebuild from stored events (replay)</span>
+    <span class="kw">static</span> <span class="cn">BankAccount</span> <span class="fn">rebuild</span>(<span class="cn">List</span>&lt;<span class="cn">AccountEvent</span>&gt; history) {
+        <span class="kw">var</span> account = <span class="kw">new</span> <span class="cn">BankAccount</span>();
+        history.<span class="fn">forEach</span>(account::<span class="fn">apply</span>);
+        <span class="kw">return</span> account;
+    }
+}</pre>
+  </div>
+  <div class="tab-pane" data-group="code" data-tab="code-cqrs">
+<pre><span class="cm">// CQRS — Separate write model and read model</span>
+
+<span class="cm">// WRITE side: command handler emits events</span>
+<span class="kw">class</span> <span class="cn">OrderCommandService</span> {
+    <span class="kw">private final</span> <span class="cn">EventStore</span> eventStore;
+
+    <span class="cn">OrderCreated</span> <span class="fn">createOrder</span>(<span class="cn">CreateOrderCommand</span> cmd) {
+        <span class="kw">var</span> event = <span class="kw">new</span> <span class="cn">OrderCreated</span>(cmd.<span class="fn">orderId</span>(), cmd.<span class="fn">items</span>(), <span class="cn">Instant</span>.<span class="fn">now</span>());
+        eventStore.<span class="fn">append</span>(<span class="st">"order-"</span> + cmd.<span class="fn">orderId</span>(), event);
+        <span class="kw">return</span> event;
+    }
+}
+
+<span class="cm">// READ side: query denormalised projection</span>
+<span class="kw">class</span> <span class="cn">OrderQueryService</span> {
+    <span class="kw">private final</span> <span class="cn">OrderReadRepository</span> readRepo; <span class="cm">// separate DB/table</span>
+
+    <span class="cn">OrderSummary</span> <span class="fn">getOrder</span>(<span class="cn">String</span> orderId) {
+        <span class="kw">return</span> readRepo.<span class="fn">findById</span>(orderId); <span class="cm">// fast denormalised read</span>
+    }
+}
+
+<span class="cm">// Projection updater: subscribes to events, updates read DB</span>
+<span class="kw">class</span> <span class="cn">OrderProjectionUpdater</span> {
+    @<span class="cn">KafkaListener</span>(topics = <span class="st">"order-events"</span>)
+    <span class="kw">void</span> <span class="fn">on</span>(<span class="cn">OrderCreated</span> event) {
+        <span class="kw">var</span> summary = <span class="kw">new</span> <span class="cn">OrderSummary</span>(
+            event.<span class="fn">orderId</span>(), event.<span class="fn">items</span>(), <span class="st">"PENDING"</span>, event.<span class="fn">createdAt</span>()
+        );
+        readRepo.<span class="fn">save</span>(summary); <span class="cm">// update read model asynchronously</span>
+    }
+}</pre>
+  </div>
+  <div class="tab-pane" data-group="code" data-tab="code-saga">
+<pre><span class="cm">// Saga Orchestrator — Order fulfillment</span>
+<span class="kw">class</span> <span class="cn">OrderSaga</span> {
+    <span class="kw">private</span> <span class="cn">SagaState</span> state = <span class="cn">SagaState</span>.STARTED;
+
+    <span class="kw">void</span> <span class="fn">handle</span>(<span class="cn">OrderCreated</span> event) {
+        state = <span class="cn">SagaState</span>.RESERVING_INVENTORY;
+        inventoryService.<span class="fn">reserve</span>(event.<span class="fn">items</span>()); <span class="cm">// send command</span>
+    }
+
+    <span class="kw">void</span> <span class="fn">handle</span>(<span class="cn">InventoryReserved</span> event) {
+        state = <span class="cn">SagaState</span>.CHARGING_PAYMENT;
+        paymentService.<span class="fn">charge</span>(event.<span class="fn">orderId</span>(), event.<span class="fn">totalAmount</span>());
+    }
+
+    <span class="kw">void</span> <span class="fn">handle</span>(<span class="cn">PaymentCharged</span> event) {
+        state = <span class="cn">SagaState</span>.SHIPPING;
+        shippingService.<span class="fn">ship</span>(event.<span class="fn">orderId</span>());
+    }
+
+    <span class="cm">// Compensation: payment failed → release inventory → cancel order</span>
+    <span class="kw">void</span> <span class="fn">handle</span>(<span class="cn">PaymentFailed</span> event) {
+        state = <span class="cn">SagaState</span>.COMPENSATING;
+        inventoryService.<span class="fn">release</span>(event.<span class="fn">orderId</span>()); <span class="cm">// compensating txn</span>
+        orderService.<span class="fn">cancel</span>(event.<span class="fn">orderId</span>());
+        state = <span class="cn">SagaState</span>.CANCELLED;
+    }
+}</pre>
+  </div>
+  <div class="tab-pane" data-group="code" data-tab="code-outbox">
+<pre><span class="cm">// Outbox Pattern — atomic DB write + event publish</span>
+@<span class="cn">Transactional</span>
+<span class="kw">void</span> <span class="fn">createOrder</span>(<span class="cn">Order</span> order) {
+    orderRepository.<span class="fn">save</span>(order); <span class="cm">// domain write</span>
+
+    <span class="cm">// Write event to SAME transaction</span>
+    <span class="kw">var</span> outboxEvent = <span class="cn">OutboxEvent</span>.<span class="fn">builder</span>()
+        .<span class="fn">id</span>(<span class="cn">UUID</span>.<span class="fn">randomUUID</span>())
+        .<span class="fn">aggregateType</span>(<span class="st">"Order"</span>)
+        .<span class="fn">aggregateId</span>(order.<span class="fn">getId</span>())
+        .<span class="fn">eventType</span>(<span class="st">"OrderCreated"</span>)
+        .<span class="fn">payload</span>(<span class="fn">toJson</span>(order))
+        .<span class="fn">status</span>(<span class="cn">OutboxStatus</span>.PENDING)
+        .<span class="fn">build</span>();
+    outboxRepository.<span class="fn">save</span>(outboxEvent); <span class="cm">// same DB, same txn</span>
+} <span class="cm">// COMMIT — both order and outbox row committed atomically</span>
+
+<span class="cm">// Relay runs separately (or Debezium CDC reads outbox table)</span>
+@<span class="cn">Scheduled</span>(fixedDelay = <span class="nm">1000</span>)
+<span class="kw">void</span> <span class="fn">relayEvents</span>() {
+    <span class="kw">var</span> pending = outboxRepository.<span class="fn">findByStatus</span>(<span class="cn">OutboxStatus</span>.PENDING);
+    <span class="kw">for</span> (<span class="kw">var</span> event : pending) {
+        kafkaProducer.<span class="fn">send</span>(event.<span class="fn">getEventType</span>(), event.<span class="fn">getPayload</span>());
+        outboxRepository.<span class="fn">markSent</span>(event.<span class="fn">getId</span>()); <span class="cm">// at-least-once</span>
+    }
+}</pre>
+  </div>
+</section>
+
+<section id="real-world">
+  <h2 data-n="07">Real-World Usage</h2>
+  <div class="variant-grid">
+    <div class="variant-card"><h4>Axon Framework</h4><p>Java framework that implements Event Sourcing + CQRS + Saga out of the box. Used by enterprises with complex domain models.</p></div>
+    <div class="variant-card"><h4>Temporal.io</h4><p>Workflow orchestration engine built on Event Sourcing principles. Used by Netflix, Stripe, Airbnb for reliable distributed workflows (replaces hand-rolled sagas).</p></div>
+    <div class="variant-card"><h4>Debezium</h4><p>CDC (Change Data Capture) tool that reads the DB write-ahead log and publishes changes to Kafka — the production implementation of the Outbox pattern.</p></div>
+    <div class="variant-card"><h4>Kafka</h4><p>The event store / event bus for most production EDA systems. Immutable append-only log, replay capability, consumer groups for independent projections.</p></div>
+    <div class="variant-card"><h4>EventStoreDB</h4><p>Purpose-built event store database. Supports subscriptions, projections, and optimistic concurrency for event streams.</p></div>
+    <div class="variant-card"><h4>Martin Fowler's Patterns</h4><p>CQRS and Event Sourcing patterns were popularised by Martin Fowler and Greg Young. The original articles are required reading for senior engineers.</p></div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2 data-n="08">Interview Tips</h2>
+  <div class="tip-grid">
+    <div class="tip"><strong>"When would you use Event Sourcing?"</strong><p>Audit-critical domains (banking, legal), systems needing temporal queries, complex domains with many event types. NOT for simple CRUD — the overhead is not worth it.</p></div>
+    <div class="tip"><strong>"What's the difference between Saga and 2PC?"</strong><p>2PC blocks all participants during the protocol and has a coordinator SPOF. Saga is eventual consistency via compensation — no locking, each step is a local transaction.</p></div>
+    <div class="tip"><strong>"How do you handle event schema evolution?"</strong><p>Version your events (v1, v2). Use upcasters to transform old schema to new on read. Never delete fields — add new optional fields only.</p></div>
+    <div class="tip"><strong>"What is the dual-write problem?"</strong><p>Writing to DB and Kafka are two separate operations — if the app crashes between them, you get inconsistency. Solution: Outbox pattern or Kafka transactions with exactly-once semantics.</p></div>
+    <div class="tip"><strong>"How do you handle failed Saga steps?"</strong><p>Each step must be idempotent (safe to retry) and have a compensating transaction. The orchestrator tracks state — on failure, runs compensations in reverse order.</p></div>
+    <div class="tip"><strong>"Can you use CQRS without Event Sourcing?"</strong><p>Yes. You can have a standard write model that updates a DB and also updates a separate read-optimised projection (e.g., Redis or Elasticsearch) asynchronously. ES is not required.</p></div>
+  </div>
+</section>
+
+</div><!-- end main -->
+</div><!-- end layout -->
+
+<footer>
+  <span>← <a href="concepts-index.html">All Concepts</a></span>
+  <span><a href="index.html">Home</a></span>
+</footer>
+</div>
+<script>
+function switchTab(group, id) {
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el => el.classList.add('active'));
+}
+</script>
+</body>
+</html>

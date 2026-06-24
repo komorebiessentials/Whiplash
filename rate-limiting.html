@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rate Limiting Algorithms — SDE Interview Prep</title>
+<style>
+  :root {
+    --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+    --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+    --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 32px 100px; }
+
+  .back { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); text-decoration: none; padding: 32px 0 0; }
+  .back:hover { color: var(--slate); }
+
+  header { padding: 40px 0 56px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--g500); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(36px, 5vw, 58px); line-height: 1.06; letter-spacing: -.022em; margin-bottom: 6px; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .sub { font-size: 17px; color: var(--g700); margin-top: 16px; max-width: 560px; line-height: 1.6; }
+
+  section { margin-bottom: 64px; }
+  h2 { font-family: var(--serif); font-size: 28px; font-weight: 500; letter-spacing: -.014em; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1.5px solid var(--g200); }
+  h3 { font-family: var(--serif); font-size: 20px; font-weight: 500; margin: 28px 0 10px; }
+  p { color: var(--g700); line-height: 1.7; margin-bottom: 14px; }
+
+  .diagram-box { background: var(--slate); border-radius: 16px; padding: 32px; margin: 24px 0; display: flex; align-items: center; justify-content: center; }
+  .diagram-box svg { max-width: 100%; height: auto; }
+
+  .algo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-top: 20px; }
+  .algo-card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 14px; padding: 20px; }
+  .algo-num { font-family: var(--mono); font-size: 11px; color: var(--g500); margin-bottom: 6px; }
+  .algo-title { font-family: var(--serif); font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+  .algo-desc { font-size: 13.5px; color: var(--g700); line-height: 1.6; }
+  .algo-tag { display: inline-block; margin-top: 10px; font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 4px; }
+  .tag-green { background: #E8F0DE; color: #4a6629; }
+  .tag-yellow { background: #FFF3CD; color: #856404; }
+  .tag-red { background: #FDECEA; color: #9e2a2b; }
+
+  .trade-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13.5px; }
+  .trade-table th { text-align: left; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); padding: 10px 14px; border-bottom: 1.5px solid var(--g300); }
+  .trade-table td { padding: 12px 14px; border-bottom: 1px solid var(--g200); color: var(--g700); vertical-align: top; }
+  .trade-table tr:last-child td { border-bottom: none; }
+  .trade-table tr:hover td { background: var(--g100); }
+  .trade-table td:first-child { font-family: var(--mono); font-size: 12px; color: var(--slate); font-weight: 500; }
+
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
+  .tab-btn { font-family: var(--mono); font-size: 11px; padding: 7px 14px; border-radius: 8px 8px 0 0; border: 1.5px solid var(--g300); border-bottom: none; background: var(--g100); color: var(--g500); cursor: pointer; transition: background 140ms; }
+  .tab-btn.active { background: var(--slate); color: var(--paper); border-color: var(--slate); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+  pre { background: var(--slate); color: #e8e6e0; padding: 24px; border-radius: 0 12px 12px 12px; font-family: var(--mono); font-size: 13px; line-height: 1.65; overflow-x: auto; border: 1.5px solid var(--slate); }
+  .kw { color: #7DADE2; }
+  .cn { color: #82E0AA; }
+  .cm { color: #6e6e6b; font-style: italic; }
+  .st { color: #D97757; }
+  .nm { color: #C39BD3; }
+  .fn { color: #76D7C4; }
+
+  .tip { display: flex; gap: 14px; align-items: flex-start; background: var(--paper); border: 1.5px solid var(--g200); border-left: 4px solid var(--clay); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+  .tip-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .tip-text { font-size: 14px; color: var(--g700); line-height: 1.6; }
+  .tip-text strong { color: var(--slate); }
+
+  .burst-box { background: var(--paper); border: 1.5px solid var(--oat); border-radius: 14px; padding: 24px; margin: 20px 0; }
+  .burst-box h3 { font-family: var(--serif); font-size: 18px; margin: 0 0 12px; color: var(--clay); }
+  .burst-timeline { display: flex; align-items: center; gap: 0; margin: 16px 0; font-family: var(--mono); font-size: 12px; }
+  .burst-seg { padding: 10px 16px; border: 1.5px solid var(--g300); text-align: center; }
+  .burst-seg.danger { background: #FDECEA; border-color: #f5c6cb; color: #9e2a2b; }
+  .burst-seg.normal { background: var(--g100); color: var(--g700); }
+  .burst-seg.highlight { background: var(--clay); color: white; border-color: var(--clay); }
+
+  .real-world { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-top: 20px; }
+  .rw-card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 18px; }
+  .rw-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--olive); margin-bottom: 6px; }
+  .rw-desc { font-size: 13px; color: var(--g700); line-height: 1.55; }
+
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 28px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--g500); }
+  footer a { color: var(--clay); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<a class="back" href="index.html">← Home</a>
+
+<header>
+  <div class="eyebrow">Key Concepts · Performance</div>
+  <h1>Rate Limiting<br><em>Algorithms</em></h1>
+  <p class="sub">Five algorithms for throttling request rates — from simple fixed windows to distributed Redis-based solutions.</p>
+</header>
+
+<!-- 1. What Is It -->
+<section>
+  <h2>1. What Is It</h2>
+  <p><strong>Rate limiting</strong> controls how many requests a client or service can make within a time window. It protects APIs from abuse, prevents DoS attacks, enforces fair usage quotas, and reduces downstream load spikes.</p>
+  <p>The core decision: how do you count requests and what do you do when the limit is exceeded? The answer determines burst behavior, memory usage, and accuracy.</p>
+</section>
+
+<!-- 2. The Problem It Solves -->
+<section>
+  <h2>2. The Problem It Solves</h2>
+  <p>Without rate limiting, a single misbehaving client can overwhelm your API (resource exhaustion), trigger cascading failures downstream, or monopolize quota at the expense of other users.</p>
+  <p>Secondary problems: <strong>boundary bursts</strong> (fixed windows allow 2× the rate at window edges), <strong>distributed state</strong> (multiple server nodes must share counters), and <strong>burst tolerance</strong> (legitimate clients sometimes need short bursts).</p>
+</section>
+
+<!-- 3. How It Works -->
+<section>
+  <h2>3. How It Works — Token Bucket</h2>
+  <p>The token bucket is the most intuitive algorithm. Tokens refill at a constant rate up to a max capacity. Each request consumes one token. If the bucket is empty, the request is rejected.</p>
+  <div class="diagram-box">
+    <svg viewBox="0 0 500 220" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;">
+      <!-- Incoming requests -->
+      <text x="20" y="30" font-family="monospace" font-size="10" fill="rgba(255,255,255,.5)">REQUESTS</text>
+      <rect x="10" y="40" width="60" height="24" rx="6" fill="#D97757" opacity=".8"/>
+      <text x="40" y="57" text-anchor="middle" font-family="monospace" font-size="10" fill="white">REQ</text>
+      <rect x="10" y="72" width="60" height="24" rx="6" fill="#D97757" opacity=".8"/>
+      <text x="40" y="89" text-anchor="middle" font-family="monospace" font-size="10" fill="white">REQ</text>
+      <rect x="10" y="104" width="60" height="24" rx="6" fill="#D97757" opacity=".8"/>
+      <text x="40" y="121" text-anchor="middle" font-family="monospace" font-size="10" fill="white">REQ</text>
+      <rect x="10" y="136" width="60" height="24" rx="6" fill="rgba(255,255,255,.15)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+      <text x="40" y="153" text-anchor="middle" font-family="monospace" font-size="10" fill="rgba(255,255,255,.4)">REQ</text>
+
+      <!-- arrows to bucket -->
+      <line x1="70" y1="52" x2="165" y2="80" stroke="#D97757" stroke-width="1.5"/>
+      <line x1="70" y1="84" x2="165" y2="90" stroke="#D97757" stroke-width="1.5"/>
+      <line x1="70" y1="116" x2="165" y2="110" stroke="#D97757" stroke-width="1.5"/>
+      <line x1="70" y1="148" x2="130" y2="148" stroke="rgba(255,255,255,.2)" stroke-dasharray="4,3" stroke-width="1.5"/>
+
+      <!-- Token bucket -->
+      <rect x="165" y="40" width="110" height="140" rx="8" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+      <!-- tokens in bucket -->
+      <rect x="173" y="110" width="94" height="64" rx="4" fill="#82E0AA" opacity=".25"/>
+      <!-- token circles -->
+      <circle cx="196" cy="126" r="8" fill="#82E0AA" opacity=".7"/>
+      <circle cx="220" cy="126" r="8" fill="#82E0AA" opacity=".7"/>
+      <circle cx="244" cy="126" r="8" fill="#82E0AA" opacity=".7"/>
+      <circle cx="196" cy="150" r="8" fill="#82E0AA" opacity=".7"/>
+      <circle cx="220" cy="150" r="8" fill="#82E0AA" opacity=".7"/>
+      <text x="220" y="85" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.5)">BUCKET</text>
+      <text x="220" y="100" text-anchor="middle" font-family="monospace" font-size="9" fill="rgba(255,255,255,.35)">capacity=10</text>
+
+      <!-- Refill arrow from top -->
+      <line x1="220" y1="10" x2="220" y2="40" stroke="#82E0AA" stroke-width="1.5"/>
+      <polygon points="220,40 215,30 225,30" fill="#82E0AA"/>
+      <text x="220" y="8" text-anchor="middle" font-family="monospace" font-size="9" fill="#82E0AA">+1 token/sec</text>
+
+      <!-- Overflow arrow -->
+      <line x1="280" y1="148" x2="340" y2="148" stroke="rgba(255,255,255,.2)" stroke-dasharray="4,3" stroke-width="1.5"/>
+      <text x="360" y="145" font-family="monospace" font-size="9" fill="rgba(255,255,255,.4)">REJECT</text>
+      <text x="350" y="160" font-family="monospace" font-size="9" fill="rgba(255,255,255,.25)">(429)</text>
+
+      <!-- Pass arrow -->
+      <line x1="275" y1="90" x2="350" y2="90" stroke="#82E0AA" stroke-width="1.5"/>
+      <polygon points="350,90 340,85 340,95" fill="#82E0AA"/>
+      <text x="356" y="87" font-family="monospace" font-size="9" fill="#82E0AA">PASS</text>
+      <text x="352" y="102" font-family="monospace" font-size="9" fill="rgba(255,255,255,.35)">(-1 token)</text>
+    </svg>
+  </div>
+</section>
+
+<!-- 4. Algorithms -->
+<section>
+  <h2>4. The Five Algorithms</h2>
+  <div class="algo-grid">
+    <div class="algo-card">
+      <div class="algo-num">01</div>
+      <div class="algo-title">Fixed Window Counter</div>
+      <div class="algo-desc">Divide time into fixed windows (e.g., each minute). Count requests per window. Simple to implement with a single atomic counter + TTL.</div>
+      <span class="algo-tag tag-yellow">Boundary burst risk</span>
+    </div>
+    <div class="algo-card">
+      <div class="algo-num">02</div>
+      <div class="algo-title">Sliding Window Log</div>
+      <div class="algo-desc">Store a timestamp for every request in a sorted list. Count entries within the rolling window. Most accurate but O(N) memory per user.</div>
+      <span class="algo-tag tag-red">High memory</span>
+    </div>
+    <div class="algo-card">
+      <div class="algo-num">03</div>
+      <div class="algo-title">Sliding Window Counter</div>
+      <div class="algo-desc">Hybrid: <code>prev × overlap% + curr</code>. Approximates sliding window using two fixed-window counters. Low memory, no boundary bursts.</div>
+      <span class="algo-tag tag-green">Best tradeoff</span>
+    </div>
+    <div class="algo-card">
+      <div class="algo-num">04</div>
+      <div class="algo-title">Token Bucket</div>
+      <div class="algo-desc">Refill tokens at rate R, capacity B. Allows bursts up to B. Requests consume a token; empty bucket = reject. Used by most CDNs and APIs.</div>
+      <span class="algo-tag tag-green">Burst-friendly</span>
+    </div>
+    <div class="algo-card">
+      <div class="algo-num">05</div>
+      <div class="algo-title">Leaky Bucket</div>
+      <div class="algo-desc">Requests queue up; processed at a fixed rate. Excess beyond queue capacity is dropped. Guarantees smooth output but no burst tolerance.</div>
+      <span class="algo-tag tag-yellow">Strict smoothing</span>
+    </div>
+  </div>
+
+  <!-- Boundary burst callout -->
+  <div class="burst-box">
+    <h3>The Boundary Burst Problem</h3>
+    <p>Fixed Window allows <strong>2× the rate limit</strong> in a 2-second window straddling two windows:</p>
+    <div class="burst-timeline">
+      <div class="burst-seg normal">00:00–00:58<br>0 reqs</div>
+      <div class="burst-seg danger">00:59<br>100 reqs ✓</div>
+      <div class="burst-seg highlight">WINDOW RESETS</div>
+      <div class="burst-seg danger">01:01<br>100 reqs ✓</div>
+      <div class="burst-seg normal">01:02–02:00<br>0 reqs</div>
+    </div>
+    <p style="margin:12px 0 0; font-size:13.5px;">Result: 200 requests in ~2 seconds — double the allowed rate. Sliding Window Counter fixes this by weighting the previous window.</p>
+  </div>
+</section>
+
+<!-- 5. Trade-offs -->
+<section>
+  <h2>5. Trade-offs</h2>
+  <table class="trade-table">
+    <thead>
+      <tr>
+        <th>Algorithm</th>
+        <th>Burst Handling</th>
+        <th>Memory</th>
+        <th>Accuracy</th>
+        <th>Distributed?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Fixed Window</td>
+        <td>Boundary burst (2×)</td>
+        <td>O(1)</td>
+        <td>Low at edges</td>
+        <td>Easy (Redis INCR)</td>
+      </tr>
+      <tr>
+        <td>Sliding Window Log</td>
+        <td>None (exact)</td>
+        <td>O(N) per user</td>
+        <td>Exact</td>
+        <td>Hard (sorted set)</td>
+      </tr>
+      <tr>
+        <td>Sliding Window Counter</td>
+        <td>Minimal</td>
+        <td>O(1)</td>
+        <td>~99%</td>
+        <td>Easy (2 counters)</td>
+      </tr>
+      <tr>
+        <td>Token Bucket</td>
+        <td>Yes (up to B)</td>
+        <td>O(1)</td>
+        <td>Good</td>
+        <td>Medium (CAS)</td>
+      </tr>
+      <tr>
+        <td>Leaky Bucket</td>
+        <td>None (queue)</td>
+        <td>O(queue size)</td>
+        <td>Exact rate</td>
+        <td>Hard (queue sync)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 6. Code -->
+<section>
+  <h2>6. Code</h2>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab(this,'tab-token')">Token Bucket</button>
+    <button class="tab-btn" onclick="switchTab(this,'tab-sliding')">Sliding Window Counter</button>
+    <button class="tab-btn" onclick="switchTab(this,'tab-fixed')">Fixed Window</button>
+    <button class="tab-btn" onclick="switchTab(this,'tab-redis')">Distributed Redis</button>
+  </div>
+
+  <div id="tab-token" class="tab-pane active">
+    <pre><span class="kw">public class</span> <span class="cn">TokenBucket</span> {
+    <span class="kw">private final long</span> capacity;
+    <span class="kw">private final long</span> refillRatePerSec;
+    <span class="kw">private</span> <span class="cn">AtomicLong</span> tokens;
+    <span class="kw">private volatile long</span> lastRefillTime;
+
+    <span class="kw">public</span> <span class="cn">TokenBucket</span>(<span class="kw">long</span> capacity, <span class="kw">long</span> refillRatePerSec) {
+        <span class="kw">this</span>.capacity = capacity;
+        <span class="kw">this</span>.refillRatePerSec = refillRatePerSec;
+        <span class="kw">this</span>.tokens = <span class="kw">new</span> <span class="cn">AtomicLong</span>(capacity);
+        <span class="kw">this</span>.lastRefillTime = <span class="cn">System</span>.<span class="fn">nanoTime</span>();
+    }
+
+    <span class="kw">public synchronized boolean</span> <span class="fn">tryConsume</span>() {
+        <span class="fn">refill</span>();
+        <span class="kw">if</span> (tokens.<span class="fn">get</span>() &gt; <span class="nm">0</span>) {
+            tokens.<span class="fn">decrementAndGet</span>();
+            <span class="kw">return true</span>;
+        }
+        <span class="kw">return false</span>; <span class="cm">// 429 Too Many Requests</span>
+    }
+
+    <span class="kw">private void</span> <span class="fn">refill</span>() {
+        <span class="kw">long</span> now = <span class="cn">System</span>.<span class="fn">nanoTime</span>();
+        <span class="kw">long</span> elapsed = now - lastRefillTime;
+        <span class="kw">long</span> tokensToAdd = elapsed * refillRatePerSec / <span class="nm">1_000_000_000L</span>;
+        <span class="kw">if</span> (tokensToAdd &gt; <span class="nm">0</span>) {
+            tokens.<span class="fn">set</span>(<span class="cn">Math</span>.<span class="fn">min</span>(capacity, tokens.<span class="fn">get</span>() + tokensToAdd));
+            lastRefillTime = now;
+        }
+    }
+}</pre>
+  </div>
+
+  <div id="tab-sliding" class="tab-pane">
+    <pre><span class="cm">// Sliding Window Counter: uses two fixed windows + overlap ratio</span>
+<span class="cm">// Redis implementation: INCR key:window + EXPIRE</span>
+
+<span class="kw">public class</span> <span class="cn">SlidingWindowCounter</span> {
+    <span class="kw">private final int</span> limit;
+    <span class="kw">private final long</span> windowMs;
+
+    <span class="kw">public boolean</span> <span class="fn">isAllowed</span>(<span class="cn">String</span> userId) {
+        <span class="kw">long</span> now = <span class="cn">System</span>.<span class="fn">currentTimeMillis</span>();
+        <span class="kw">long</span> currWindow = now / windowMs;
+        <span class="kw">long</span> prevWindow = currWindow - <span class="nm">1</span>;
+        <span class="kw">double</span> overlap = <span class="nm">1.0</span> - ((now % windowMs) / (<span class="kw">double</span>) windowMs);
+
+        <span class="cm">// From Redis (pseudocode shown as Java):</span>
+        <span class="kw">long</span> prevCount = <span class="fn">getCount</span>(userId, prevWindow);
+        <span class="kw">long</span> currCount = <span class="fn">getCount</span>(userId, currWindow);
+
+        <span class="kw">double</span> estimated = prevCount * overlap + currCount;
+        <span class="kw">if</span> (estimated &lt; limit) {
+            <span class="fn">increment</span>(userId, currWindow);
+            <span class="kw">return true</span>;
+        }
+        <span class="kw">return false</span>;
+    }
+
+    <span class="cm">// Redis equivalent:</span>
+    <span class="cm">// INCR user:{id}:window:{n}</span>
+    <span class="cm">// EXPIRE user:{id}:window:{n} {windowSeconds * 2}</span>
+}</pre>
+  </div>
+
+  <div id="tab-fixed" class="tab-pane">
+    <pre><span class="kw">public class</span> <span class="cn">FixedWindowRateLimiter</span> {
+    <span class="kw">private final int</span> limit;
+    <span class="kw">private final long</span> windowMs;
+    <span class="cm">// userId → [windowStart, count]</span>
+    <span class="kw">private final</span> <span class="cn">ConcurrentHashMap</span>&lt;<span class="cn">String</span>, <span class="kw">long</span>[]&gt; counters =
+        <span class="kw">new</span> <span class="cn">ConcurrentHashMap</span>&lt;&gt;();
+
+    <span class="kw">public synchronized boolean</span> <span class="fn">isAllowed</span>(<span class="cn">String</span> userId) {
+        <span class="kw">long</span> now = <span class="cn">System</span>.<span class="fn">currentTimeMillis</span>();
+        <span class="kw">long</span> windowStart = (now / windowMs) * windowMs;
+
+        <span class="kw">long</span>[] data = counters.<span class="fn">getOrDefault</span>(userId, <span class="kw">new long</span>[]{windowStart, <span class="nm">0</span>});
+
+        <span class="kw">if</span> (data[<span class="nm">0</span>] != windowStart) {   <span class="cm">// new window — reset</span>
+            data[<span class="nm">0</span>] = windowStart;
+            data[<span class="nm">1</span>] = <span class="nm">0</span>;
+        }
+
+        <span class="kw">if</span> (data[<span class="nm">1</span>] &lt; limit) {
+            data[<span class="nm">1</span>]++;
+            counters.<span class="fn">put</span>(userId, data);
+            <span class="kw">return true</span>;
+        }
+        <span class="kw">return false</span>;
+    }
+}</pre>
+  </div>
+
+  <div id="tab-redis" class="tab-pane">
+    <pre><span class="cm">-- Redis Lua script: atomic check-and-increment</span>
+<span class="cm">-- Called as: EVAL script 1 {key} {limit} {windowSeconds}</span>
+<span class="kw">local</span> key    = KEYS[<span class="nm">1</span>]
+<span class="kw">local</span> limit  = tonumber(ARGV[<span class="nm">1</span>])
+<span class="kw">local</span> window = tonumber(ARGV[<span class="nm">2</span>])
+
+<span class="kw">local</span> current = tonumber(redis.call(<span class="st">'GET'</span>, key) or <span class="nm">0</span>)
+
+<span class="kw">if</span> current &lt; limit <span class="kw">then</span>
+    redis.call(<span class="st">'INCR'</span>, key)
+    redis.call(<span class="st">'EXPIRE'</span>, key, window)
+    <span class="kw">return</span> <span class="nm">1</span>   <span class="cm">-- allowed</span>
+<span class="kw">else</span>
+    <span class="kw">return</span> <span class="nm">0</span>   <span class="cm">-- rejected (429)</span>
+<span class="kw">end</span>
+
+<span class="cm">-- Lua runs atomically on Redis — no race conditions</span>
+<span class="cm">-- Java call via Jedis:</span>
+<span class="cm">-- jedis.eval(luaScript, List.of(key), List.of(limit, window))</span></pre>
+  </div>
+</section>
+
+<!-- 7. Real-World -->
+<section>
+  <h2>7. Real-World Usage</h2>
+  <div class="real-world">
+    <div class="rw-card">
+      <div class="rw-name">Nginx</div>
+      <div class="rw-desc"><code>limit_req</code> uses leaky bucket. Requests queue up; excess returns 503. Used for API gateways and CDN edge nodes.</div>
+    </div>
+    <div class="rw-card">
+      <div class="rw-name">Stripe API</div>
+      <div class="rw-desc">Token bucket per API key. Returns <code>Retry-After</code> header. Stripe also has request-level metering by endpoint type.</div>
+    </div>
+    <div class="rw-card">
+      <div class="rw-name">GitHub API</div>
+      <div class="rw-desc">Fixed window (60 req/hr unauthenticated, 5000/hr authenticated). Headers: <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code>, <code>X-RateLimit-Reset</code>.</div>
+    </div>
+    <div class="rw-card">
+      <div class="rw-name">AWS API Gateway</div>
+      <div class="rw-desc">Token bucket — steady-state rate + burst limit. Configurable per stage and per route.</div>
+    </div>
+    <div class="rw-card">
+      <div class="rw-name">Redis Rate Limiter</div>
+      <div class="rw-desc">Redis Sorted Set (ZADD + ZREMRANGEBYSCORE) for sliding window log. Used by Kong, Envoy, custom API proxies.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Interview Tips -->
+<section>
+  <h2>8. Interview Tips</h2>
+  <div class="tip">
+    <div class="tip-icon">🎯</div>
+    <div class="tip-text"><strong>Default answer: Token Bucket</strong> — it's burst-friendly, O(1) memory, and used in production by most major APIs. Justify your choice with "allows short bursts while maintaining average rate."</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">⚠️</div>
+    <div class="tip-text"><strong>Mention the boundary burst problem</strong> — it immediately shows depth. Then pivot to sliding window counter as the fix that keeps O(1) memory.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">🌐</div>
+    <div class="tip-text"><strong>Distributed rate limiting requires centralized state</strong> — Redis with a Lua script or INCR+EXPIRE. Otherwise each server node counts independently and the limit is multiplied by N servers.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">📡</div>
+    <div class="tip-text"><strong>Return 429 Too Many Requests</strong> with a <code>Retry-After</code> header. Mention graceful degradation — queue the request vs. reject immediately vs. serve degraded response.</div>
+  </div>
+  <div class="tip">
+    <div class="tip-icon">📐</div>
+    <div class="tip-text"><strong>Token Bucket vs. Leaky Bucket:</strong> Token Bucket allows bursts (variable output), Leaky Bucket smooths output (constant rate). If asked "which for an API?", say Token Bucket — users appreciate burst capacity.</div>
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="concepts-index.html">All Concepts</a></span>
+  <span>SDE Interview Prep</span>
+</footer>
+
+</div>
+<script>
+function switchTab(btn, id) {
+  btn.closest('section').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.closest('section').querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>

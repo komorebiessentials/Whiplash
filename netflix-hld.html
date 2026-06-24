@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Netflix — HLD Interview Prep</title>
+<style>
+:root{
+  --ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;
+  --clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;
+  --g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 100px}
+.top-bar{display:flex;align-items:center;gap:16px;padding:24px 0 0}
+.back{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--g500);text-decoration:none}
+.back:hover{color:var(--clay)}
+header{padding:48px 0 40px;border-bottom:1.5px solid var(--g300);margin-bottom:48px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:20px;height:1.5px;background:var(--clay)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,52px);line-height:1.08;letter-spacing:-.022em}
+h1 em{font-style:italic;color:var(--clay)}
+.sub{font-size:16px;color:var(--g700);margin-top:14px;max-width:540px;line-height:1.65}
+.difficulty{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:4px;background:var(--g200);color:var(--g700)}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:48px}
+.toc a{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;padding:4px 12px;border-radius:20px;background:var(--paper);border:1.5px solid var(--g300);color:var(--g700);text-decoration:none;transition:border-color .15s,color .15s}
+.toc a:hover{border-color:var(--clay);color:var(--clay)}
+section{margin-bottom:56px;scroll-margin-top:24px}
+.section-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--clay);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-label::before{content:"";width:16px;height:1.5px;background:var(--clay)}
+h2{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:-.015em;margin-bottom:8px}
+.hint{font-size:13px;color:var(--g500);font-family:var(--mono);margin-bottom:20px}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.req-grid{grid-template-columns:1fr}}
+.req-item{padding:14px 18px;border-radius:10px;border-left:3px solid;font-size:14px;line-height:1.5}
+.req-item.func{background:rgba(120,140,93,.08);border-color:var(--olive)}
+.req-item.nfunc{background:rgba(217,119,87,.08);border-color:var(--clay)}
+.req-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.req-item.func .req-label{color:var(--olive)}
+.req-item.nfunc .req-label{color:var(--clay)}
+.est-table{width:100%;border-collapse:collapse;font-size:14px}
+.est-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300)}
+.est-table td{padding:10px 12px;border-bottom:1px solid var(--g200)}
+.est-table tr:last-child td{border-bottom:none}
+.est-table td:first-child{font-weight:500}
+.est-table td code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.highlight-row td{background:rgba(217,119,87,.06)}
+/* Interactive Architecture */
+.arch-wrap{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:720px){.arch-wrap{grid-template-columns:1fr}}
+.arch-box{background:var(--paper);border:1.5px solid var(--g300);border-radius:16px;padding:20px;overflow:auto}
+.arch-box svg{width:100%;height:auto;display:block}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .15s,stroke .15s}
+.arch-node:hover rect{stroke-width:2.5!important}
+.arch-node.sel rect{stroke-width:3!important;stroke:var(--clay)!important}
+.arch-panel{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:20px;min-height:160px;transition:border-color .2s}
+.arch-panel.lit{border-color:var(--clay)}
+.ap-title{font-family:var(--serif);font-size:17px;font-weight:500;margin-bottom:8px}
+.ap-body{font-size:13px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.ap-stat{font-family:var(--mono);font-size:10px;background:var(--g100);padding:3px 9px;border-radius:4px;display:inline-block;margin:2px 2px 2px 0;color:var(--g700)}
+.ap-warn{font-size:12px;background:rgba(217,119,87,.08);border-left:3px solid var(--clay);padding:8px 12px;border-radius:0 6px 6px 0;margin-top:10px;color:var(--g700);line-height:1.5}
+.ap-empty{color:var(--g500);font-size:13px;display:flex;height:120px;align-items:center;justify-content:center;text-align:center;line-height:1.6}
+/* Flow Stepper */
+.flow-diagram{display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:14px 18px;background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;margin-bottom:16px;overflow-x:auto}
+.fn{padding:6px 12px;border-radius:6px;border:1.5px solid var(--g300);font-size:12px;font-weight:500;background:var(--g100);white-space:nowrap;transition:all .2s;color:var(--g700)}
+.fn.act{background:var(--clay);border-color:var(--clay);color:white;transform:scale(1.06)}
+.fn.done{background:var(--g500);border-color:var(--g500);color:white;opacity:.6}
+.farr{color:var(--g300);padding:0 5px;font-size:13px;flex-shrink:0}
+.flow-card{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;padding:20px 24px;margin-bottom:14px;min-height:110px}
+.fc-title{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:8px}
+.fc-desc{font-size:13.5px;color:var(--g700);line-height:1.6;margin-bottom:12px}
+.fc-code{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#cdd6f4;padding:12px 16px;border-radius:8px;line-height:1.65;white-space:pre;overflow-x:auto}
+.flow-nav{display:flex;align-items:center;gap:10px}
+.fnav-btn{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:7px 16px;border-radius:6px;border:1.5px solid var(--g300);background:var(--paper);color:var(--g700);cursor:pointer;transition:all .15s}
+.fnav-btn:hover:not(:disabled){border-color:var(--clay);color:var(--clay)}
+.fnav-btn:disabled{opacity:.35;cursor:default}
+.fnav-counter{font-family:var(--mono);font-size:11px;color:var(--g500);flex:1;text-align:center}
+.flow-dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+.fdot{width:7px;height:7px;border-radius:50%;background:var(--g200);cursor:pointer;transition:background .2s}
+.fdot.act{background:var(--clay)}
+.fdot.done{background:var(--g500);opacity:.5}
+/* API */
+.api-block{background:var(--paper);border:1.5px solid var(--g300);border-radius:12px;overflow:hidden;margin-top:12px}
+.api-row{display:grid;grid-template-columns:80px 1fr;border-bottom:1px solid var(--g200)}
+.api-row:last-child{border-bottom:none}
+.api-method{padding:12px 14px;font-family:var(--mono);font-size:11px;font-weight:700;display:flex;align-items:center}
+.api-method.get{color:#788C5D;background:#F0F4EA}
+.api-method.post{color:#4A6FA5;background:#EEF2F8}
+.api-method.patch{color:#9C6B0E;background:#FDF4E3}
+.api-path{padding:12px 14px;font-family:var(--mono);font-size:12px;color:var(--slate);display:flex;flex-direction:column;gap:4px}
+.api-desc{font-family:var(--sans);font-size:12px;color:var(--g500)}
+/* DB */
+.schema-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+.schema-table th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--g500);padding:8px 12px;border-bottom:1.5px solid var(--g300);background:var(--g100)}
+.schema-table td{padding:8px 12px;border-bottom:1px solid var(--g200);font-family:var(--mono);font-size:12px}
+.schema-table td:first-child{color:var(--slate);font-weight:600}
+.schema-table td:nth-child(2){color:var(--clay)}
+.pk{font-size:9px;background:var(--clay);color:white;padding:1px 5px;border-radius:3px;margin-left:6px}
+.db-note{font-size:13px;color:var(--g700);padding:12px 16px;background:rgba(120,140,93,.07);border-left:3px solid var(--olive);border-radius:0 8px 8px 0;margin-top:8px}
+/* ABR Simulator */
+.abr-box{background:var(--paper);border:1.5px solid var(--g200);border-radius:14px;padding:24px;margin:28px 0}
+.abr-box h3{font-family:var(--serif);font-size:19px;font-weight:500;margin-bottom:6px}
+.abr-sub{font-size:13px;color:var(--g500);margin-bottom:20px}
+.abr-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.abr-label{font-size:13px;font-weight:500;min-width:90px}
+.bw-slider{width:200px;accent-color:var(--clay)}
+.bw-display{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--clay);min-width:60px}
+.abr-buffer{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.abr-chunk{width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:700;color:white;cursor:default;transition:all .3s}
+.abr-legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.abr-leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--g700)}
+.abr-leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.abr-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.abr-stat{background:var(--g100);border-radius:10px;padding:10px 14px}
+.abr-stat-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:3px}
+.abr-stat-val{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--slate)}
+.abr-log{font-family:var(--mono);font-size:11px;color:var(--g500);background:var(--g100);border-radius:8px;padding:10px 14px;max-height:80px;overflow-y:auto;line-height:1.7}
+/* Tabs */
+.tabs{margin-bottom:4px;display:flex;gap:4px;flex-wrap:wrap}
+.tab-btn{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:5px 12px;border-radius:6px 6px 0 0;border:1.5px solid var(--g300);border-bottom:none;background:var(--g100);color:var(--g500);cursor:pointer}
+.tab-btn.active{background:var(--slate);color:var(--oat);border-color:var(--slate)}
+.tab-pane{display:none;background:var(--slate);border-radius:0 8px 8px 8px;padding:20px;overflow-x:auto}
+.tab-pane.active{display:block}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.65;color:#cdd6f4}
+.kw{color:#89b4fa}.cn{color:#a6e3a1}.cm{color:#6c7086;font-style:italic}
+.st{color:#fab387}.nm{color:#cba6f7}.fnc{color:#89dceb}
+/* Self Check */
+.sc-list{display:flex;flex-direction:column;gap:8px}
+.sc-item{background:var(--paper);border:1.5px solid var(--g200);border-radius:12px;overflow:hidden}
+.sc-q{padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:500;color:var(--slate);user-select:none}
+.sc-q:hover{background:var(--g100)}
+.sc-plus{font-size:18px;color:var(--clay);flex-shrink:0;transition:transform .2s;font-family:var(--mono)}
+.sc-item.open .sc-plus{transform:rotate(45deg)}
+.sc-a{display:none;padding:2px 20px 16px;font-size:13.5px;color:var(--g700);line-height:1.65;border-top:1px solid var(--g200)}
+.sc-item.open .sc-a{display:block}
+.sc-a p{margin-top:10px}
+.sc-a code{font-family:var(--mono);font-size:12px;background:var(--g100);padding:1px 6px;border-radius:3px}
+.sc-tag{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:rgba(217,119,87,.1);color:var(--clay);margin-left:8px;vertical-align:middle}
+footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--g500)}
+footer a{color:var(--g500);text-decoration:none}
+footer a:hover{color:var(--clay)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top-bar">
+  <a class="back" href="index.html">← Home</a>
+  <span style="color:var(--g300)">|</span>
+  <a class="back" href="hld-index.html">HLD Problems</a>
+</div>
+<header>
+  <div class="eyebrow">High Level Design</div>
+  <h1>Design a <em>Video Streaming</em> Service</h1>
+  <p class="sub">Netflix at scale — adaptive bitrate streaming, transcoding pipelines, and global CDN delivery for 200M subscribers.</p>
+  <span class="difficulty">Difficulty: Senior · CDN &amp; ABR Problem</span>
+</header>
+<nav class="toc">
+  <a href="#overview">Requirements</a>
+  <a href="#estimation">Estimation</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#flow">Play Request</a>
+  <a href="#api">API Design</a>
+  <a href="#database">Database</a>
+  <a href="#deep-dive">ABR Deep Dive</a>
+  <a href="#self-check">Self Check</a>
+</nav>
+
+<!-- 1. Requirements -->
+<section id="overview">
+  <div class="section-label">01</div>
+  <h2>What We're Building</h2>
+  <div class="req-grid">
+    <div class="req-item func"><div class="req-label">Functional</div>Upload and transcode video content to multiple resolutions/codecs</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Browse catalog by genre; search titles</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Stream video with adaptive bitrate (ABR) — HLS/DASH</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Personalized recommendations (pre-computed)</div>
+    <div class="req-item func"><div class="req-label">Functional</div>Continue watching across devices (watch progress sync)</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>200M subscribers globally; 1B+ hours watched per day</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Stream start latency &lt; 2 seconds</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>99.99% availability (4 nines); global CDN delivery</div>
+    <div class="req-item nfunc"><div class="req-label">Non-Functional</div>Adaptive quality based on bandwidth; DRM protection</div>
+  </div>
+</section>
+
+<!-- 2. Estimation -->
+<section id="estimation">
+  <div class="section-label">02</div>
+  <h2>Scale Estimation</h2>
+  <table class="est-table">
+    <thead><tr><th>Metric</th><th>Calculation</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr class="highlight-row"><td>Concurrent Streams (peak)</td><td>1B hours / 86,400s × peak factor 2</td><td><code>~23M concurrent</code></td></tr>
+      <tr class="highlight-row"><td>Bandwidth</td><td>23M × 8 Mbps avg</td><td><code>~184 Tbps total</code></td></tr>
+      <tr><td>Storage per Title</td><td>5 resolutions × 2 codecs × 2hr avg</td><td><code>~50 GB/title</code></td></tr>
+      <tr><td>Total Catalog Storage</td><td>10K titles × 50 GB × 3 replicas</td><td><code>~1.5 PB</code></td></tr>
+      <tr><td>Watch Progress Writes</td><td>200M users × 1 update/10s while watching</td><td><code>~20M writes/sec</code></td></tr>
+      <tr><td>Catalog Reads</td><td>200M users × 20 catalog requests/day / 86,400</td><td><code>~46K reads/sec</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 3. Architecture — INTERACTIVE -->
+<section id="architecture">
+  <div class="section-label">03</div>
+  <h2>High-Level Architecture</h2>
+  <p class="hint">Click any component to learn why it's here and what happens if it fails.</p>
+  <div class="arch-wrap">
+    <div class="arch-box">
+      <svg viewBox="0 0 900 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g class="arch-node" data-id="client" onclick="showNode('client')">
+          <rect x="10" y="170" width="100" height="80" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="60" y="208" text-anchor="middle" font-family="system-ui" font-size="11" fill="#141413" font-weight="600">Client</text>
+          <text x="60" y="222" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Web / Mobile / TV</text>
+        </g>
+        <line x1="110" y1="210" x2="150" y2="210" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <g class="arch-node" data-id="cdn" onclick="showNode('cdn')">
+          <rect x="150" y="150" width="120" height="120" rx="8" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="210" y="205" text-anchor="middle" font-family="system-ui" font-size="11" fill="#D97757" font-weight="600">CDN</text>
+          <text x="210" y="220" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Open Connect</text>
+          <text x="210" y="234" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Video chunks</text>
+          <text x="210" y="248" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Edge cache</text>
+        </g>
+        <line x1="270" y1="210" x2="310" y2="210" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <g class="arch-node" data-id="lb" onclick="showNode('lb')">
+          <rect x="310" y="185" width="80" height="50" rx="6" fill="#E6E3DA" stroke="#87867F" stroke-width="1.5"/>
+          <text x="350" y="215" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Load</text>
+          <text x="350" y="228" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Balancer</text>
+        </g>
+        <line x1="390" y1="210" x2="430" y2="210" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <g class="arch-node" data-id="api-gw" onclick="showNode('api-gw')">
+          <rect x="430" y="185" width="100" height="50" rx="6" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+          <text x="480" y="212" text-anchor="middle" font-family="system-ui" font-size="11" fill="#3D3D3A" font-weight="600">API</text>
+          <text x="480" y="226" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A">Gateway</text>
+        </g>
+        <!-- Top services -->
+        <line x1="480" y1="185" x2="480" y2="110" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="570" y1="110" x2="760" y2="110" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="570" y1="110" x2="570" y2="130" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="665" y1="110" x2="665" y2="130" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="760" y1="110" x2="760" y2="130" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <g class="arch-node" data-id="content-svc" onclick="showNode('content-svc')">
+          <rect x="520" y="130" width="100" height="48" rx="6" fill="#EEF2F8" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="570" y="152" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A6FA5" font-weight="600">Content</text>
+          <text x="570" y="167" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A6FA5">Service</text>
+        </g>
+        <g class="arch-node" data-id="search-svc" onclick="showNode('search-svc')">
+          <rect x="615" y="130" width="100" height="48" rx="6" fill="#EFF5EA" stroke="#788C5D" stroke-width="1.5"/>
+          <text x="665" y="152" text-anchor="middle" font-family="system-ui" font-size="10" fill="#788C5D" font-weight="600">Search</text>
+          <text x="665" y="167" text-anchor="middle" font-family="system-ui" font-size="10" fill="#788C5D">Service</text>
+        </g>
+        <g class="arch-node" data-id="reco-svc" onclick="showNode('reco-svc')">
+          <rect x="710" y="130" width="100" height="48" rx="6" fill="#FDF0EB" stroke="#D97757" stroke-width="1.5"/>
+          <text x="760" y="152" text-anchor="middle" font-family="system-ui" font-size="10" fill="#D97757" font-weight="600">Recommend</text>
+          <text x="760" y="167" text-anchor="middle" font-family="system-ui" font-size="10" fill="#D97757">Service</text>
+        </g>
+        <!-- Bottom layer -->
+        <line x1="480" y1="235" x2="480" y2="300" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="480" y1="300" x2="820" y2="300" stroke="#D1CFC5" stroke-width="1.5"/>
+        <line x1="560" y1="300" x2="560" y2="280" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arru)"/>
+        <line x1="660" y1="300" x2="660" y2="280" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arru)"/>
+        <line x1="760" y1="300" x2="760" y2="280" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arru)"/>
+        <line x1="820" y1="300" x2="820" y2="280" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arru)"/>
+        <g class="arch-node" data-id="s3" onclick="showNode('s3')">
+          <rect x="510" y="232" width="100" height="48" rx="6" fill="#E6E3DA" stroke="#87867F" stroke-width="1.5"/>
+          <text x="560" y="254" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Object</text>
+          <text x="560" y="269" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A">Store (S3)</text>
+        </g>
+        <g class="arch-node" data-id="transcode" onclick="showNode('transcode')">
+          <rect x="610" y="232" width="100" height="48" rx="6" fill="#E6E3DA" stroke="#87867F" stroke-width="1.5"/>
+          <text x="660" y="254" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A" font-weight="600">Transcode</text>
+          <text x="660" y="269" text-anchor="middle" font-family="system-ui" font-size="10" fill="#3D3D3A">Workers</text>
+        </g>
+        <g class="arch-node" data-id="cassandra" onclick="showNode('cassandra')">
+          <rect x="710" y="232" width="100" height="48" rx="6" fill="#E6E3DA" stroke="#4A6FA5" stroke-width="1.5"/>
+          <text x="760" y="254" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A6FA5" font-weight="600">Cassandra</text>
+          <text x="760" y="269" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A6FA5">Metadata</text>
+        </g>
+        <g class="arch-node" data-id="redis" onclick="showNode('redis')">
+          <rect x="790" y="232" width="100" height="48" rx="6" fill="#F0EEE6" stroke="#D97757" stroke-width="1.5"/>
+          <text x="840" y="254" text-anchor="middle" font-family="system-ui" font-size="10" fill="#D97757" font-weight="600">Redis</text>
+          <text x="840" y="269" text-anchor="middle" font-family="system-ui" font-size="10" fill="#D97757">Cache</text>
+        </g>
+        <g class="arch-node" data-id="kafka" onclick="showNode('kafka')">
+          <rect x="560" y="340" width="320" height="44" rx="6" fill="#141413" stroke="#141413" stroke-width="1.5"/>
+          <text x="720" y="362" text-anchor="middle" font-family="system-ui" font-size="11" fill="#D97757" font-weight="700">Kafka Event Bus</text>
+          <text x="720" y="376" text-anchor="middle" font-family="system-ui" font-size="9" fill="#87867F">Async transcoding triggers · analytics · notifications</text>
+        </g>
+        <line x1="660" y1="280" x2="660" y2="340" stroke="#D1CFC5" stroke-width="1.5" marker-end="url(#arr)"/>
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#D1CFC5"/></marker>
+          <marker id="arru" markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto"><polygon points="8 0, 0 3, 8 6" fill="#D1CFC5"/></marker>
+        </defs>
+      </svg>
+    </div>
+    <div class="arch-panel" id="arch-panel">
+      <div class="ap-empty">Click any component<br>to learn why it's there</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Play Request Flow Stepper -->
+<section id="flow">
+  <div class="section-label">04</div>
+  <h2>Walk Through: Press Play</h2>
+  <p class="hint">Step through what happens from "play" button click to first video frame.</p>
+  <div class="flow-diagram">
+    <div class="fn act" id="fn-client">Client</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-cdn">CDN</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-api">API GW</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-content">Content Svc</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-cdn2">CDN Chunks</div>
+    <div class="farr">→</div>
+    <div class="fn" id="fn-client2">Client</div>
+  </div>
+  <div class="flow-card" id="flow-card"></div>
+  <div class="flow-nav">
+    <button class="fnav-btn" id="btn-prev" onclick="prevStep()" disabled>← Prev</button>
+    <span class="fnav-counter" id="fnav-counter">Step 1 of 6</span>
+    <button class="fnav-btn" id="btn-next" onclick="nextStep()">Next →</button>
+  </div>
+  <div class="flow-dots" id="flow-dots"></div>
+</section>
+
+<!-- 5. API -->
+<section id="api">
+  <div class="section-label">05</div>
+  <h2>API Design</h2>
+  <div class="api-block">
+    <div class="api-row">
+      <div class="api-method get">GET</div>
+      <div class="api-path">/api/v1/catalog?genre=drama&amp;page=1&amp;limit=20<span class="api-desc">Browse titles — paginated list with thumbnails, ratings, genre</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method get">GET</div>
+      <div class="api-path">/api/v1/titles/{id}/stream<span class="api-desc">Returns HLS/DASH manifest URL; client fetches chunks directly from CDN</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method get">GET</div>
+      <div class="api-path">/api/v1/search?q=stranger+things<span class="api-desc">Full-text search via Elasticsearch — returns ranked results</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method get">GET</div>
+      <div class="api-path">/api/v1/recommendations?userId={id}<span class="api-desc">Pre-computed personalized top-N, served from Redis cache</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method patch">PATCH</div>
+      <div class="api-path">/api/v1/users/{id}/watch-progress<span class="api-desc">Body: {titleId, progressSeconds} — written every 10s while watching</span></div>
+    </div>
+    <div class="api-row">
+      <div class="api-method post">POST</div>
+      <div class="api-path">/api/v1/titles (internal admin)<span class="api-desc">Upload new title: triggers S3 upload + Kafka event → transcoding pipeline</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Database -->
+<section id="database">
+  <div class="section-label">06</div>
+  <h2>Database Design</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:12px;"><strong>titles</strong> — Cassandra + Elasticsearch</p>
+  <table class="schema-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>title_id<span class="pk">PK</span></td><td>UUID</td><td>Primary key</td></tr>
+      <tr><td>name</td><td>TEXT</td><td>Indexed in Elasticsearch for search</td></tr>
+      <tr><td>genre</td><td>LIST&lt;TEXT&gt;</td><td>Multi-value filter</td></tr>
+      <tr><td>cast</td><td>LIST&lt;TEXT&gt;</td><td>Actor names</td></tr>
+      <tr><td>duration_sec</td><td>INT</td><td>Total runtime</td></tr>
+      <tr><td>manifest_url</td><td>TEXT</td><td>S3/CDN URL for HLS master manifest</td></tr>
+      <tr><td>avg_rating</td><td>FLOAT</td><td>Denormalized from ratings aggregation job</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:14px;color:var(--g700);margin:20px 0 12px;"><strong>watch_progress</strong> — Cassandra (high-write)</p>
+  <table class="schema-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>user_id<span class="pk">PK</span></td><td>BIGINT</td><td>Partition key</td></tr>
+      <tr><td>title_id</td><td>UUID</td><td>Clustering key</td></tr>
+      <tr><td>progress_sec</td><td>INT</td><td>Current playback position</td></tr>
+      <tr><td>updated_at</td><td>TIMESTAMP</td><td>Last written timestamp</td></tr>
+    </tbody>
+  </table>
+  <div class="db-note"><strong>Caching:</strong> Title metadata cached in Redis (TTL 1h) — catalog changes rarely. Watch progress cached in Redis per user session for sub-10ms reads; asynchronously flushed to Cassandra. Recommendations served from Redis (pre-computed by ML job, updated daily).</div>
+</section>
+
+<!-- 7. ABR Deep Dive -->
+<section id="deep-dive">
+  <div class="section-label">07</div>
+  <h2>Adaptive Bitrate Streaming Simulator</h2>
+  <p style="font-size:14px;color:var(--g700);margin-bottom:4px;">Netflix uses DASH/HLS. Video is split into 2-second segments at multiple bitrates. The client player continuously measures bandwidth and switches quality to prevent buffering. Simulate how the ABR algorithm works:</p>
+
+  <div class="abr-box">
+    <h3>ABR Client Simulator</h3>
+    <p class="abr-sub">Drag the bandwidth slider. Watch the player switch between quality levels in real-time.</p>
+    <div class="abr-controls">
+      <span class="abr-label">Bandwidth</span>
+      <input type="range" class="bw-slider" id="bw-slider" min="0.5" max="40" step="0.5" value="12" oninput="updateABR()">
+      <span class="bw-display" id="bw-display">12 Mbps</span>
+    </div>
+    <div class="abr-legend">
+      <div class="abr-leg-item"><div class="abr-leg-dot" style="background:#C0392B"></div>240p (0.3 Mbps)</div>
+      <div class="abr-leg-item"><div class="abr-leg-dot" style="background:#E67E22"></div>480p (1.5 Mbps)</div>
+      <div class="abr-leg-item"><div class="abr-leg-dot" style="background:#F1C40F"></div>720p (4 Mbps)</div>
+      <div class="abr-leg-item"><div class="abr-leg-dot" style="background:#27AE60"></div>1080p HD (8 Mbps)</div>
+      <div class="abr-leg-item"><div class="abr-leg-dot" style="background:#2980B9"></div>4K (25 Mbps)</div>
+    </div>
+    <p style="font-size:12px;color:var(--g500);margin-bottom:8px;font-family:var(--mono)">Buffer (30 chunks × 2s each = 60s)</p>
+    <div class="abr-buffer" id="abr-buffer"></div>
+    <div class="abr-stats" id="abr-stats"></div>
+    <p style="font-size:12px;color:var(--g500);font-family:var(--mono);margin-bottom:6px">Decision log</p>
+    <div class="abr-log" id="abr-log"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-group="nf" onclick="switchTab('nf','transcode')">Transcoding Pipeline</button>
+    <button class="tab-btn" data-group="nf" onclick="switchTab('nf','manifest')">HLS Manifest</button>
+    <button class="tab-btn" data-group="nf" onclick="switchTab('nf','cdn')">CDN Strategy</button>
+  </div>
+  <div class="tab-pane active" data-tab="nf-transcode">
+    <pre><span class="cm">// Netflix transcoding pipeline (simplified)</span>
+<span class="cm">// A single 2-hour title → ~1,200 output files</span>
+<span class="kw">class</span> <span class="cn">TranscodePipeline</span> {
+    <span class="kw">void</span> <span class="fnc">processTitle</span>(<span class="cn">String</span> titleId) {
+        <span class="cm">// 1. Download source from S3 (original upload)</span>
+        <span class="cn">File</span> source = s3.<span class="fnc">get</span>(<span class="st">"originals/"</span> + titleId);
+
+        <span class="cm">// 2. Split into 2-second segments (chunk)</span>
+        <span class="cn">List</span>&lt;<span class="cn">Segment</span>&gt; segs = <span class="fnc">split</span>(source, <span class="nm">2</span>); <span class="cm">// ~3600 segs for 2hr</span>
+
+        <span class="cm">// 3. Transcode each segment × 5 resolutions × 2 codecs in parallel</span>
+        <span class="kw">for</span> (<span class="cn">Segment</span> seg : segs) {
+            kafka.<span class="fnc">publish</span>(<span class="st">"transcode-jobs"</span>, <span class="kw">new</span> <span class="cn">Job</span>(seg, RESOLUTIONS, CODECS));
+        }
+        <span class="cm">// Workers: 3600 segs × 5 res × 2 codecs = 36,000 parallel jobs</span>
+    }
+}
+<span class="kw">enum</span> RESOLUTIONS { <span class="nm">240p</span>, <span class="nm">480p</span>, <span class="nm">720p</span>, <span class="nm">1080p</span>, <span class="nm">4K</span> }
+<span class="kw">enum</span> CODECS       { H264, H265 }  <span class="cm">// H265 = 40% smaller, older devices need H264</span></pre>
+  </div>
+  <div class="tab-pane" data-tab="nf-manifest">
+    <pre><span class="cm"># HLS Master Manifest (m3u8) — returned by /api/v1/titles/{id}/stream</span>
+<span class="cm"># Client downloads this first; then picks a variant based on bandwidth</span>
+#EXTM3U
+#EXT-X-VERSION:3
+
+<span class="cm"># 4K — 25 Mbps</span>
+#EXT-X-STREAM-INF:BANDWIDTH=25000000,RESOLUTION=3840x2160,CODECS="hvc1"
+https://cdn.netflix.com/titles/tt123/4K/playlist.m3u8
+
+<span class="cm"># 1080p — 8 Mbps</span>
+#EXT-X-STREAM-INF:BANDWIDTH=8000000,RESOLUTION=1920x1080,CODECS="avc1"
+https://cdn.netflix.com/titles/tt123/1080p/playlist.m3u8
+
+<span class="cm"># 720p — 4 Mbps</span>
+#EXT-X-STREAM-INF:BANDWIDTH=4000000,RESOLUTION=1280x720,CODECS="avc1"
+https://cdn.netflix.com/titles/tt123/720p/playlist.m3u8
+
+<span class="cm"># 480p — 1.5 Mbps (fallback)</span>
+#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=854x480,CODECS="avc1"
+https://cdn.netflix.com/titles/tt123/480p/playlist.m3u8</pre>
+  </div>
+  <div class="tab-pane" data-tab="nf-cdn">
+    <pre><span class="cm">// Netflix Open Connect CDN strategy</span>
+<span class="cm">// Netflix operates its own CDN embedded in ISP networks</span>
+
+<span class="cm">// ISP-embedded: servers physically inside ISP data centers</span>
+<span class="cm">// Pro: eliminates ISP peering costs; sub-5ms latency from edge</span>
+<span class="cm">// Compared to: Akamai, CloudFront (third-party CDNs)</span>
+
+<span class="cm">// Cache key = (title_id, quality_level, chunk_number)</span>
+<span class="cm">// Popular content pre-positioned to edges nightly (off-peak)</span>
+
+<span class="kw">String</span> <span class="fnc">getChunk</span>(<span class="cn">Request</span> req) {
+    <span class="kw">String</span> cacheKey = req.titleId + <span class="st">":"</span> + req.quality + <span class="st">":"</span> + req.chunkNum;
+    <span class="kw">byte</span>[] chunk = edgeCache.<span class="fnc">get</span>(cacheKey);
+    <span class="kw">if</span> (chunk != <span class="kw">null</span>) <span class="kw">return</span> chunk; <span class="cm">// ~98% cache hit rate</span>
+
+    <span class="cm">// Cache miss: fetch from S3, cache for 7 days</span>
+    chunk = s3.<span class="fnc">get</span>(<span class="st">"segments/"</span> + cacheKey);
+    edgeCache.<span class="fnc">set</span>(cacheKey, chunk, Duration.<span class="fnc">ofDays</span>(<span class="nm">7</span>));
+    <span class="kw">return</span> chunk;
+}
+<span class="cm">// 184 Tbps × 98% CDN hit rate = 3.7 Tbps origin egress (manageable)</span></pre>
+  </div>
+</section>
+
+<!-- 8. Self Check -->
+<section id="self-check">
+  <div class="section-label">08</div>
+  <h2>Self Check</h2>
+  <p class="hint">Answer before revealing. These are real interview questions.</p>
+  <div class="sc-list">
+    <div class="sc-item" id="sc1">
+      <div class="sc-q" onclick="toggleSC('sc1')"><span>How does adaptive bitrate streaming (ABR) work? What protocol does Netflix use?<span class="sc-tag">Core Concept</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>ABR works by encoding the same video at multiple quality levels and splitting each into short segments (2-4 seconds). The client player continuously measures download throughput and switches the quality level it requests next. If bandwidth is high, it upgrades; if bandwidth drops, it downgrades (trading quality for no buffering).</p><p>Netflix uses DASH (Dynamic Adaptive Streaming over HTTP) and HLS (for Apple devices). The master manifest (m3u8/mpd file) lists all available quality variants with their bandwidths. Client picks a variant; variant playlist lists individual segment URLs. All served over plain HTTP from CDN.</p></div>
+    </div>
+    <div class="sc-item" id="sc2">
+      <div class="sc-q" onclick="toggleSC('sc2')"><span>How does Netflix transcode a new movie so fast? How many output files does one title produce?<span class="sc-tag">Transcoding</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Source video is uploaded to S3, which triggers a Kafka event → transcoding workers. The pipeline: (1) Split 2hr movie into 2-second segments (~3600 segments). (2) Each segment is transcoded independently and in parallel across many machines. (3) For 5 resolutions × 2 codecs = 10 variants per segment: 3600 × 10 = 36,000 output files. Plus audio tracks, subtitle tracks, thumbnails.</p><p>Netflix calls this "parallel encoding" — a single title generates ~1,200 files total. Netflix also uses per-shot quality optimization (Encode Optimization): dark scenes get more bits, action scenes get more bits, static scenes get fewer. This gives better quality at the same bandwidth than naive encoding.</p></div>
+    </div>
+    <div class="sc-item" id="sc3">
+      <div class="sc-q" onclick="toggleSC('sc3')"><span>What is Open Connect? Why does Netflix operate its own CDN?<span class="sc-tag">CDN</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Open Connect is Netflix's proprietary CDN — hardware servers (called OCAs, Open Connect Appliances) that Netflix physically places inside ISP data centers around the world, for free. ISPs install them because it dramatically reduces their peering costs (Netflix is ~15% of global downstream traffic).</p><p>Why not use Akamai/CloudFront? (1) Economics: at Netflix's scale, operating own CDN is cheaper. (2) Latency: OCA inside your ISP = sub-5ms to your router. (3) Cache hit rate: Netflix pre-positions popular content nightly at each OCA based on regional viewing patterns. ~98% cache hit rate means origin servers barely receive traffic.</p></div>
+    </div>
+    <div class="sc-item" id="sc4">
+      <div class="sc-q" onclick="toggleSC('sc4')"><span>How does Netflix handle 20M watch progress writes per second?<span class="sc-tag">High Write</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Every 10 seconds while watching, the client sends a progress update. 200M active sessions / 10s = 20M writes/sec — far too much for a single DB. Solution: (1) Client writes to a stateless API server. (2) API server writes to Redis (in-memory, ~0.1ms). (3) A background job (or Kafka consumer) asynchronously flushes Redis to Cassandra every 30s. (4) On app open, read progress from Cassandra (source of truth).</p><p>Cassandra handles this well: partition key = user_id, clustering by title_id. Write path is O(1). The Redis buffer absorbs the spike — Cassandra only sees ~30x fewer writes after batching.</p></div>
+    </div>
+    <div class="sc-item" id="sc5">
+      <div class="sc-q" onclick="toggleSC('sc5')"><span>How does Netflix's recommendation system work at a high level?<span class="sc-tag">ML System</span></span><span class="sc-plus">+</span></div>
+      <div class="sc-a"><p>Recommendations are NOT computed in real-time — they're pre-computed offline and served from cache. The pipeline: (1) Viewing history, ratings, and search events stream to Kafka. (2) Flink/Spark jobs aggregate and transform into user feature vectors. (3) Collaborative filtering + content-based models run nightly (or continuously) on the feature matrix. (4) Top-N recommendations per user written to Redis (user:{id}:recommendations). (5) GET /recommendations serves from Redis in sub-millisecond latency.</p><p>Key insight: personalized recommendations served this fast (sub-ms) is only possible because they're pre-computed. Real-time ML inference at this scale would be prohibitively expensive.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>← <a href="hld-index.html">All HLD Problems</a></span>
+  <span>SDE Interview Prep</span>
+</footer>
+</div>
+
+<script>
+/* Architecture nodes */
+const NODE_INFO = {
+  client:{title:"Client (Web/Mobile/TV)",body:"Runs the HLS/DASH player. Downloads the master manifest from API, then fetches 2-second video segments directly from CDN edge nodes (never through API server). Implements the ABR algorithm locally: measures download speed, picks quality level, prefetches next segments into a 30-60 second buffer.",stats:["Direct CDN for video","ABR player logic","Buffer: 30-60s ahead"],warn:null},
+  cdn:{title:"CDN — Open Connect",body:"Netflix's proprietary CDN. Physical appliances (OCAs) co-located inside ISP data centers worldwide. ~98% cache hit rate for popular content. Popular titles are pre-positioned nightly based on regional viewing patterns. Eliminating ISP peering is the key cost advantage over third-party CDNs like Akamai.",stats:["OCA inside ISPs","~98% cache hit rate","Sub-5ms edge latency","Pre-positioned content"],warn:"On cache miss: OCA fetches segment from S3 origin. With 2% miss rate on 184 Tbps total, origin egress is ~3.7 Tbps — manageable. Hot content stays warm; cold content ages out by LRU."},
+  lb:{title:"Load Balancer",body:"Distributes API traffic (browse, search, auth, manifest requests) across stateless API servers. NOT on the video streaming path — video chunks go CDN → client directly. Anycast routing directs users to nearest regional LB cluster.",stats:["API traffic only","Anycast routing","Not on video path"],warn:null},
+  'api-gw':{title:"API Gateway",body:"Single entry point for all client API calls. Handles authentication (JWT validation), rate limiting, request routing to microservices, and response caching. Returns manifest URL signed with CDN credentials (clients can only fetch their entitled content).",stats:["Auth + rate limiting","Routes to microservices","Signed manifest URLs"],warn:null},
+  'content-svc':{title:"Content Service",body:"Serves catalog metadata (title info, thumbnails, ratings, genres). Reads from Cassandra (source of truth) with Redis cache for hot titles. Also generates pre-signed CDN manifest URLs for entitled users. Cache TTL: 1 hour for metadata (changes rarely), shorter for user-specific data.",stats:["Catalog metadata","Signed manifest URLs","Redis L1 cache"],warn:null},
+  'search-svc':{title:"Search Service",body:"Full-text search backed by Elasticsearch. Title names, descriptions, cast, genre, and tags are indexed. Supports fuzzy matching ('Strnger Things' still finds results). Returns ranked results with score based on relevance + popularity. Search index updated async via Kafka when titles are added/updated.",stats:["Elasticsearch backend","Fuzzy matching","Popularity ranking"],warn:null},
+  'reco-svc':{title:"Recommendation Service",body:"Serves pre-computed personalized recommendations. Results computed offline by ML jobs (collaborative filtering on watch history, ratings, search). Top-N per user stored in Redis. Sub-millisecond serve — never computed in real-time. Updated daily or when user watches a new title.",stats:["Pre-computed offline","Redis sub-ms serve","Collaborative filtering","Updated daily"],warn:null},
+  s3:{title:"Object Store (S3)",body:"Stores all video segments (encoded at multiple quality levels) and original source uploads. Video segments are immutable — written once, read many. S3 is the origin for CDN cache misses. Pre-signed URLs for secure client access. With 10K titles × 50 GB = 500 TB + 3x replication = ~1.5 PB.",stats:["~1.5 PB total","Immutable segments","CDN origin","Pre-signed access"],warn:null},
+  transcode:{title:"Transcode Workers",body:"Massively parallel transcoding fleet. A Kafka event triggers the pipeline when new content is uploaded. Workers split the source into 2-second segments, then transcode each segment at all quality levels in parallel: 5 resolutions × 2 codecs (H.264/H.265) = 36,000 jobs for a 2hr movie. Netflix also runs per-shot quality optimization.",stats:["Parallel encoding","~36K jobs per title","5 res × 2 codecs","<24hr turnaround"],warn:null},
+  cassandra:{title:"Cassandra (Metadata + Progress)",body:"Two datasets: (1) Title metadata (catalog) — partition by title_id, read-heavy, cached in Redis. (2) Watch progress — partition by user_id, clustering by title_id. Handles 20M progress writes/sec via Redis buffer + async flush. Cassandra's write-optimized architecture (LSM tree) makes it ideal for high-write use cases.",stats:["Title metadata","Watch progress","20M writes/sec (buffered)","RF=3 per region"],warn:null},
+  redis:{title:"Redis Cache",body:"Three caching tiers: (1) Catalog metadata (TTL 1h) — avoids Cassandra reads for popular titles. (2) Watch progress buffer — absorbs 20M writes/sec, flushed to Cassandra every 30s. (3) Recommendations per user (TTL 24h) — pre-computed by ML job. Also used for session tokens and rate limiting.",stats:["Catalog: TTL 1h","Progress: buffer layer","Reco: TTL 24h","Sessions + rate limits"],warn:null},
+  kafka:{title:"Kafka Event Bus",body:"Decouples async workflows. Key event streams: (1) VideoUploaded → triggers transcoding pipeline. (2) WatchCompleted → triggers recommendations recomputation. (3) UserEngagement → feeds analytics and ML feature store. Also used for notification events (new episode available, friend watching).",stats:["Transcoding triggers","ML feature pipeline","Analytics events","Notification triggers"],warn:null}
+};
+function showNode(id) {
+  document.querySelectorAll('.arch-node').forEach(g=>g.classList.remove('sel'));
+  const el=document.querySelector(`.arch-node[data-id="${id}"]`);
+  if(el) el.classList.add('sel');
+  const info=NODE_INFO[id];
+  const panel=document.getElementById('arch-panel');
+  panel.classList.add('lit');
+  panel.innerHTML=`<div class="ap-title">${info.title}</div><div class="ap-body">${info.body}</div><div>${info.stats.map(s=>`<span class="ap-stat">${s}</span>`).join('')}</div>${info.warn?`<div class="ap-warn">${info.warn}</div>`:''}`;
+}
+
+/* Flow Stepper */
+const STEPS=[
+  {nodes:['fn-client'],title:"User presses Play",desc:"The user clicks Play on a title. The app first checks if the user is entitled to this title (subscription check). Then it requests the streaming manifest from the API — NOT the video itself.",code:"GET /api/v1/titles/tt0944947/stream\nAuthorization: Bearer <jwt-token>\n\n// API Gateway validates subscription, then returns:\n// - Manifest URL (HTTPS)\n// - CDN auth token (signed, 4hr TTL)\n// - Recommended starting quality based on device"},
+  {nodes:['fn-cdn','fn-api'],title:"CDN serves manifest (or API miss)",desc:"The master manifest file (.m3u8 or .mpd) is small (~2KB) and CDN-cached. If the CDN has it, the client gets it in <10ms from the nearest edge node. Cache miss falls through to Content Service. The manifest lists all quality variant URLs.",code:"// Master HLS manifest (M3U8)\n#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=8000000,RESOLUTION=1920x1080\nhttps://oca23.cdn.nflxvideo.net/tt0944947/1080p/playlist.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=4000000,RESOLUTION=1280x720\nhttps://oca23.cdn.nflxvideo.net/tt0944947/720p/playlist.m3u8"},
+  {nodes:['fn-api','fn-content'],title:"Content Service generates signed URL",desc:"Content Service validates entitlement against the user's subscription. Generates a CDN-signed manifest URL that expires in 4 hours (prevents link sharing). Returns the signed URL to client.",code:"// Content Service: generate signed manifest URL\nString baseUrl = 'https://cdn.nflxvideo.net/tt0944947/';\nString token = sign(titleId, userId, expiry=now()+4h, key=CDN_SECRET);\nreturn baseUrl + '?token=' + token;\n// CDN validates token on every segment request — no unauthorized access"},
+  {nodes:['fn-cdn2'],title:"Client fetches first video segment",desc:"Client picks a starting quality (based on recent bandwidth measurement). Requests the first 2-second segment from CDN. CDN edge node (OCA) serves from local cache — ~98% hit rate for popular content. First segment arrives in <500ms.",code:"// Client player fetches first segment\nGET https://oca23.cdn.nflxvideo.net/tt0944947/1080p/seg001.ts\n?token=<signed-token>\n\n// CDN Response: 200 OK\n// Content-Type: video/MP2T\n// Cache-Control: max-age=604800\n// X-Cache: HIT from oca23.lax5.nflxvideo.net"},
+  {nodes:['fn-cdn2','fn-client2'],title:"ABR: client measures bandwidth, adjusts quality",desc:"As chunks download, the player measures actual throughput vs. manifest-declared bandwidth. If observed bandwidth > quality threshold × 1.2 (safety margin): upgrade. If < threshold × 0.8: downgrade. This decision runs every 2 seconds.",code:"// ABR decision (runs per segment)\nlong segSizeBytes = lastSeg.sizeBytes;\nlong downloadMs = lastSeg.downloadMs;\ndouble throughputMbps = (segSizeBytes * 8.0) / (downloadMs / 1000.0) / 1e6;\n\nif (throughputMbps > currentLevel.bitrate * 1.2 && buffer > 15s)\n    upgradeQuality();\nelse if (throughputMbps < currentLevel.bitrate * 0.8)\n    downgradeQuality();"},
+  {nodes:['fn-client2'],title:"Continuous streaming: buffer ahead",desc:"The player maintains a 30-60 second buffer of pre-fetched segments. It requests segments in parallel (multiple quality levels if probing). Watch progress is reported to API every 10 seconds. If the user pauses for >10 min, the CDN auth token may expire — app silently refreshes it.",code:"// Watch progress — sent every 10 seconds\nPATCH /api/v1/users/{userId}/watch-progress\n{ titleId: 'tt0944947', progressSeconds: 1847 }\n\n// Received by API → Redis write (async flush to Cassandra)\n// Redis key: progress:{userId}:{titleId} = 1847\n// Background job: flush to Cassandra every 30s"}
+];
+const FN_IDS=['fn-client','fn-cdn','fn-api','fn-content','fn-cdn2','fn-client2'];
+let curStep=0;
+function renderStep(){
+  const s=STEPS[curStep];
+  const activeSet=new Set(s.nodes);
+  FN_IDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const idx=FN_IDS.indexOf(id);
+    const firstActive=FN_IDS.indexOf(s.nodes[0]);
+    el.className='fn'+(activeSet.has(id)?' act':(idx<firstActive?' done':''));
+  });
+  document.getElementById('flow-card').innerHTML=`<div class="fc-title">${s.title}</div><div class="fc-desc">${s.desc}</div>${s.code?`<pre class="fc-code">${s.code}</pre>`:''}`;
+  document.getElementById('fnav-counter').textContent=`Step ${curStep+1} of ${STEPS.length}`;
+  document.getElementById('btn-prev').disabled=curStep===0;
+  document.getElementById('btn-next').disabled=curStep===STEPS.length-1;
+  document.querySelectorAll('.fdot').forEach((d,i)=>{d.className='fdot'+(i===curStep?' act':(i<curStep?' done':''));});
+}
+function nextStep(){if(curStep<STEPS.length-1){curStep++;renderStep();}}
+function prevStep(){if(curStep>0){curStep--;renderStep();}}
+function goStep(n){curStep=n;renderStep();}
+const dotsEl=document.getElementById('flow-dots');
+STEPS.forEach((_,i)=>{const d=document.createElement('div');d.className='fdot'+(i===0?' act':'');d.onclick=()=>goStep(i);dotsEl.appendChild(d);});
+renderStep();
+
+/* ABR Simulator */
+const QUALITIES=[
+  {label:'240p',bw:0.3,color:'#C0392B'},
+  {label:'480p',bw:1.5,color:'#E67E22'},
+  {label:'720p',bw:4,color:'#F1C40F'},
+  {label:'1080p',bw:8,color:'#27AE60'},
+  {label:'4K',bw:25,color:'#2980B9'}
+];
+let buffer=[];
+let logLines=[];
+let simInterval=null;
+function pickQuality(bwMbps){
+  let q=QUALITIES[0];
+  for(const level of QUALITIES){
+    if(bwMbps >= level.bw * 1.2) q=level;
+  }
+  return q;
+}
+function updateABR(){
+  const bw=parseFloat(document.getElementById('bw-slider').value);
+  document.getElementById('bw-display').textContent=bw+' Mbps';
+  const q=pickQuality(bw);
+  const chunkKB=(q.bw*1000*2/8).toFixed(0);
+  const segMs=(chunkKB*8/bw/1000).toFixed(0);
+
+  // Add a chunk to buffer
+  if(buffer.length>=30) buffer.shift();
+  buffer.push({color:q.color,label:q.label});
+
+  // Log entry
+  const msg=`BW=${bw}Mbps → ${q.label} (${chunkKB}KB/seg, ~${segMs}ms DL)`;
+  logLines.unshift(msg);
+  if(logLines.length>8) logLines.pop();
+
+  renderBuffer(q,bw,chunkKB);
+}
+function renderBuffer(q,bw,chunkKB){
+  const buf=document.getElementById('abr-buffer');
+  buf.innerHTML=buffer.map(c=>`<div class="abr-chunk" style="background:${c.color}" title="${c.label}"></div>`).join('');
+
+  document.getElementById('abr-stats').innerHTML=`
+    <div class="abr-stat"><div class="abr-stat-label">Current Quality</div><div class="abr-stat-val" style="color:${q.color}">${q.label}</div></div>
+    <div class="abr-stat"><div class="abr-stat-label">Bitrate</div><div class="abr-stat-val">${q.bw} Mbps</div></div>
+    <div class="abr-stat"><div class="abr-stat-label">Buffer Size</div><div class="abr-stat-val">${buffer.length*2}s</div></div>
+    <div class="abr-stat"><div class="abr-stat-label">Seg Size</div><div class="abr-stat-val">${chunkKB} KB</div></div>`;
+
+  document.getElementById('abr-log').innerHTML=logLines.map(l=>`<div>${l}</div>`).join('');
+}
+// Init buffer
+for(let i=0;i<20;i++) buffer.push({color:'#27AE60',label:'1080p'});
+updateABR();
+// Auto-simulate
+simInterval=setInterval(updateABR,2000);
+
+/* Tab switcher */
+function switchTab(group,id){
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el=>el.classList.add('active'));
+}
+
+/* Self Check */
+function toggleSC(id){document.getElementById(id).classList.toggle('open');}
+</script>
+</body>
+</html>

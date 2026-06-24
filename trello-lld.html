@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Trello — LLD Deep Dive</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 120px; }
+  header.masthead { padding: 72px 0 48px; border-bottom: 1.5px solid var(--g300); margin-bottom: 8px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--g500); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content:""; width:24px; height:1.5px; background:var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 5vw, 56px); line-height: 1.06; letter-spacing: -0.018em; margin-bottom: 8px; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro { font-size: 15.5px; color: var(--g700); margin-top: 18px; max-width: 600px; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 28px; }
+  nav.toc a { font-size: 12px; padding: 6px 14px; border: 1.5px solid var(--g300); border-radius: 999px; text-decoration: none; color: var(--g700); background: var(--paper); transition: border-color 120ms, color 120ms; display: inline-flex; align-items: center; gap: 6px; }
+  nav.toc a .n { font-family: var(--mono); font-size: 10px; color: var(--g500); }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+  section { margin-top: 64px; scroll-margin-top: 24px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .sec-head .idx { font-family: var(--mono); font-size: 12px; color: var(--clay); font-weight: 600; width: 30px; flex-shrink: 0; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 500; font-size: 25px; letter-spacing: -0.012em; }
+  .sec-intro { font-size: 14px; color: var(--g700); max-width: 680px; margin: 0 0 22px 44px; }
+  .content-block { margin-left: 44px; }
+  @media (max-width: 600px) { .content-block, .sec-intro { margin-left: 0; } }
+  .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .req-grid { grid-template-columns: 1fr; } }
+  .req-item { background: var(--g100); border-radius: 8px; padding: 12px 14px; border-left: 3px solid var(--g300); }
+  .req-item.func { border-left-color: var(--clay); }
+  .req-item.nfunc { border-left-color: var(--olive); }
+  .req-item .req-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); margin-bottom: 4px; }
+  .req-item p { font-size: 13.5px; color: var(--g700); }
+  .diagram-wrap { overflow-x: auto; padding: 4px 0 8px; }
+  .class-box { display: inline-block; border: 2px solid var(--g300); border-radius: 8px; overflow: hidden; font-size: 13px; min-width: 170px; background: var(--paper); vertical-align: top; margin: 6px; }
+  .class-box .class-name { background: var(--slate); color: var(--paper); font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 7px 12px; letter-spacing: 0.04em; }
+  .class-box .class-name.interface { background: var(--olive); }
+  .class-box .class-name.enum { background: #4A6FA5; }
+  .class-box .class-name.abstract { background: var(--clay); }
+  .class-box .field { padding: 3px 12px; color: var(--g700); font-family: var(--mono); font-size: 11.5px; border-bottom: 1px solid var(--g100); }
+  .class-box .field.method { color: var(--clay-d); }
+  .class-box .field.enum-val { color: #4A6FA5; }
+  .class-box .divider { height: 1.5px; background: var(--g200); margin: 4px 0; }
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step { display: flex; gap: 0; align-items: stretch; }
+  .flow-left { display: flex; flex-direction: column; align-items: center; width: 40px; flex-shrink: 0; }
+  .flow-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--clay); flex-shrink: 0; margin-top: 3px; border: 2px solid var(--ivory); box-shadow: 0 0 0 2px var(--clay); }
+  .flow-dot.green { background: var(--olive); box-shadow: 0 0 0 2px var(--olive); }
+  .flow-dot.gray { background: var(--g300); box-shadow: 0 0 0 2px var(--g300); }
+  .flow-line { flex: 1; width: 2px; background: var(--g200); margin: 2px 0; }
+  .flow-content { padding: 0 0 20px 0; flex: 1; }
+  .flow-step-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .flow-step-desc { font-size: 13.5px; color: var(--g700); }
+  .flow-step:last-child .flow-line { display: none; }
+  pre { background: #1A1A18; color: #E8E6DF; border-radius: 8px; padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; overflow-x: auto; margin: 12px 0; }
+  pre .kw { color: #CF9F6E; } pre .cn { color: #88C0A0; } pre .cm { color: #5F5F5A; } pre .st { color: #A8C97A; } pre .nm { color: #7AABD4; } pre .fn { color: #D97757; }
+  .tip { display: flex; gap: 12px; background: var(--g100); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .tip .tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tip .tip-text { font-size: 13.5px; color: var(--g700); }
+  .tip .tip-text strong { color: var(--slate); }
+  .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .pattern-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 10px; padding: 14px 16px; }
+  .pattern-card .p-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--olive); margin-bottom: 6px; }
+  .pattern-card .p-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .pattern-card .p-desc { font-size: 12.5px; color: var(--g700); }
+  .tabs { display: flex; gap: 4px; margin-bottom: -1px; }
+  .tab-btn { font-family: var(--mono); font-size: 11.5px; padding: 7px 14px; border: 1.5px solid var(--g300); border-bottom: none; border-radius: 7px 7px 0 0; background: var(--g100); color: var(--g500); cursor: pointer; transition: background 120ms, color 120ms; }
+  .tab-btn.active { background: var(--paper); color: var(--slate); border-color: var(--g300); }
+  .tab-pane { display: none; border: 1.5px solid var(--g300); border-radius: 0 8px 8px 8px; }
+  .tab-pane.active { display: block; }
+  .tab-pane pre { margin: 0; border-radius: 0 6px 6px 6px; }
+  .q-list { list-style: none; }
+  .q-list li { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--g200); font-size: 13.5px; }
+  .q-list li:last-child { border-bottom: none; }
+  .q-list li .q-icon { color: var(--clay); flex-shrink: 0; font-weight: 700; }
+  .q-list li .q-text strong { display: block; color: var(--slate); margin-bottom: 2px; }
+  .q-list li .q-text span { color: var(--g700); }
+  .rel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rel-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); text-align: left; padding: 6px 10px; border-bottom: 1.5px solid var(--g300); }
+  .rel-table td { padding: 8px 10px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .rel-table td:first-child { font-family: var(--mono); font-size: 11.5px; color: var(--slate); white-space: nowrap; }
+  .rel-table td .badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--g100); color: var(--g500); margin-right: 4px; }
+  .rel-table td .badge.has { background: #EEF3E8; color: var(--olive); }
+  .rel-table td .badge.uses { background: #FEF3EE; color: var(--clay); }
+  .rel-table td .badge.impl { background: #EEF1F8; color: #4A6FA5; }
+  .thread-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .thread-table th { background: var(--g100); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); padding: 8px 12px; text-align: left; }
+  .thread-table td { padding: 9px 12px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .thread-table td:first-child { font-weight: 600; color: var(--slate); }
+  .risk-high { color: #C0392B; font-weight: 600; }
+  .risk-med  { color: #E67E22; font-weight: 600; }
+  .risk-low  { color: var(--olive); font-weight: 600; }
+  .highlight-box { background: #FEF3EE; border-left: 3px solid var(--clay); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0; font-size: 13.5px; color: var(--g700); }
+  .highlight-box strong { color: var(--clay-d); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+  .small-note { font-size: 12px; color: var(--g500); margin-top: 8px; font-family: var(--mono); }
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 30px; font-size: 12.5px; color: var(--g500); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 14px; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--g500); text-decoration: none; font-family: var(--mono); margin-bottom: 24px; }
+  .back-link:hover { color: var(--clay); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <a class="back-link" href="index.html">← Back to all problems</a>
+  <div class="eyebrow">LLD Interview Prep — SDE II · System Design</div>
+  <h1>Design <em>Trello</em></h1>
+  <p class="intro">End-to-end guide: boards, lists, cards, observer-driven activity logs, card movement, and concurrency — everything you need to ace this in an interview.</p>
+  <nav class="toc">
+    <a href="#requirements">Requirements <span class="n">01</span></a>
+    <a href="#clarifications">Clarifying Qs <span class="n">02</span></a>
+    <a href="#entities">Entities <span class="n">03</span></a>
+    <a href="#relations">Relationships <span class="n">04</span></a>
+    <a href="#flows">Key Flows <span class="n">05</span></a>
+    <a href="#code">Code <span class="n">06</span></a>
+    <a href="#patterns">Patterns <span class="n">07</span></a>
+    <a href="#concurrency">Concurrency <span class="n">08</span></a>
+    <a href="#tips">Interview Tips <span class="n">09</span></a>
+  </nav>
+</header>
+
+<!-- 01 REQUIREMENTS -->
+<section id="requirements">
+  <div class="sec-head"><span class="idx">01</span><h2>Requirements</h2></div>
+  <p class="sec-intro">State these upfront — don't let the interviewer think you're jumping straight to classes.</p>
+  <div class="content-block">
+    <div class="req-grid">
+      <div class="req-item func"><div class="req-label">Functional</div><p>Users create Boards; a board has multiple Lists (columns)</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Lists contain Cards; cards can be moved between lists</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Cards: title, description, assignees, labels, due date, checklists, comments, attachments</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Board members have roles: ADMIN or MEMBER</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Activity log: every action (create/move/assign) is logged immutably</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Notifications: members notified on assignment, due date, @mentions</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Concurrent card moves must not cause position corruption</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Extensible: new notification channels, new card field types</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 CLARIFYING QUESTIONS -->
+<section id="clarifications">
+  <div class="sec-head"><span class="idx">02</span><h2>Clarifying Questions</h2></div>
+  <p class="sec-intro">Ask these before drawing any classes.</p>
+  <div class="content-block">
+    <ul class="q-list">
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Can cards exist without a list (backlog)?</strong><span>Simplest: no — a card always belongs to exactly one list. Archiving the card detaches it.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Can the same label be reused across cards?</strong><span>Yes — labels are Board-scoped, not Card-scoped. One label object is shared across all cards on a board.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Is undo/redo required?</strong><span>Not usually. If yes, every action becomes a Command object — big design change.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Can cards be moved across boards?</strong><span>Trello supports it but it's complex (labels don't transfer cleanly). Clarify scope.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>How is "position" managed for drag-and-drop ordering?</strong><span>Integer index (requires reorder on move) vs floating-point spacing (insert 1.5 between 1.0 and 2.0 = no reorder). Mention both.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Notification delivery: real-time or async?</strong><span>In-process Observer for interview; in prod, use a message queue (Kafka) to decouple notification delivery.</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 03 ENTITIES -->
+<section id="entities">
+  <div class="sec-head"><span class="idx">03</span><h2>Core Entities</h2></div>
+  <p class="sec-intro">Identify nouns before writing any methods.</p>
+  <div class="content-block">
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Enums</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box"><div class="class-name enum">Role</div><div class="field enum-val">ADMIN</div><div class="field enum-val">MEMBER</div></div>
+      <div class="class-box"><div class="class-name enum">ActivityType</div><div class="field enum-val">CARD_CREATED</div><div class="field enum-val">CARD_MOVED</div><div class="field enum-val">CARD_ASSIGNED</div><div class="field enum-val">COMMENT_ADDED</div><div class="field enum-val">LIST_CREATED</div><div class="field enum-val">MEMBER_ADDED</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Interfaces</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box"><div class="class-name interface">«interface» ActivityObserver</div><div class="divider"></div><div class="field method">+ onActivity(activity): void</div></div>
+      <div class="class-box"><div class="class-name interface">«interface» NotificationService</div><div class="divider"></div><div class="field method">+ notify(user, message): void</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Core Models</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box"><div class="class-name">User</div><div class="field">- id: String</div><div class="field">- name: String</div><div class="field">- email: String</div></div>
+      <div class="class-box"><div class="class-name">Board</div><div class="field">- id: String</div><div class="field">- name: String</div><div class="field">- lists: List&lt;BoardList&gt;</div><div class="field">- members: List&lt;BoardMember&gt;</div><div class="field">- labels: List&lt;Label&gt;</div><div class="field">- observers: List&lt;ActivityObserver&gt;</div><div class="field">- activityLog: List&lt;Activity&gt;</div><div class="divider"></div><div class="field method">+ emit(activity): void</div><div class="field method">+ addMember(user, role): void</div></div>
+      <div class="class-box"><div class="class-name">BoardMember</div><div class="field">- user: User</div><div class="field">- role: Role</div><div class="field">- joinedAt: LocalDateTime</div></div>
+      <div class="class-box"><div class="class-name">BoardList</div><div class="field">- id: String</div><div class="field">- name: String</div><div class="field">- board: Board</div><div class="field">- cards: List&lt;Card&gt;</div><div class="field">- position: int</div><div class="field">- isArchived: boolean</div><div class="divider"></div><div class="field method">+ addCard(card): void</div><div class="field method">+ removeCard(card): void</div></div>
+      <div class="class-box"><div class="class-name">Card</div><div class="field">- id: String</div><div class="field">- title: String</div><div class="field">- description: String</div><div class="field">- list: BoardList</div><div class="field">- assignees: List&lt;User&gt;</div><div class="field">- labels: List&lt;Label&gt;</div><div class="field">- dueDate: LocalDateTime</div><div class="field">- checklists: List&lt;Checklist&gt;</div><div class="field">- comments: List&lt;Comment&gt;</div><div class="field">- attachments: List&lt;Attachment&gt;</div><div class="field">- position: int</div><div class="field">- version: long</div><div class="field">- isArchived: boolean</div></div>
+      <div class="class-box"><div class="class-name">Label</div><div class="field">- id: String</div><div class="field">- name: String</div><div class="field">- color: String</div><div class="field">- board: Board</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Card Sub-entities</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box"><div class="class-name">Checklist</div><div class="field">- id: String</div><div class="field">- title: String</div><div class="field">- items: List&lt;ChecklistItem&gt;</div></div>
+      <div class="class-box"><div class="class-name">ChecklistItem</div><div class="field">- id: String</div><div class="field">- text: String</div><div class="field">- isCompleted: boolean</div></div>
+      <div class="class-box"><div class="class-name">Comment</div><div class="field">- id: String</div><div class="field">- author: User</div><div class="field">- text: String</div><div class="field">- createdAt: LocalDateTime</div></div>
+      <div class="class-box"><div class="class-name">Attachment</div><div class="field">- id: String</div><div class="field">- filename: String</div><div class="field">- url: String</div><div class="field">- uploadedBy: User</div><div class="field">- uploadedAt: LocalDateTime</div></div>
+      <div class="class-box"><div class="class-name">Activity</div><div class="field">- id: String</div><div class="field">- type: ActivityType</div><div class="field">- actor: User</div><div class="field">- description: String</div><div class="field">- createdAt: LocalDateTime</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Observer Implementations</p>
+    <div class="diagram-wrap">
+      <div class="class-box"><div class="class-name">NotificationObserver</div><div class="field" style="color:var(--g500);font-style:italic;">implements ActivityObserver</div><div class="divider"></div><div class="field method">+ onActivity(activity): void</div><div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ notifies assigned users</div></div>
+      <div class="class-box"><div class="class-name">TrelloService</div><div class="field">- boards: Map&lt;String,Board&gt;</div><div class="divider"></div><div class="field method">+ createCard(listId, title, userId)</div><div class="field method">+ moveCard(cardId, targetListId, pos)</div><div class="field method">+ assignMember(cardId, userId)</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 RELATIONSHIPS -->
+<section id="relations">
+  <div class="sec-head"><span class="idx">04</span><h2>Relationships</h2></div>
+  <p class="sec-intro">The shape of the object graph — draw this on the whiteboard.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>From</th><th>To</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Board</td><td>BoardList</td><td><span class="badge has">HAS</span></td><td>Composition — Board owns lists, ordered by position (1 to many)</td></tr>
+        <tr><td>Board</td><td>BoardMember</td><td><span class="badge has">HAS</span></td><td>Aggregation — Board references members; users exist independently</td></tr>
+        <tr><td>Board</td><td>Label</td><td><span class="badge has">HAS</span></td><td>Composition — Labels are Board-scoped, not Card-scoped</td></tr>
+        <tr><td>Board</td><td>ActivityObserver</td><td><span class="badge uses">USES</span></td><td>Observer — Board emits events to all registered observers</td></tr>
+        <tr><td>BoardList</td><td>Card</td><td><span class="badge has">HAS</span></td><td>Composition — List owns cards, ordered by position (1 to many)</td></tr>
+        <tr><td>Card</td><td>Checklist, Comment, Attachment</td><td><span class="badge has">HAS</span></td><td>Composition — Card owns all sub-entities</td></tr>
+        <tr><td>Card</td><td>Label</td><td><span class="badge uses">USES</span></td><td>Association — Card references board-level labels, doesn't own them</td></tr>
+        <tr><td>Card</td><td>User (assignees)</td><td><span class="badge uses">USES</span></td><td>Association — Card holds references to User objects</td></tr>
+        <tr><td>NotificationObserver</td><td>ActivityObserver</td><td><span class="badge impl">IMPLEMENTS</span></td><td>Concrete observer for sending notifications</td></tr>
+        <tr><td>Checklist</td><td>ChecklistItem</td><td><span class="badge has">HAS</span></td><td>Composition — 1 checklist has many items</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 05 KEY FLOWS -->
+<section id="flows">
+  <div class="sec-head"><span class="idx">05</span><h2>Key Flows</h2></div>
+  <p class="sec-intro">Walk these step-by-step — it shows you understand execution, not just structure.</p>
+  <div class="content-block">
+    <div class="two-col">
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;">Create Card Flow</p>
+        <div class="flow">
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Validate membership</div><div class="flow-step-desc">Check caller is a BoardMember on the list's board. Throw if not.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Build Card via Builder</div><div class="flow-step-desc"><code>new Card.Builder(title, list).description(desc).build()</code> — position = list.getCards().size()</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Add to list</div><div class="flow-step-desc"><code>list.addCard(card)</code> appends to the end.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Emit Activity</div><div class="flow-step-desc">board.emit(new Activity(CARD_CREATED, actor, card, "...")) — all observers notified.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot gray"></div></div><div class="flow-content"><div class="flow-step-title">Return card</div><div class="flow-step-desc">Return created Card with UUID assigned.</div></div></div>
+        </div>
+      </div>
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;">Move Card Flow (drag &amp; drop)</p>
+        <div class="flow">
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Validate &amp; fetch</div><div class="flow-step-desc">Validate membership. Get card, sourceList = card.getList(), targetList from targetListId.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Guard: same board</div><div class="flow-step-desc">Throw InvalidOperationException if source and target lists are on different boards.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Remove from source, reorder</div><div class="flow-step-desc"><code>sourceList.removeCard(card)</code> then reindex remaining cards: position = index.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Insert at target position</div><div class="flow-step-desc"><code>targetList.getCards().add(targetPosition, card)</code>, reindex target list.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div></div><div class="flow-content"><div class="flow-step-title">Emit CARD_MOVED Activity</div><div class="flow-step-desc">board.emit(Activity(CARD_MOVED, "from X to Y")). Activity log updated, notification sent.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 CODE -->
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">Focus on the design-heavy parts — Builder, Observer, and the moveCard logic.</p>
+  <div class="content-block">
+
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;">Card — Builder Pattern</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'card-fields')">Card Fields</button>
+        <button class="tab-btn" onclick="switchTab(this,'card-builder')">Builder</button>
+      </div>
+      <div class="tab-pane active" id="card-fields"><pre><span class="kw">class</span> <span class="cn">Card</span> {
+    <span class="kw">private</span> String id, title, description;
+    <span class="kw">private</span> <span class="cn">BoardList</span> list;
+    <span class="kw">private</span> List&lt;<span class="cn">User</span>&gt; assignees = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">private</span> List&lt;<span class="cn">Label</span>&gt; labels = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">private</span> <span class="cn">LocalDateTime</span> dueDate;
+    <span class="kw">private</span> List&lt;<span class="cn">Checklist</span>&gt; checklists = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">private</span> List&lt;<span class="cn">Comment</span>&gt; comments = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">private</span> <span class="kw">int</span> position;
+    <span class="kw">private long</span> version = <span class="nm">0</span>; <span class="cm">// optimistic locking</span>
+
+    <span class="kw">private</span> <span class="fn">Card</span>() {}
+}</pre></div>
+      <div class="tab-pane" id="card-builder"><pre><span class="kw">public static class</span> <span class="cn">Builder</span> {
+    <span class="kw">private final</span> String title;
+    <span class="kw">private final</span> <span class="cn">BoardList</span> list;
+    <span class="kw">private</span> String description;
+    <span class="kw">private</span> <span class="cn">LocalDateTime</span> dueDate;
+
+    <span class="kw">public</span> <span class="fn">Builder</span>(String title, <span class="cn">BoardList</span> list) {
+        <span class="kw">this</span>.title = title; <span class="kw">this</span>.list = list;
+    }
+    <span class="kw">public</span> <span class="cn">Builder</span> <span class="fn">description</span>(String d) { <span class="kw">this</span>.description = d; <span class="kw">return this</span>; }
+    <span class="kw">public</span> <span class="cn">Builder</span> <span class="fn">dueDate</span>(<span class="cn">LocalDateTime</span> dt) { <span class="kw">this</span>.dueDate = dt; <span class="kw">return this</span>; }
+
+    <span class="kw">public</span> <span class="cn">Card</span> <span class="fn">build</span>() {
+        <span class="cn">Card</span> c = <span class="kw">new</span> <span class="cn">Card</span>();
+        c.id = <span class="cn">UUID</span>.<span class="fn">randomUUID</span>().toString();
+        c.title = title; c.list = list;
+        c.description = description; c.dueDate = dueDate;
+        c.position = list.<span class="fn">getCards</span>().size();
+        <span class="kw">return</span> c;
+    }
+}</pre></div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;">Board — Observer Pattern</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'obs-interface')">Interface</button>
+        <button class="tab-btn" onclick="switchTab(this,'obs-board')">Board.emit</button>
+        <button class="tab-btn" onclick="switchTab(this,'obs-notif')">NotificationObserver</button>
+      </div>
+      <div class="tab-pane active" id="obs-interface"><pre><span class="kw">interface</span> <span class="cn">ActivityObserver</span> {
+    <span class="kw">void</span> <span class="fn">onActivity</span>(<span class="cn">Activity</span> activity);
+}</pre></div>
+      <div class="tab-pane" id="obs-board"><pre><span class="kw">class</span> <span class="cn">Board</span> {
+    <span class="kw">private final</span> List&lt;<span class="cn">ActivityObserver</span>&gt; observers = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">private final</span> List&lt;<span class="cn">Activity</span>&gt; activityLog =
+        <span class="kw">new</span> <span class="cn">CopyOnWriteArrayList</span>&lt;&gt;(); <span class="cm">// thread-safe append</span>
+
+    <span class="kw">public void</span> <span class="fn">emit</span>(<span class="cn">Activity</span> activity) {
+        activityLog.<span class="fn">add</span>(activity);
+        observers.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">onActivity</span>(activity));
+    }
+
+    <span class="kw">public void</span> <span class="fn">addObserver</span>(<span class="cn">ActivityObserver</span> obs) {
+        observers.<span class="fn">add</span>(obs);
+    }
+}</pre></div>
+      <div class="tab-pane" id="obs-notif"><pre><span class="kw">class</span> <span class="cn">NotificationObserver</span> <span class="kw">implements</span> <span class="cn">ActivityObserver</span> {
+    <span class="kw">private final</span> <span class="cn">NotificationService</span> svc;
+
+    <span class="kw">public void</span> <span class="fn">onActivity</span>(<span class="cn">Activity</span> activity) {
+        <span class="kw">if</span> (activity.<span class="fn">getType</span>() == <span class="cn">ActivityType</span>.CARD_ASSIGNED) {
+            <span class="cm">// notify each newly assigned user</span>
+            activity.<span class="fn">getTargetCard</span>().<span class="fn">getAssignees</span>().<span class="fn">forEach</span>(u -&gt;
+                svc.<span class="fn">notify</span>(u, <span class="st">"You were assigned to: "</span> + activity.<span class="fn">getDescription</span>())
+            );
+        }
+    }
+}</pre></div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;">TrelloService — moveCard &amp; helpers</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'svc-move')">moveCard</button>
+        <button class="tab-btn" onclick="switchTab(this,'svc-checklist')">checklistCompletion</button>
+      </div>
+      <div class="tab-pane active" id="svc-move"><pre><span class="kw">public void</span> <span class="fn">moveCard</span>(String cardId, String targetListId, <span class="kw">int</span> targetPosition) {
+    <span class="cn">Card</span> card = <span class="fn">findCard</span>(cardId);
+    <span class="cn">BoardList</span> src = card.<span class="fn">getList</span>(), tgt = <span class="fn">findList</span>(targetListId);
+
+    <span class="kw">if</span> (!src.<span class="fn">getBoard</span>().<span class="fn">equals</span>(tgt.<span class="fn">getBoard</span>()))
+        <span class="kw">throw new</span> <span class="cn">InvalidOperationException</span>(<span class="st">"Cross-board moves not supported"</span>);
+
+    <span class="kw">synchronized</span> (src) { <span class="cm">// lock source list during removal</span>
+        src.<span class="fn">getCards</span>().<span class="fn">remove</span>(card);
+        <span class="fn">reorderPositions</span>(src.<span class="fn">getCards</span>());
+    }
+    <span class="kw">synchronized</span> (tgt) { <span class="cm">// lock target list during insertion</span>
+        card.<span class="fn">setList</span>(tgt);
+        tgt.<span class="fn">getCards</span>().<span class="fn">add</span>(targetPosition, card);
+        <span class="fn">reorderPositions</span>(tgt.<span class="fn">getCards</span>());
+    }
+
+    src.<span class="fn">getBoard</span>().<span class="fn">emit</span>(<span class="kw">new</span> <span class="cn">Activity</span>(<span class="cn">ActivityType</span>.CARD_MOVED, currentUser, card,
+        <span class="st">"moved from "</span> + src.<span class="fn">getName</span>() + <span class="st">" to "</span> + tgt.<span class="fn">getName</span>()));
+}
+
+<span class="kw">private void</span> <span class="fn">reorderPositions</span>(List&lt;<span class="cn">Card</span>&gt; cards) {
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">0</span>; i &lt; cards.<span class="fn">size</span>(); i++) cards.<span class="fn">get</span>(i).<span class="fn">setPosition</span>(i);
+}</pre></div>
+      <div class="tab-pane" id="svc-checklist"><pre><span class="kw">public double</span> <span class="fn">getChecklistCompletion</span>(<span class="cn">Card</span> card) {
+    <span class="kw">int</span> total = <span class="nm">0</span>, done = <span class="nm">0</span>;
+    <span class="kw">for</span> (<span class="cn">Checklist</span> cl : card.<span class="fn">getChecklists</span>())
+        <span class="kw">for</span> (<span class="cn">ChecklistItem</span> item : cl.<span class="fn">getItems</span>()) {
+            total++;
+            <span class="kw">if</span> (item.<span class="fn">isCompleted</span>()) done++;
+        }
+    <span class="kw">return</span> total == <span class="nm">0</span> ? <span class="nm">0</span> : (done * <span class="nm">100.0</span> / total);
+}</pre></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 07 DESIGN PATTERNS -->
+<section id="patterns">
+  <div class="sec-head"><span class="idx">07</span><h2>Design Patterns Used</h2></div>
+  <p class="sec-intro">Name these explicitly — it's what separates a good answer from a great one.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Observer</div><div class="p-desc">Board emits Activity events. NotificationObserver and ActivityLogObserver react independently — adding new reactions requires zero changes to Board.</div></div>
+      <div class="pattern-card"><div class="p-name">Structural</div><div class="p-title">Composite</div><div class="p-desc">Board → BoardList → Card → Checklist → ChecklistItem forms a tree. "Archive board" cascades naturally through the hierarchy.</div></div>
+      <div class="pattern-card"><div class="p-name">Creational</div><div class="p-title">Builder</div><div class="p-desc">Card has many optional fields (dueDate, description, labels). Builder avoids a telescoping constructor and makes creation intent-revealing.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Command</div><div class="p-desc">Wrap moveCard, assignCard, etc. as Command objects to enable undo/redo and replay the activity log. Each command knows how to execute and reverse itself.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Strategy</div><div class="p-desc">NotificationStrategy: EmailNotification, PushNotification, InAppNotification — swap delivery channel without changing Board or observer logic.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 CONCURRENCY -->
+<section id="concurrency">
+  <div class="sec-head"><span class="idx">08</span><h2>Concurrency &amp; Thread Safety</h2></div>
+  <p class="sec-intro">Most candidates skip this entirely — bring it up and you immediately stand out.</p>
+  <div class="content-block">
+    <div class="highlight-box"><strong>The core race condition:</strong> two users drag the same card simultaneously. Without synchronization, both threads read stale positions and produce corrupted ordering.</div>
+    <table class="thread-table" style="margin-top:16px;margin-bottom:16px;">
+      <thead><tr><th>Risk</th><th>Location</th><th>Severity</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Double-move same card</td><td>moveCard()</td><td class="risk-high">HIGH</td><td>Lock on source list + target list (acquire in consistent order to avoid deadlock)</td></tr>
+        <tr><td>Position corruption on reorder</td><td>reorderPositions()</td><td class="risk-high">HIGH</td><td>Lock at BoardList level during both remove and reorder</td></tr>
+        <tr><td>Concurrent activity log writes</td><td>Board.activityLog</td><td class="risk-med">MED</td><td>Use CopyOnWriteArrayList — safe for concurrent appends, reads don't block</td></tr>
+        <tr><td>Stale card version on concurrent edit</td><td>Card fields</td><td class="risk-med">MED</td><td>Optimistic locking: Card.version — compare-and-swap before applying edit</td></tr>
+        <tr><td>Observer notification during lock</td><td>Board.emit()</td><td class="risk-low">LOW</td><td>Emit outside the synchronized block — don't hold list lock while notifying observers</td></tr>
+      </tbody>
+    </table>
+    <p class="small-note">→ Production Trello uses event sourcing: all mutations are commands appended to a log; the board state is derived by replaying. This eliminates most concurrency issues at the model level.</p>
+  </div>
+</section>
+
+<!-- 09 INTERVIEW TIPS -->
+<section id="tips">
+  <div class="sec-head"><span class="idx">09</span><h2>Interview Tips</h2></div>
+  <p class="sec-intro">What separates a good answer from a great one.</p>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>Labels are Board-scoped, not Card-scoped.</strong> A common mistake is putting Label inside Card. In Trello, labels are defined on the Board and referenced by cards — so renaming a label updates it everywhere instantly.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>Mention floating-point positions.</strong> Integer reindexing on every move is O(n) writes to the DB. Production systems use decimals: insert between 1.0 and 2.0 → position 1.5. No other cards need updating.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>Activity log is append-only.</strong> Never update or delete activity records. It's an audit trail. Say this explicitly — it implies an immutable event store, which is a strong architectural signal.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>The Observer decouples notification from business logic.</strong> Board.emit() doesn't know anything about email or push notifications — it just fires events. This is the key extensibility win.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Card.position ≠ BoardList.position.</strong> Both lists and cards have positions. Managing both hierarchies is a common gotcha — mention it to show you've thought through the data model.</div></div>
+  </div>
+</section>
+
+<footer>
+  <span class="k">Design Trello — Low Level Design</span>
+  <span><a href="index.html" style="color:var(--clay);text-decoration:none;">← All LLD Problems</a></span>
+</footer>
+
+</div>
+<script>
+function switchTab(btn, id) {
+  const container = btn.closest('div[style*="margin-bottom"]') || btn.parentElement.parentElement;
+  container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+}
+</script>
+</body>
+</html>

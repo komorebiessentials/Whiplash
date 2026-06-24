@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Distributed Queue (Kafka-like) — LLD Deep Dive</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5; --paper:  #FFFFFF; --slate:  #141413; --clay:   #D97757;
+    --clay-d: #B85C3E; --oat:    #E3DACC; --olive:  #788C5D;
+    --g100:   #F0EEE6; --g200:   #E6E3DA; --g300:   #D1CFC5; --g500:   #87867F; --g700:   #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 120px; }
+  header.masthead { padding: 72px 0 48px; border-bottom: 1.5px solid var(--g300); margin-bottom: 8px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--g500); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content:""; width:24px; height:1.5px; background:var(--clay); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 5vw, 56px); line-height: 1.06; letter-spacing: -0.018em; margin-bottom: 8px; }
+  h1 em { font-style: italic; color: var(--clay); }
+  .intro { font-size: 15.5px; color: var(--g700); margin-top: 18px; max-width: 600px; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 28px; }
+  nav.toc a { font-size: 12px; padding: 6px 14px; border: 1.5px solid var(--g300); border-radius: 999px; text-decoration: none; color: var(--g700); background: var(--paper); transition: border-color 120ms, color 120ms; display: inline-flex; align-items: center; gap: 6px; }
+  nav.toc a .n { font-family: var(--mono); font-size: 10px; color: var(--g500); }
+  nav.toc a:hover { border-color: var(--slate); color: var(--slate); }
+  section { margin-top: 64px; scroll-margin-top: 24px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .sec-head .idx { font-family: var(--mono); font-size: 12px; color: var(--clay); font-weight: 600; width: 30px; flex-shrink: 0; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 500; font-size: 25px; letter-spacing: -0.012em; }
+  .sec-intro { font-size: 14px; color: var(--g700); max-width: 680px; margin: 0 0 22px 44px; }
+  .content-block { margin-left: 44px; }
+  @media (max-width: 600px) { .content-block, .sec-intro { margin-left: 0; } }
+  .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .req-grid { grid-template-columns: 1fr; } }
+  .req-item { background: var(--g100); border-radius: 8px; padding: 12px 14px; border-left: 3px solid var(--g300); }
+  .req-item.func { border-left-color: var(--clay); }
+  .req-item.nfunc { border-left-color: var(--olive); }
+  .req-item .req-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); margin-bottom: 4px; }
+  .req-item p { font-size: 13.5px; color: var(--g700); }
+  .diagram-wrap { overflow-x: auto; padding: 4px 0 8px; }
+  .class-box { display: inline-block; border: 2px solid var(--g300); border-radius: 8px; overflow: hidden; font-size: 13px; min-width: 170px; background: var(--paper); vertical-align: top; margin: 6px; }
+  .class-box .class-name { background: var(--slate); color: var(--paper); font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 7px 12px; letter-spacing: 0.04em; }
+  .class-box .class-name.interface { background: var(--olive); }
+  .class-box .class-name.enum { background: #4A6FA5; }
+  .class-box .class-name.abstract { background: var(--clay); }
+  .class-box .field { padding: 3px 12px; color: var(--g700); font-family: var(--mono); font-size: 11.5px; border-bottom: 1px solid var(--g100); }
+  .class-box .field.method { color: var(--clay-d); }
+  .class-box .field.enum-val { color: #4A6FA5; }
+  .class-box .divider { height: 1.5px; background: var(--g200); margin: 4px 0; }
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step { display: flex; gap: 0; align-items: stretch; }
+  .flow-left { display: flex; flex-direction: column; align-items: center; width: 40px; flex-shrink: 0; }
+  .flow-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--clay); flex-shrink: 0; margin-top: 3px; border: 2px solid var(--ivory); box-shadow: 0 0 0 2px var(--clay); }
+  .flow-dot.green { background: var(--olive); box-shadow: 0 0 0 2px var(--olive); }
+  .flow-dot.gray { background: var(--g300); box-shadow: 0 0 0 2px var(--g300); }
+  .flow-line { flex: 1; width: 2px; background: var(--g200); margin: 2px 0; }
+  .flow-content { padding: 0 0 20px 0; flex: 1; }
+  .flow-step-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .flow-step-desc { font-size: 13.5px; color: var(--g700); }
+  .flow-step:last-child .flow-line { display: none; }
+  pre { background: #1A1A18; color: #E8E6DF; border-radius: 8px; padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; overflow-x: auto; margin: 12px 0; }
+  pre .kw { color: #CF9F6E; } pre .cn { color: #88C0A0; } pre .cm { color: #5F5F5A; } pre .st { color: #A8C97A; } pre .nm { color: #7AABD4; } pre .fn { color: #D97757; }
+  .tip { display: flex; gap: 12px; background: var(--g100); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .tip .tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tip .tip-text { font-size: 13.5px; color: var(--g700); }
+  .tip .tip-text strong { color: var(--slate); }
+  .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .pattern-card { background: var(--paper); border: 1.5px solid var(--g300); border-radius: 10px; padding: 14px 16px; }
+  .pattern-card .p-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--olive); margin-bottom: 6px; }
+  .pattern-card .p-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .pattern-card .p-desc { font-size: 12.5px; color: var(--g700); }
+  .tabs { display: flex; gap: 4px; margin-bottom: -1px; }
+  .tab-btn { font-family: var(--mono); font-size: 11.5px; padding: 7px 14px; border: 1.5px solid var(--g300); border-bottom: none; border-radius: 7px 7px 0 0; background: var(--g100); color: var(--g500); cursor: pointer; transition: background 120ms, color 120ms; }
+  .tab-btn.active { background: var(--paper); color: var(--slate); }
+  .tab-pane { display: none; border: 1.5px solid var(--g300); border-radius: 0 8px 8px 8px; }
+  .tab-pane.active { display: block; }
+  .tab-pane pre { margin: 0; border-radius: 0 6px 6px 6px; }
+  .q-list { list-style: none; }
+  .q-list li { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--g200); font-size: 13.5px; }
+  .q-list li:last-child { border-bottom: none; }
+  .q-list li .q-icon { color: var(--clay); flex-shrink: 0; font-weight: 700; }
+  .q-list li .q-text strong { display: block; color: var(--slate); margin-bottom: 2px; }
+  .q-list li .q-text span { color: var(--g700); }
+  .rel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rel-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); text-align: left; padding: 6px 10px; border-bottom: 1.5px solid var(--g300); }
+  .rel-table td { padding: 8px 10px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .rel-table td:first-child { font-family: var(--mono); font-size: 11.5px; color: var(--slate); white-space: nowrap; }
+  .rel-table td .badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--g100); color: var(--g500); margin-right: 4px; }
+  .rel-table td .badge.has { background: #EEF3E8; color: var(--olive); }
+  .rel-table td .badge.uses { background: #FEF3EE; color: var(--clay); }
+  .rel-table td .badge.impl { background: #EEF1F8; color: #4A6FA5; }
+  .thread-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .thread-table th { background: var(--g100); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--g500); padding: 8px 12px; text-align: left; }
+  .thread-table td { padding: 9px 12px; border-bottom: 1px solid var(--g100); color: var(--g700); vertical-align: top; }
+  .thread-table td:first-child { font-weight: 600; color: var(--slate); }
+  .risk-high { color: #C0392B; font-weight: 600; }
+  .risk-med  { color: #E67E22; font-weight: 600; }
+  .risk-low  { color: var(--olive); font-weight: 600; }
+  .highlight-box { background: #FEF3EE; border-left: 3px solid var(--clay); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0; font-size: 13.5px; color: var(--g700); }
+  .highlight-box strong { color: var(--clay-d); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+  .small-note { font-size: 12px; color: var(--g500); margin-top: 8px; font-family: var(--mono); }
+  footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 30px; font-size: 12.5px; color: var(--g500); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: 14px; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--g500); text-decoration: none; font-family: var(--mono); margin-bottom: 24px; }
+  .back-link:hover { color: var(--clay); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <a class="back-link" href="index.html">← Back to all problems</a>
+  <div class="eyebrow">LLD Interview Prep — SDE II/III · System Design</div>
+  <h1>Design a <em>Distributed Queue</em> (Kafka-like)</h1>
+  <p class="intro">End-to-end guide: topics, partitions, offsets, producer strategies, consumer groups, rebalancing, and at-least-once delivery semantics.</p>
+  <nav class="toc">
+    <a href="#requirements">Requirements <span class="n">01</span></a>
+    <a href="#clarifications">Clarifying Qs <span class="n">02</span></a>
+    <a href="#entities">Entities <span class="n">03</span></a>
+    <a href="#relations">Relationships <span class="n">04</span></a>
+    <a href="#flows">Key Flows <span class="n">05</span></a>
+    <a href="#code">Code <span class="n">06</span></a>
+    <a href="#patterns">Patterns <span class="n">07</span></a>
+    <a href="#concurrency">Concurrency <span class="n">08</span></a>
+    <a href="#tips">Interview Tips <span class="n">09</span></a>
+  </nav>
+</header>
+
+<!-- 01 REQUIREMENTS -->
+<section id="requirements">
+  <div class="sec-head"><span class="idx">01</span><h2>Requirements</h2></div>
+  <p class="sec-intro">Scope clearly — this is a simplified single-node Kafka, not the fully distributed system.</p>
+  <div class="content-block">
+    <div class="req-grid">
+      <div class="req-item func"><div class="req-label">Functional</div><p>Producers publish messages to a named Topic</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Topics are divided into Partitions for parallelism</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Each Partition is an ordered, append-only, immutable log of Messages</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Consumers read messages by tracking their Offset per partition</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>ConsumerGroups: each message processed by exactly one consumer per group</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>At-least-once delivery: consumer commits offset after processing</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>High-throughput append: multiple producers to same partition concurrently</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Multiple consumer groups can read the same partition independently</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 CLARIFYING QUESTIONS -->
+<section id="clarifications">
+  <div class="sec-head"><span class="idx">02</span><h2>Clarifying Questions</h2></div>
+  <p class="sec-intro">These questions reveal whether the interviewer wants a simple queue or a Kafka-level system.</p>
+  <div class="content-block">
+    <ul class="q-list">
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Single node or distributed across brokers?</strong><span>Single-node for LLD interview. Distributed adds leader election, replication, ISR — that's HLD territory.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>At-least-once or exactly-once delivery?</strong><span>At-least-once is simpler (commit offset after processing). Exactly-once requires idempotent producers and two-phase commit.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Message retention: by time or by size?</strong><span>Both in Kafka. For interview: configurable retentionMs per topic. Messages older than retention are eligible for compaction.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Push or pull model for consumers?</strong><span>Pull (poll-based) — consumers read at their own pace. Push would require the broker to track consumer state and push capacity, which is harder.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>How many partitions per topic?</strong><span>Configurable at topic creation. More partitions = more parallelism. In-interview: treat as fixed after creation.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>What happens when a consumer leaves the group?</strong><span>GroupCoordinator triggers a rebalance — partitions reassigned among remaining consumers.</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 03 ENTITIES -->
+<section id="entities">
+  <div class="sec-head"><span class="idx">03</span><h2>Core Entities</h2></div>
+  <p class="sec-intro">The key conceptual distinction: Topic is logical (a name), Partition is physical (the append-only log).</p>
+  <div class="content-block">
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Interfaces / Strategies</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box"><div class="class-name interface">«interface» PartitionStrategy</div><div class="divider"></div><div class="field method">+ selectPartition(topic, msg): int</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Core Models</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box"><div class="class-name">Message</div><div class="field">- offset: long (final)</div><div class="field">- key: String (final)</div><div class="field">- value: byte[] (final)</div><div class="field">- timestamp: Instant (final)</div><div class="field">- headers: Map&lt;String,String&gt;</div><div class="field" style="color:var(--g500);font-size:11px;padding:4px 12px;">immutable — no setters</div></div>
+      <div class="class-box"><div class="class-name">Partition</div><div class="field">- partitionId: int</div><div class="field">- topic: Topic</div><div class="field">- log: List&lt;Message&gt;</div><div class="field">- nextOffset: AtomicLong</div><div class="field">- lock: ReadWriteLock</div><div class="divider"></div><div class="field method">+ append(key, value): long</div><div class="field method">+ read(fromOffset, max): List</div></div>
+      <div class="class-box"><div class="class-name">Topic</div><div class="field">- name: String</div><div class="field">- partitions: List&lt;Partition&gt;</div><div class="field">- replicationFactor: int</div><div class="field">- retentionMs: long</div><div class="divider"></div><div class="field method">+ getPartition(id): Partition</div><div class="field method">+ getPartitionCount(): int</div></div>
+      <div class="class-box"><div class="class-name">TopicPartition</div><div class="field">- topicName: String</div><div class="field">- partitionId: int</div><div class="field" style="color:var(--g500);font-size:11px;padding:4px 12px;">value object — used as map key</div></div>
+      <div class="class-box"><div class="class-name">RecordMetadata</div><div class="field">- topicName: String</div><div class="field">- partitionId: int</div><div class="field">- offset: long</div><div class="field" style="color:var(--g500);font-size:11px;padding:4px 12px;">returned from Producer.send()</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Producers, Consumers &amp; Coordination</p>
+    <div class="diagram-wrap" style="margin-bottom:20px;">
+      <div class="class-box"><div class="class-name">Producer</div><div class="field">- producerId: String</div><div class="field">- broker: Broker</div><div class="field">- strategy: PartitionStrategy</div><div class="divider"></div><div class="field method">+ send(topic, key, value): RecordMetadata</div></div>
+      <div class="class-box"><div class="class-name">Consumer</div><div class="field">- consumerId: String</div><div class="field">- groupId: String</div><div class="field">- broker: Broker</div><div class="field">- committedOffsets: Map&lt;TopicPartition,Long&gt;</div><div class="divider"></div><div class="field method">+ poll(topicName, partId, max): List</div><div class="field method">+ commitOffset(tp, offset): void</div></div>
+      <div class="class-box"><div class="class-name">ConsumerGroup</div><div class="field">- groupId: String</div><div class="field">- consumers: List&lt;Consumer&gt;</div><div class="field">- assignments: Map&lt;Partition,Consumer&gt;</div><div class="divider"></div><div class="field method">+ addConsumer(consumerId): void</div><div class="field method">+ applyAssignments(map): void</div></div>
+      <div class="class-box"><div class="class-name">Broker</div><div class="field">- brokerId: int</div><div class="field">- topics: Map&lt;String,Topic&gt;</div><div class="divider"></div><div class="field method">+ createTopic(name, partitions): Topic</div><div class="field method">+ getTopic(name): Topic</div><div class="field method">+ getPartition(topic,id): Partition</div></div>
+      <div class="class-box"><div class="class-name">OffsetManager</div><div class="field">- offsets: Map&lt;String, Map&lt;TopicPartition,Long&gt;&gt;</div><div class="divider"></div><div class="field method">+ commit(groupId, tp, offset): void</div><div class="field method">+ get(groupId, tp): long</div></div>
+      <div class="class-box"><div class="class-name">GroupCoordinator</div><div class="field">- groups: Map&lt;String,ConsumerGroup&gt;</div><div class="field">- offsetManager: OffsetManager</div><div class="divider"></div><div class="field method">+ onConsumerJoin(groupId, consumerId)</div><div class="field method">+ onConsumerLeave(groupId, consumerId)</div><div class="field method">+ triggerRebalance(group): void</div></div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">PartitionStrategy Implementations</p>
+    <div class="diagram-wrap">
+      <div class="class-box"><div class="class-name">RoundRobinStrategy</div><div class="field" style="color:var(--g500);font-style:italic;">implements PartitionStrategy</div><div class="field">- counter: AtomicInteger</div><div class="divider"></div><div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ counter++ % numPartitions</div></div>
+      <div class="class-box"><div class="class-name">KeyHashStrategy</div><div class="field" style="color:var(--g500);font-style:italic;">implements PartitionStrategy</div><div class="divider"></div><div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">→ abs(key.hashCode()) % numPartitions</div><div class="field" style="font-size:11px;color:var(--g500);padding:4px 12px;">same key → same partition → ordered</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 RELATIONSHIPS -->
+<section id="relations">
+  <div class="sec-head"><span class="idx">04</span><h2>Relationships</h2></div>
+  <p class="sec-intro">The core hierarchy: Broker owns Topics, Topics own Partitions, Partitions own the immutable Message log.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>From</th><th>To</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Broker</td><td>Topic</td><td><span class="badge has">HAS</span></td><td>Composition — Broker owns all Topics (1 to many)</td></tr>
+        <tr><td>Topic</td><td>Partition</td><td><span class="badge has">HAS</span></td><td>Composition — Topic owns Partitions; fixed count after creation</td></tr>
+        <tr><td>Partition</td><td>Message</td><td><span class="badge has">HAS</span></td><td>Append-only composition — Partition owns ordered Message log; Messages are immutable</td></tr>
+        <tr><td>Producer</td><td>PartitionStrategy</td><td><span class="badge uses">USES</span></td><td>Strategy — injected; selects partition per message send</td></tr>
+        <tr><td>Producer</td><td>Broker</td><td><span class="badge uses">USES</span></td><td>Association — Producer talks to Broker to get Partition handle</td></tr>
+        <tr><td>Consumer</td><td>TopicPartition</td><td><span class="badge has">HAS</span></td><td>Association — Consumer tracks offset per TopicPartition in committedOffsets</td></tr>
+        <tr><td>ConsumerGroup</td><td>Consumer</td><td><span class="badge has">HAS</span></td><td>Aggregation — Group coordinates its consumers; consumers exist independently</td></tr>
+        <tr><td>GroupCoordinator</td><td>ConsumerGroup</td><td><span class="badge has">HAS</span></td><td>Composition — Coordinator manages all ConsumerGroups</td></tr>
+        <tr><td>GroupCoordinator</td><td>OffsetManager</td><td><span class="badge uses">USES</span></td><td>Dependency — durable offset storage separate from the coordinator</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 05 KEY FLOWS -->
+<section id="flows">
+  <div class="sec-head"><span class="idx">05</span><h2>Key Flows</h2></div>
+  <p class="sec-intro">Three flows: produce, consume (poll + commit), and consumer group rebalance.</p>
+  <div class="content-block">
+    <div class="two-col">
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;">Produce Flow</p>
+        <div class="flow">
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Producer.send(topic, key, value)</div><div class="flow-step-desc">Create Message(-1, key, value, now). Strategy has no offset yet — partition assigns it.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Select partition</div><div class="flow-step-desc">strategy.selectPartition(topic, msg) → partitionId. RoundRobin for load balancing; KeyHash for ordering by key.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Append to partition log</div><div class="flow-step-desc">offset = nextOffset.getAndIncrement(). writeLock. log.add(msg). unlock.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div></div><div class="flow-content"><div class="flow-step-title">Return RecordMetadata</div><div class="flow-step-desc">Return RecordMetadata(topicName, partitionId, offset) — producer confirms write.</div></div></div>
+        </div>
+      </div>
+      <div>
+        <p style="font-weight:600;font-size:14px;margin-bottom:14px;">Consume Flow (poll + commit)</p>
+        <div class="flow">
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Consumer.poll(topicName, partId, max)</div><div class="flow-step-desc">tp = new TopicPartition(topic, partId). currentOffset = committedOffsets.getOrDefault(tp, 0).</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Read from partition</div><div class="flow-step-desc">partition.read(currentOffset, max) — returns messages from that offset onward. readLock held during scan.</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Consumer processes messages</div><div class="flow-step-desc">Application logic runs on messages. If crash here before commit → messages re-delivered on restart (at-least-once).</div></div></div>
+          <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div></div><div class="flow-content"><div class="flow-step-title">commitOffset(tp, newOffset)</div><div class="flow-step-desc">committedOffsets.put(tp, newOffset). offsetManager.commit(groupId, tp, newOffset). Next poll starts from here.</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;">
+      <p style="font-weight:600;font-size:14px;margin-bottom:14px;">Rebalance Flow (consumer joins/leaves group)</p>
+      <div class="flow">
+        <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Consumer sends JoinGroup to GroupCoordinator</div><div class="flow-step-desc">coordinator.onConsumerJoin(groupId, consumerId) triggered. Group membership changes.</div></div></div>
+        <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Coordinator triggers rebalance</div><div class="flow-step-desc">All consumers in group pause poll. Coordinator collects current membership list.</div></div></div>
+        <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">Partition assignment (round-robin)</div><div class="flow-step-desc">allPartitions distributed across consumers: partition[i] → consumers[i % consumers.size()].</div></div></div>
+        <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div></div><div class="flow-content"><div class="flow-step-title">Consumers get new assignments</div><div class="flow-step-desc">Each consumer receives its new partition list. Resume polling from last committed offset for each assigned partition.</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 CODE -->
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">Focus on Partition (the core), PartitionStrategy, Producer, Consumer, and GroupCoordinator.</p>
+  <div class="content-block">
+
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;">Message &amp; Partition</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'dq-message')">Message</button>
+        <button class="tab-btn" onclick="switchTab(this,'dq-partition')">Partition</button>
+      </div>
+      <div class="tab-pane active" id="dq-message"><pre><span class="kw">class</span> <span class="cn">Message</span> {
+    <span class="kw">private final long</span> offset;
+    <span class="kw">private final</span> String key;
+    <span class="kw">private final byte</span>[] value;
+    <span class="kw">private final</span> <span class="cn">Instant</span> timestamp;
+    <span class="kw">private final</span> Map&lt;String, String&gt; headers;
+    <span class="cm">// constructor only — fully immutable, no setters</span>
+
+    <span class="kw">public</span> <span class="fn">Message</span>(<span class="kw">long</span> offset, String key, <span class="kw">byte</span>[] value,
+                   <span class="cn">Instant</span> timestamp, Map&lt;String,String&gt; headers) {
+        <span class="kw">this</span>.offset = offset;
+        <span class="kw">this</span>.key = key;
+        <span class="kw">this</span>.value = value.<span class="fn">clone</span>(); <span class="cm">// defensive copy</span>
+        <span class="kw">this</span>.timestamp = timestamp;
+        <span class="kw">this</span>.headers = Map.<span class="fn">copyOf</span>(headers);
+    }
+}</pre></div>
+      <div class="tab-pane" id="dq-partition"><pre><span class="kw">class</span> <span class="cn">Partition</span> {
+    <span class="kw">private final</span> List&lt;<span class="cn">Message</span>&gt; log = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">private final</span> <span class="cn">AtomicLong</span> nextOffset = <span class="kw">new</span> <span class="cn">AtomicLong</span>(<span class="nm">0</span>);
+    <span class="kw">private final</span> <span class="cn">ReentrantReadWriteLock</span> lock = <span class="kw">new</span> <span class="cn">ReentrantReadWriteLock</span>();
+
+    <span class="kw">public long</span> <span class="fn">append</span>(String key, <span class="kw">byte</span>[] value, Map&lt;String,String&gt; headers) {
+        <span class="kw">long</span> offset = nextOffset.<span class="fn">getAndIncrement</span>(); <span class="cm">// atomic — no lock needed</span>
+        <span class="cn">Message</span> msg = <span class="kw">new</span> <span class="cn">Message</span>(offset, key, value, <span class="cn">Instant</span>.<span class="fn">now</span>(), headers);
+        lock.<span class="fn">writeLock</span>().<span class="fn">lock</span>();
+        <span class="kw">try</span> { log.<span class="fn">add</span>(msg); } <span class="kw">finally</span> { lock.<span class="fn">writeLock</span>().<span class="fn">unlock</span>(); }
+        <span class="kw">return</span> offset;
+    }
+
+    <span class="kw">public</span> List&lt;<span class="cn">Message</span>&gt; <span class="fn">read</span>(<span class="kw">long</span> fromOffset, <span class="kw">int</span> maxCount) {
+        lock.<span class="fn">readLock</span>().<span class="fn">lock</span>();
+        <span class="kw">try</span> {
+            <span class="kw">return</span> log.<span class="fn">stream</span>()
+                .<span class="fn">filter</span>(m -&gt; m.<span class="fn">getOffset</span>() &gt;= fromOffset)
+                .<span class="fn">limit</span>(maxCount)
+                .<span class="fn">collect</span>(<span class="cn">Collectors</span>.<span class="fn">toList</span>());
+        } <span class="kw">finally</span> { lock.<span class="fn">readLock</span>().<span class="fn">unlock</span>(); }
+    }
+}</pre></div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;">PartitionStrategy &amp; Producer</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'dq-strategies')">Strategies</button>
+        <button class="tab-btn" onclick="switchTab(this,'dq-producer')">Producer</button>
+        <button class="tab-btn" onclick="switchTab(this,'dq-consumer')">Consumer</button>
+      </div>
+      <div class="tab-pane active" id="dq-strategies"><pre><span class="kw">class</span> <span class="cn">RoundRobinStrategy</span> <span class="kw">implements</span> <span class="cn">PartitionStrategy</span> {
+    <span class="kw">private final</span> <span class="cn">AtomicInteger</span> counter = <span class="kw">new</span> <span class="cn">AtomicInteger</span>(<span class="nm">0</span>);
+    <span class="kw">public int</span> <span class="fn">selectPartition</span>(<span class="cn">Topic</span> t, <span class="cn">Message</span> m) {
+        <span class="kw">return</span> counter.<span class="fn">getAndIncrement</span>() % t.<span class="fn">getPartitionCount</span>();
+    }
+}
+
+<span class="kw">class</span> <span class="cn">KeyHashStrategy</span> <span class="kw">implements</span> <span class="cn">PartitionStrategy</span> {
+    <span class="kw">public int</span> <span class="fn">selectPartition</span>(<span class="cn">Topic</span> t, <span class="cn">Message</span> m) {
+        <span class="kw">if</span> (m.<span class="fn">getKey</span>() == <span class="kw">null</span>)
+            <span class="kw">return new</span> <span class="cn">Random</span>().<span class="fn">nextInt</span>(t.<span class="fn">getPartitionCount</span>());
+        <span class="cm">// same key → always same partition → in-order delivery per key</span>
+        <span class="kw">return</span> Math.<span class="fn">abs</span>(m.<span class="fn">getKey</span>().<span class="fn">hashCode</span>()) % t.<span class="fn">getPartitionCount</span>();
+    }
+}</pre></div>
+      <div class="tab-pane" id="dq-producer"><pre><span class="kw">class</span> <span class="cn">Producer</span> {
+    <span class="kw">private final</span> <span class="cn">Broker</span> broker;
+    <span class="kw">private</span> <span class="cn">PartitionStrategy</span> strategy;
+
+    <span class="kw">public</span> <span class="cn">RecordMetadata</span> <span class="fn">send</span>(String topicName, String key, <span class="kw">byte</span>[] value) {
+        <span class="cn">Topic</span> topic = broker.<span class="fn">getTopic</span>(topicName);
+        <span class="kw">if</span> (topic == <span class="kw">null</span>) <span class="kw">throw new</span> <span class="cn">TopicNotFoundException</span>(topicName);
+
+        <span class="cm">// temp message for partition selection (offset = -1 placeholder)</span>
+        <span class="cn">Message</span> probe = <span class="kw">new</span> <span class="cn">Message</span>(-<span class="nm">1</span>, key, value, <span class="cn">Instant</span>.<span class="fn">now</span>(), Map.<span class="fn">of</span>());
+        <span class="kw">int</span> partId = strategy.<span class="fn">selectPartition</span>(topic, probe);
+
+        <span class="cn">Partition</span> partition = topic.<span class="fn">getPartition</span>(partId);
+        <span class="kw">long</span> offset = partition.<span class="fn">append</span>(key, value, Map.<span class="fn">of</span>());
+        <span class="kw">return new</span> <span class="cn">RecordMetadata</span>(topicName, partId, offset);
+    }
+}</pre></div>
+      <div class="tab-pane" id="dq-consumer"><pre><span class="kw">class</span> <span class="cn">Consumer</span> {
+    <span class="kw">private final</span> Map&lt;<span class="cn">TopicPartition</span>, Long&gt; committedOffsets =
+        <span class="kw">new</span> <span class="cn">ConcurrentHashMap</span>&lt;&gt;();
+
+    <span class="kw">public</span> List&lt;<span class="cn">Message</span>&gt; <span class="fn">poll</span>(String topicName, <span class="kw">int</span> partId, <span class="kw">int</span> maxRecords) {
+        <span class="cn">TopicPartition</span> tp = <span class="kw">new</span> <span class="cn">TopicPartition</span>(topicName, partId);
+        <span class="kw">long</span> fromOffset = committedOffsets.<span class="fn">getOrDefault</span>(tp, <span class="nm">0L</span>);
+        <span class="cn">Partition</span> partition = broker.<span class="fn">getPartition</span>(topicName, partId);
+        <span class="kw">return</span> partition.<span class="fn">read</span>(fromOffset, maxRecords);
+    }
+
+    <span class="kw">public void</span> <span class="fn">commitOffset</span>(<span class="cn">TopicPartition</span> tp, <span class="kw">long</span> offset) {
+        committedOffsets.<span class="fn">put</span>(tp, offset);
+        offsetManager.<span class="fn">commit</span>(groupId, tp, offset); <span class="cm">// durable</span>
+    }
+}</pre></div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:10px;">GroupCoordinator — rebalance</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'dq-coord')">GroupCoordinator</button>
+      </div>
+      <div class="tab-pane active" id="dq-coord"><pre><span class="kw">class</span> <span class="cn">GroupCoordinator</span> {
+    <span class="kw">private final</span> Map&lt;String, <span class="cn">ConsumerGroup</span>&gt; groups = <span class="kw">new</span> <span class="cn">ConcurrentHashMap</span>&lt;&gt;();
+
+    <span class="kw">public void</span> <span class="fn">onConsumerJoin</span>(String groupId, String consumerId) {
+        <span class="cn">ConsumerGroup</span> group = groups.<span class="fn">computeIfAbsent</span>(groupId, <span class="cn">ConsumerGroup</span>::<span class="kw">new</span>);
+        group.<span class="fn">addConsumer</span>(consumerId);
+        <span class="fn">triggerRebalance</span>(group);
+    }
+
+    <span class="kw">private void</span> <span class="fn">triggerRebalance</span>(<span class="cn">ConsumerGroup</span> group) {
+        List&lt;<span class="cn">Partition</span>&gt; allPartitions = <span class="fn">getAllPartitionsForGroup</span>(group);
+        List&lt;String&gt; consumers = group.<span class="fn">getActiveConsumers</span>();
+
+        Map&lt;String, List&lt;<span class="cn">Partition</span>&gt;&gt; assignments = <span class="kw">new</span> HashMap&lt;&gt;();
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">0</span>; i &lt; allPartitions.<span class="fn">size</span>(); i++) {
+            String consumer = consumers.<span class="fn">get</span>(i % consumers.<span class="fn">size</span>());
+            assignments.<span class="fn">computeIfAbsent</span>(consumer, k -&gt; <span class="kw">new</span> ArrayList&lt;&gt;())
+                       .<span class="fn">add</span>(allPartitions.<span class="fn">get</span>(i));
+        }
+        group.<span class="fn">applyAssignments</span>(assignments);
+        <span class="fn">notifyConsumers</span>(group, assignments); <span class="cm">// tell each consumer its partitions</span>
+    }
+}</pre></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 07 DESIGN PATTERNS -->
+<section id="patterns">
+  <div class="sec-head"><span class="idx">07</span><h2>Design Patterns Used</h2></div>
+  <p class="sec-intro">Name these in the interview — they show you understand the design decisions, not just the code.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Strategy</div><div class="p-desc">PartitionStrategy: RoundRobin, KeyHash, Sticky — Producer selects one; swap without changing producer or broker code.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Observer</div><div class="p-desc">GroupCoordinator observes consumer membership changes (join/leave) and triggers rebalance — producers are unaware.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Iterator</div><div class="p-desc">Partition log is read from an offset — consumers iterate the append-only log at their own pace using an explicit offset cursor.</div></div>
+      <div class="pattern-card"><div class="p-name">Creational</div><div class="p-title">Singleton / Registry</div><div class="p-desc">Broker acts as a registry of Topics. Could be a Singleton in single-node mode, or a registry of brokers in distributed mode.</div></div>
+      <div class="pattern-card"><div class="p-name">Domain</div><div class="p-title">Command / Event</div><div class="p-desc">Message is an immutable, time-stamped event record. The log is the source of truth — this is the Event Sourcing pattern.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 CONCURRENCY -->
+<section id="concurrency">
+  <div class="sec-head"><span class="idx">08</span><h2>Concurrency &amp; Thread Safety</h2></div>
+  <p class="sec-intro">Partition append and read are the critical paths — concurrent producers and independent consumer groups are the key cases.</p>
+  <div class="content-block">
+    <div class="highlight-box"><strong>Key insight:</strong> Different ConsumerGroups can read the same partition simultaneously without coordination — they each track their own offset. ReadWriteLock lets multiple groups read concurrently while a producer holds the write lock only during append.</div>
+    <table class="thread-table" style="margin-top:16px;margin-bottom:16px;">
+      <thead><tr><th>Risk</th><th>Location</th><th>Severity</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Two producers get same offset</td><td>Partition.append</td><td class="risk-high">HIGH</td><td>AtomicLong.getAndIncrement() — CAS-based, no lock needed for offset assignment</td></tr>
+        <tr><td>Read sees partial write to log list</td><td>Partition.read</td><td class="risk-high">HIGH</td><td>ReadWriteLock — write to log under write lock; readers wait until append completes</td></tr>
+        <tr><td>ConcurrentModification in groups map</td><td>GroupCoordinator</td><td class="risk-med">MED</td><td>ConcurrentHashMap for groups; rebalance logic synchronized on the ConsumerGroup</td></tr>
+        <tr><td>Consumer polls partition mid-rebalance</td><td>Consumer.poll</td><td class="risk-med">MED</td><td>Consumer checks assignment validity before polling; revoke partitions gracefully</td></tr>
+        <tr><td>Offset commit racing with rebalance</td><td>OffsetManager</td><td class="risk-low">LOW</td><td>OffsetManager uses ConcurrentHashMap; commit is atomic per key</td></tr>
+      </tbody>
+    </table>
+    <p class="small-note">→ Note: AtomicLong for offset + ReadWriteLock for log access separates concerns: offset sequencing (CAS, no contention) vs log visibility (lock, minimal held time). This is why Kafka can handle millions of messages/second per partition.</p>
+  </div>
+</section>
+
+<!-- 09 INTERVIEW TIPS -->
+<section id="tips">
+  <div class="sec-head"><span class="idx">09</span><h2>Interview Tips</h2></div>
+  <p class="sec-intro">The conceptual clarity questions that interviewers love to ask.</p>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>The core insight: Kafka is a distributed commit log.</strong> Each partition is an append-only sequence of records. Consumers read at their own pace — the broker doesn't push, consumers pull. Say this in your first 30 seconds.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>Topic (logical) vs Partition (physical).</strong> Clarify this early. A Topic is a name. A Partition is the actual storage unit. Most candidates conflate them — distinguishing yourself here is easy points.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>Key → partition = ordering guarantee.</strong> KeyHashStrategy ensures all messages with the same key go to the same partition → ordered delivery per key. This is WHY messages have keys in Kafka.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>At-least-once is the default — explain why.</strong> Commit offset AFTER processing = at-least-once (crash before commit → reprocess). Exactly-once requires idempotent producers AND transactions. Mention the trade-off explicitly.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>ConsumerGroup parallelism cap = partition count.</strong> 3 partitions + 3 consumers = 1:1 assignment, full parallelism. 4th consumer sits idle. Adding more consumers than partitions gives zero benefit — say this.</div></div>
+  </div>
+</section>
+
+<footer>
+  <span class="k">Distributed Queue (Kafka-like) — Low Level Design</span>
+  <span><a href="index.html" style="color:var(--clay);text-decoration:none;">← All LLD Problems</a></span>
+</footer>
+
+</div>
+<script>
+function switchTab(btn, id) {
+  const container = btn.closest('div[style*="margin-bottom"]') || btn.parentElement.parentElement;
+  container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+}
+</script>
+</body>
+</html>

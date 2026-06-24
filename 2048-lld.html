@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2048 Game — LLD Deep Dive</title>
+<style>
+  :root{--ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;--clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;--g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;--serif:ui-serif,Georgia,"Times New Roman",Times,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace}
+  *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}.wrap{max-width:1080px;margin:0 auto;padding:0 32px 120px}
+  header.masthead{padding:72px 0 48px;border-bottom:1.5px solid var(--g300);margin-bottom:8px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--g500);margin-bottom:16px;display:flex;align-items:center;gap:10px}.eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay)}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5vw,56px);line-height:1.06;letter-spacing:-.018em;margin-bottom:8px}h1 em{font-style:italic;color:var(--clay)}.intro{font-size:15.5px;color:var(--g700);margin-top:18px;max-width:600px}
+  nav.toc{display:flex;flex-wrap:wrap;gap:8px;padding-top:28px}nav.toc a{font-size:12px;padding:6px 14px;border:1.5px solid var(--g300);border-radius:999px;text-decoration:none;color:var(--g700);background:var(--paper);transition:border-color 120ms,color 120ms;display:inline-flex;align-items:center;gap:6px}nav.toc a .n{font-family:var(--mono);font-size:10px;color:var(--g500)}nav.toc a:hover{border-color:var(--slate);color:var(--slate)}
+  section{margin-top:64px;scroll-margin-top:24px}.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}.sec-head .idx{font-family:var(--mono);font-size:12px;color:var(--clay);font-weight:600;width:30px;flex-shrink:0}.sec-head h2{font-family:var(--serif);font-weight:500;font-size:25px;letter-spacing:-.012em}.sec-intro{font-size:14px;color:var(--g700);max-width:680px;margin:0 0 22px 44px}.content-block{margin-left:44px}@media(max-width:600px){.content-block,.sec-intro{margin-left:0}}
+  .req-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.req-grid{grid-template-columns:1fr}}.req-item{background:var(--g100);border-radius:8px;padding:12px 14px;border-left:3px solid var(--g300)}.req-item.func{border-left-color:var(--clay)}.req-item.nfunc{border-left-color:var(--olive)}.req-item .req-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:4px}.req-item p{font-size:13.5px;color:var(--g700)}
+  .diagram-wrap{overflow-x:auto;padding:4px 0 8px}.class-box{display:inline-block;border:2px solid var(--g300);border-radius:8px;overflow:hidden;font-size:13px;min-width:170px;background:var(--paper);vertical-align:top;margin:6px}.class-box .class-name{background:var(--slate);color:var(--paper);font-family:var(--mono);font-size:12px;font-weight:600;padding:7px 12px;letter-spacing:.04em}.class-box .class-name.interface{background:var(--olive)}.class-box .class-name.enum{background:#4A6FA5}.class-box .class-name.abstract{background:var(--clay)}.class-box .field{padding:3px 12px;color:var(--g700);font-family:var(--mono);font-size:11.5px;border-bottom:1px solid var(--g100)}.class-box .field.method{color:var(--clay-d)}.class-box .field.enum-val{color:#4A6FA5}.class-box .divider{height:1.5px;background:var(--g200);margin:4px 0}
+  .flow{display:flex;flex-direction:column}.flow-step{display:flex;align-items:stretch}.flow-left{display:flex;flex-direction:column;align-items:center;width:40px;flex-shrink:0}.flow-dot{width:14px;height:14px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:3px;border:2px solid var(--ivory);box-shadow:0 0 0 2px var(--clay)}.flow-dot.green{background:var(--olive);box-shadow:0 0 0 2px var(--olive)}.flow-line{flex:1;width:2px;background:var(--g200);margin:2px 0}.flow-content{padding:0 0 20px 0;flex:1}.flow-step-title{font-weight:600;font-size:14px;margin-bottom:4px}.flow-step-desc{font-size:13.5px;color:var(--g700)}.flow-step:last-child .flow-line{display:none}
+  pre{background:#1A1A18;color:#E8E6DF;border-radius:8px;padding:16px 18px;font-family:var(--mono);font-size:12.5px;line-height:1.65;overflow-x:auto;margin:12px 0}pre .kw{color:#CF9F6E}pre .cn{color:#88C0A0}pre .cm{color:#5F5F5A}pre .st{color:#A8C97A}pre .nm{color:#7AABD4}pre .fn{color:#D97757}
+  .tip{display:flex;gap:12px;background:var(--g100);border-radius:8px;padding:12px 14px;margin-bottom:10px}.tip .tip-icon{font-size:16px;flex-shrink:0;margin-top:1px}.tip .tip-text{font-size:13.5px;color:var(--g700)}.tip .tip-text strong{color:var(--slate)}
+  .pattern-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}.pattern-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:10px;padding:14px 16px}.pattern-card .p-name{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--olive);margin-bottom:6px}.pattern-card .p-title{font-size:14px;font-weight:600;margin-bottom:5px}.pattern-card .p-desc{font-size:12.5px;color:var(--g700)}
+  .tabs{display:flex;gap:4px;margin-bottom:-1px;flex-wrap:wrap}.tab-btn{font-family:var(--mono);font-size:11.5px;padding:7px 14px;border:1.5px solid var(--g300);border-bottom:none;border-radius:7px 7px 0 0;background:var(--g100);color:var(--g500);cursor:pointer;transition:background 120ms,color 120ms}.tab-btn.active{background:var(--paper);color:var(--slate)}.tab-pane{display:none;border:1.5px solid var(--g300);border-radius:0 8px 8px 8px}.tab-pane.active{display:block}.tab-pane pre{border-radius:0 6px 6px 6px;margin:0}
+  .q-list{list-style:none}.q-list li{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--g200);font-size:13.5px}.q-list li:last-child{border-bottom:none}.q-list li .q-icon{color:var(--clay);flex-shrink:0;font-weight:700}.q-list li .q-text strong{display:block;color:var(--slate);margin-bottom:2px}.q-list li .q-text span{color:var(--g700)}
+  .rel-table{width:100%;border-collapse:collapse;font-size:13px}.rel-table th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);text-align:left;padding:6px 10px;border-bottom:1.5px solid var(--g300)}.rel-table td{padding:8px 10px;border-bottom:1px solid var(--g100);color:var(--g700);vertical-align:top}.rel-table td:first-child{font-family:var(--mono);font-size:11.5px;color:var(--slate);white-space:nowrap}.rel-table td .badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:4px;background:var(--g100);color:var(--g500);margin-right:4px}.rel-table td .badge.has{background:#EEF3E8;color:var(--olive)}.rel-table td .badge.uses{background:#FEF3EE;color:var(--clay)}.rel-table td .badge.impl{background:#EEF1F8;color:#4A6FA5}
+  .highlight-box{background:#FEF3EE;border-left:3px solid var(--clay);border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;font-size:13.5px;color:var(--g700)}.highlight-box strong{color:var(--clay-d)}
+  .thread-table{width:100%;border-collapse:collapse;font-size:13px}.thread-table th{background:var(--g100);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);padding:8px 12px;text-align:left}.thread-table td{padding:9px 12px;border-bottom:1px solid var(--g100);color:var(--g700);vertical-align:top}.thread-table td:first-child{font-weight:600;color:var(--slate)}.risk-high{color:#C0392B;font-weight:600}.risk-med{color:#E67E22;font-weight:600}.risk-low{color:var(--olive);font-weight:600}
+  .tab-group{margin-bottom:24px}.tab-group-title{font-weight:600;font-size:13.5px;margin-bottom:10px;color:var(--slate)}
+  footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:30px;font-size:12.5px;color:var(--g500);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}footer .k{font-family:var(--serif);font-style:italic;color:var(--g700);font-size:14px}
+  .algo-note{background:var(--g100);border-radius:8px;padding:14px 16px;font-size:13.5px;color:var(--g700);margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="masthead">
+  <div class="eyebrow">LLD Interview Prep — System Design · SDE I</div>
+  <h1>Design the <em>2048 Game</em></h1>
+  <p class="intro">End-to-end guide: board representation, the slideLine algorithm, direction handling via transpose/reverse, win and game-over detection.</p>
+  <nav class="toc">
+    <a href="#requirements">Requirements <span class="n">01</span></a>
+    <a href="#clarifications">Clarifying Qs <span class="n">02</span></a>
+    <a href="#entities">Entities <span class="n">03</span></a>
+    <a href="#relations">Relationships <span class="n">04</span></a>
+    <a href="#flows">Key Flows <span class="n">05</span></a>
+    <a href="#code">Code <span class="n">06</span></a>
+    <a href="#patterns">Patterns <span class="n">07</span></a>
+    <a href="#concurrency">Concurrency <span class="n">08</span></a>
+    <a href="#tips">Interview Tips <span class="n">09</span></a>
+  </nav>
+</header>
+
+<section id="requirements">
+  <div class="sec-head"><span class="idx">01</span><h2>Requirements</h2></div>
+  <p class="sec-intro">Scope precisely — 2048 seems simple but has several design decisions.</p>
+  <div class="content-block">
+    <div class="req-grid">
+      <div class="req-item func"><div class="req-label">Functional</div><p>4×4 grid with tiles containing powers of 2</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Slide in 4 directions: UP, DOWN, LEFT, RIGHT</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Equal adjacent tiles merge into their sum (once per move)</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Spawn tile (2 or 4) after each valid (board-changing) move</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Win: 2048 tile created. Over: no valid moves remain.</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Score = sum of all merged tile values</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Testable — injectable Random for deterministic spawning</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Extensible — configurable board size and win target</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="clarifications">
+  <div class="sec-head"><span class="idx">02</span><h2>Clarifying Questions</h2></div>
+  <p class="sec-intro">Each answer shapes a design decision.</p>
+  <div class="content-block">
+    <ul class="q-list">
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Does winning end the game or let the player continue?</strong><span>Standard: player can keep playing after hitting 2048. Affects GameState — distinguish WON-but-continuing from OVER.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>What if a slide doesn't change the board?</strong><span>No tile is spawned. Only spawn after a valid (board-changing) move. Critical edge case.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>New tile probabilities?</strong><span>Standard: 90% chance of 2, 10% chance of 4. Confirm so spawn logic is explicit.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Can a tile merge twice in one move?</strong><span>No — [2,2,2,2] → [4,4,0,0], not [8,0,0,0]. Each tile participates in at most one merge per move.</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="entities">
+  <div class="sec-head"><span class="idx">03</span><h2>Core Entities</h2></div>
+  <p class="sec-intro">Keep it lean — Board contains all movement logic; Game orchestrates state.</p>
+  <div class="content-block">
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Enums</p>
+    <div class="diagram-wrap" style="margin-bottom:18px;">
+      <div class="class-box"><div class="class-name enum">Direction</div><div class="field enum-val">UP</div><div class="field enum-val">DOWN</div><div class="field enum-val">LEFT</div><div class="field enum-val">RIGHT</div></div>
+      <div class="class-box"><div class="class-name enum">GameState</div><div class="field enum-val">ACTIVE</div><div class="field enum-val">WON</div><div class="field enum-val">OVER</div></div>
+    </div>
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Core Models</p>
+    <div class="diagram-wrap">
+      <div class="class-box" style="min-width:220px;">
+        <div class="class-name">Board</div>
+        <div class="field">- grid: int[][] (size×size)</div>
+        <div class="field">- size: int = 4</div>
+        <div class="field">- random: Random</div>
+        <div class="field">- score: int</div>
+        <div class="divider"></div>
+        <div class="field method">+ slide(dir): boolean</div>
+        <div class="field method">- slideLine(int[]): int[]</div>
+        <div class="field method">+ spawnTile(): void</div>
+        <div class="field method">+ hasValidMoves(): boolean</div>
+        <div class="field method">+ hasWinTile(target): boolean</div>
+        <div class="field method">- transpose(): void</div>
+        <div class="field method">- reverseRows(): void</div>
+      </div>
+      <div class="class-box" style="min-width:180px;">
+        <div class="class-name">Game</div>
+        <div class="field">- board: Board</div>
+        <div class="field">- state: GameState</div>
+        <div class="field">- winTarget: int = 2048</div>
+        <div class="divider"></div>
+        <div class="field method">+ makeMove(dir): GameState</div>
+        <div class="field method">+ getScore(): int</div>
+        <div class="field method">+ getGrid(): int[][]</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="relations">
+  <div class="sec-head"><span class="idx">04</span><h2>Relationships</h2></div>
+  <p class="sec-intro">Minimal — Game owns Board, Board owns the grid.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>From</th><th>To</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Game</td><td>Board</td><td><span class="badge has">HAS</span></td><td>Composition — Game owns one Board</td></tr>
+        <tr><td>Board</td><td>int[][]</td><td><span class="badge has">HAS</span></td><td>4×4 grid; 0 = empty cell</td></tr>
+        <tr><td>Board</td><td>Random</td><td><span class="badge uses">USES</span></td><td>Injected — use seeded Random in tests for determinism</td></tr>
+        <tr><td>Game</td><td>GameState</td><td><span class="badge uses">USES</span></td><td>State guards whether makeMove() is allowed</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="flows">
+  <div class="sec-head"><span class="idx">05</span><h2>Key Flows</h2></div>
+  <p class="sec-intro">makeMove() is the complete game loop — walk through it step by step in the interview.</p>
+  <div class="content-block">
+    <div class="flow">
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">1. Validate state</div><div class="flow-step-desc">If state == OVER, reject. If state == WON and continue-after-win is enabled, allow.</div></div></div>
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">2. board.slide(direction) → boolean</div><div class="flow-step-desc">Transform orientation (transpose/reverse), apply slideLine() to each row, reverse transform. Returns true if any tile moved or merged.</div></div></div>
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">3. If no change — skip spawn</div><div class="flow-step-desc">slide() returns false → board unchanged. Do NOT spawn a tile. Return current state unchanged.</div></div></div>
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">4. board.spawnTile()</div><div class="flow-step-desc">Pick random empty cell. Place 2 (90%) or 4 (10%). Board guaranteed to have space since slide() changed it.</div></div></div>
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div></div><div class="flow-content"><div class="flow-step-title">5. Determine new state</div><div class="flow-step-desc">board.hasWinTile(2048) → WON. !board.hasValidMoves() → OVER. Otherwise ACTIVE.</div></div></div>
+    </div>
+    <div class="algo-note" style="margin-top:16px;">
+      <strong style="color:var(--slate);">slideLine example — LEFT:</strong><br>
+      Input: [2, 0, 2, 4]<br>
+      Step 1 compact (remove zeros): [2, 2, 4]<br>
+      Step 2 merge equals: [4, 4] — score += 4, index i skipped<br>
+      Step 3 pad to length 4: <strong>[4, 4, 0, 0]</strong>
+    </div>
+  </div>
+</section>
+
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">The entire game is slideLine() + direction transforms. Get these right and everything else is glue.</p>
+  <div class="content-block">
+
+    <div class="tab-group">
+      <div class="tab-group-title">Core algorithm — slideLine, spawnTile, hasValidMoves</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'sl2')">slideLine</button>
+        <button class="tab-btn" onclick="switchTab(this,'sp2')">spawnTile</button>
+        <button class="tab-btn" onclick="switchTab(this,'hv2')">hasValidMoves</button>
+      </div>
+      <div class="tab-pane active" id="sl2">
+<pre><span class="cm">// [2,0,2,4] → LEFT → [4,4,0,0], score += 4</span>
+<span class="kw">private int[]</span> <span class="fn">slideLine</span>(<span class="kw">int</span>[] line) {
+    <span class="cm">// compact — remove zeros</span>
+    <span class="kw">int</span>[] c = <span class="cn">Arrays</span>.<span class="fn">stream</span>(line).<span class="fn">filter</span>(x -&gt; x != <span class="nm">0</span>).<span class="fn">toArray</span>();
+    <span class="kw">int</span>[] result = <span class="kw">new int</span>[line.length];
+    <span class="kw">int</span> idx = <span class="nm">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">0</span>; i &lt; c.length; i++) {
+        <span class="kw">if</span> (i + <span class="nm">1</span> &lt; c.length &amp;&amp; c[i] == c[i + <span class="nm">1</span>]) {
+            result[idx++] = c[i] * <span class="nm">2</span>;
+            score += c[i] * <span class="nm">2</span>;
+            i++; <span class="cm">// skip merged tile — no double merge</span>
+        } <span class="kw">else</span> {
+            result[idx++] = c[i];
+        }
+    }
+    <span class="kw">return</span> result; <span class="cm">// remaining positions are 0</span>
+}</pre>
+      </div>
+      <div class="tab-pane" id="sp2">
+<pre><span class="kw">public void</span> <span class="fn">spawnTile</span>() {
+    List&lt;<span class="kw">int</span>[]&gt; empty = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">for</span> (<span class="kw">int</span> r = <span class="nm">0</span>; r &lt; size; r++)
+        <span class="kw">for</span> (<span class="kw">int</span> c = <span class="nm">0</span>; c &lt; size; c++)
+            <span class="kw">if</span> (grid[r][c] == <span class="nm">0</span>) empty.<span class="fn">add</span>(<span class="kw">new int</span>[]{r, c});
+    <span class="kw">if</span> (empty.<span class="fn">isEmpty</span>()) <span class="kw">return</span>;
+    <span class="kw">int</span>[] cell = empty.<span class="fn">get</span>(random.<span class="fn">nextInt</span>(empty.<span class="fn">size</span>()));
+    <span class="cm">// 10% chance of 4, 90% chance of 2</span>
+    grid[cell[<span class="nm">0</span>]][cell[<span class="nm">1</span>]] = (random.<span class="fn">nextInt</span>(<span class="nm">10</span>) == <span class="nm">0</span>) ? <span class="nm">4</span> : <span class="nm">2</span>;
+}</pre>
+      </div>
+      <div class="tab-pane" id="hv2">
+<pre><span class="kw">public boolean</span> <span class="fn">hasValidMoves</span>() {
+    <span class="cm">// Part 1: any empty cell = moves exist</span>
+    <span class="kw">for</span> (<span class="kw">int</span> r = <span class="nm">0</span>; r &lt; size; r++)
+        <span class="kw">for</span> (<span class="kw">int</span> c = <span class="nm">0</span>; c &lt; size; c++)
+            <span class="kw">if</span> (grid[r][c] == <span class="nm">0</span>) <span class="kw">return true</span>;
+    <span class="cm">// Part 2: any adjacent equal values (horizontal or vertical)</span>
+    <span class="kw">for</span> (<span class="kw">int</span> r = <span class="nm">0</span>; r &lt; size; r++) {
+        <span class="kw">for</span> (<span class="kw">int</span> c = <span class="nm">0</span>; c &lt; size; c++) {
+            <span class="kw">if</span> (c + <span class="nm">1</span> &lt; size &amp;&amp; grid[r][c] == grid[r][c+<span class="nm">1</span>]) <span class="kw">return true</span>;
+            <span class="kw">if</span> (r + <span class="nm">1</span> &lt; size &amp;&amp; grid[r][c] == grid[r+<span class="nm">1</span>][c]) <span class="kw">return true</span>;
+        }
+    }
+    <span class="kw">return false</span>;
+}</pre>
+      </div>
+    </div>
+
+    <div class="tab-group">
+      <div class="tab-group-title">Direction handling + makeMove</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'slide2')">slide(Direction)</button>
+        <button class="tab-btn" onclick="switchTab(this,'mm2')">makeMove</button>
+      </div>
+      <div class="tab-pane active" id="slide2">
+<pre><span class="kw">public boolean</span> <span class="fn">slide</span>(<span class="cn">Direction</span> dir) {
+    <span class="cm">// All directions reduced to "slide LEFT" via transforms:</span>
+    <span class="cm">// LEFT  = slideLeft (no transform)</span>
+    <span class="cm">// RIGHT = reverseRows → slideLeft → reverseRows</span>
+    <span class="cm">// UP    = transpose → slideLeft → transpose</span>
+    <span class="cm">// DOWN  = transpose → reverseRows → slideLeft → reverseRows → transpose</span>
+
+    <span class="kw">if</span> (dir == <span class="cn">Direction</span>.UP   || dir == <span class="cn">Direction</span>.DOWN)  <span class="fn">transpose</span>();
+    <span class="kw">if</span> (dir == <span class="cn">Direction</span>.RIGHT || dir == <span class="cn">Direction</span>.DOWN) <span class="fn">reverseRows</span>();
+
+    <span class="kw">boolean</span> changed = <span class="kw">false</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> r = <span class="nm">0</span>; r &lt; size; r++) {
+        <span class="kw">int</span>[] newRow = <span class="fn">slideLine</span>(grid[r]);
+        <span class="kw">if</span> (!<span class="cn">Arrays</span>.<span class="fn">equals</span>(grid[r], newRow)) changed = <span class="kw">true</span>;
+        grid[r] = newRow;
+    }
+
+    <span class="kw">if</span> (dir == <span class="cn">Direction</span>.RIGHT || dir == <span class="cn">Direction</span>.DOWN) <span class="fn">reverseRows</span>();
+    <span class="kw">if</span> (dir == <span class="cn">Direction</span>.UP   || dir == <span class="cn">Direction</span>.DOWN)  <span class="fn">transpose</span>();
+    <span class="kw">return</span> changed;
+}</pre>
+      </div>
+      <div class="tab-pane" id="mm2">
+<pre><span class="kw">public</span> <span class="cn">GameState</span> <span class="fn">makeMove</span>(<span class="cn">Direction</span> dir) {
+    <span class="kw">if</span> (state == <span class="cn">GameState</span>.OVER) <span class="kw">return</span> state;
+
+    <span class="kw">boolean</span> moved = board.<span class="fn">slide</span>(dir);
+    <span class="kw">if</span> (!moved) <span class="kw">return</span> state; <span class="cm">// no change — no spawn, no state change</span>
+
+    board.<span class="fn">spawnTile</span>();
+
+    <span class="kw">if</span> (board.<span class="fn">hasWinTile</span>(winTarget))  state = <span class="cn">GameState</span>.WON;
+    <span class="kw">else if</span> (!board.<span class="fn">hasValidMoves</span>()) state = <span class="cn">GameState</span>.OVER;
+    <span class="kw">else</span>                                state = <span class="cn">GameState</span>.ACTIVE;
+    <span class="kw">return</span> state;
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="patterns">
+  <div class="sec-head"><span class="idx">07</span><h2>Design Patterns</h2></div>
+  <p class="sec-intro">Name these in the interview — vocabulary signals senior-level thinking.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">State</div><div class="p-desc">GameState (ACTIVE/WON/OVER) — makeMove() guards on state. Win/over transitions happen exactly once.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Command</div><div class="p-desc">Direction as a command object. Can wrap in MoveCommand(direction, boardBefore) to support undo.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Template Method</div><div class="p-desc">slide() always calls slideLine() per row. Direction handling via transpose/reverse is the invariant template — the line algorithm is the varying step.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Observer</div><div class="p-desc">Game notifies UI on each state/grid change. Decouples rendering from game logic — good for web/mobile frontends.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="concurrency">
+  <div class="sec-head"><span class="idx">08</span><h2>Concurrency</h2></div>
+  <p class="sec-intro">Single-player game — one edge case in mobile/web contexts.</p>
+  <div class="content-block">
+    <div class="highlight-box"><strong>The one real risk:</strong> Rapid swipes on a touchscreen can trigger two makeMove() calls simultaneously — the second executes on a partially-updated grid.</div>
+    <table class="thread-table" style="margin-top:12px;">
+      <thead><tr><th>Risk</th><th>Severity</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Double-swipe race on makeMove()</td><td class="risk-med">MED</td><td>Synchronize makeMove() or use a boolean isProcessing flag in the UI layer</td></tr>
+        <tr><td>Random.nextInt not thread-safe</td><td class="risk-low">LOW</td><td>Use ThreadLocalRandom if ever multi-threaded</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="tips">
+  <div class="sec-head"><span class="idx">09</span><h2>Interview Tips</h2></div>
+  <p class="sec-intro">SDE I problem — the differentiator is algorithmic clarity and clean code.</p>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>slideLine() is the whole problem.</strong> Implement it first, test with [2,0,2,4]→[4,4,0,0] and [2,2,2,2]→[4,4,0,0]. If this works, slide() is just transforms around it.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>The transpose trick = DRY code.</strong> Rather than 4 separate slide implementations, transpose/reverse to reduce everything to "slide left." Interviewers notice this — it's the elegant approach.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>No tile merges twice in one move.</strong> [2,2,2,2]→[4,4,0,0] not [8,0,0,0]. The `i++` skip after a merge is what enforces this rule.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>Only spawn after a board-changing move.</strong> slide() returns false → no spawn. Standard game rule that candidates often miss.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>hasValidMoves() has two parts.</strong> (1) Any empty cell. (2) Any adjacent equal tiles. Missing part 2 is the most common bug — a full board with [2,2] horizontally still has moves.</div></div>
+  </div>
+</section>
+
+<footer><span class="k">2048 Game — Low Level Design</span><span>Software Engineering Interview Prep</span></footer>
+</div>
+<script>
+function switchTab(btn,id){const c=btn.closest('.tab-group')||btn.parentElement.parentElement;c.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));c.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');const t=document.getElementById(id);if(t)t.classList.add('active')}
+</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tic-Tac-Toe — LLD Deep Dive</title>
+<style>
+  :root{--ivory:#FAF9F5;--paper:#FFFFFF;--slate:#141413;--clay:#D97757;--clay-d:#B85C3E;--oat:#E3DACC;--olive:#788C5D;--g100:#F0EEE6;--g200:#E6E3DA;--g300:#D1CFC5;--g500:#87867F;--g700:#3D3D3A;--serif:ui-serif,Georgia,"Times New Roman",Times,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace}
+  *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{background:var(--ivory);color:var(--slate);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}.wrap{max-width:1080px;margin:0 auto;padding:0 32px 120px}
+  header.masthead{padding:72px 0 48px;border-bottom:1.5px solid var(--g300);margin-bottom:8px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--g500);margin-bottom:16px;display:flex;align-items:center;gap:10px}.eyebrow::before{content:"";width:24px;height:1.5px;background:var(--clay)}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5vw,56px);line-height:1.06;letter-spacing:-.018em;margin-bottom:8px}h1 em{font-style:italic;color:var(--clay)}.intro{font-size:15.5px;color:var(--g700);margin-top:18px;max-width:600px}
+  nav.toc{display:flex;flex-wrap:wrap;gap:8px;padding-top:28px}nav.toc a{font-size:12px;padding:6px 14px;border:1.5px solid var(--g300);border-radius:999px;text-decoration:none;color:var(--g700);background:var(--paper);transition:border-color 120ms,color 120ms;display:inline-flex;align-items:center;gap:6px}nav.toc a .n{font-family:var(--mono);font-size:10px;color:var(--g500)}nav.toc a:hover{border-color:var(--slate);color:var(--slate)}
+  section{margin-top:64px;scroll-margin-top:24px}.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}.sec-head .idx{font-family:var(--mono);font-size:12px;color:var(--clay);font-weight:600;width:30px;flex-shrink:0}.sec-head h2{font-family:var(--serif);font-weight:500;font-size:25px;letter-spacing:-.012em}.sec-intro{font-size:14px;color:var(--g700);max-width:680px;margin:0 0 22px 44px}.content-block{margin-left:44px}@media(max-width:600px){.content-block,.sec-intro{margin-left:0}}
+  .req-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.req-grid{grid-template-columns:1fr}}.req-item{background:var(--g100);border-radius:8px;padding:12px 14px;border-left:3px solid var(--g300)}.req-item.func{border-left-color:var(--clay)}.req-item.nfunc{border-left-color:var(--olive)}.req-item .req-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:4px}.req-item p{font-size:13.5px;color:var(--g700)}
+  .diagram-wrap{overflow-x:auto;padding:4px 0 8px}.class-box{display:inline-block;border:2px solid var(--g300);border-radius:8px;overflow:hidden;font-size:13px;min-width:170px;background:var(--paper);vertical-align:top;margin:6px}.class-box .class-name{background:var(--slate);color:var(--paper);font-family:var(--mono);font-size:12px;font-weight:600;padding:7px 12px;letter-spacing:.04em}.class-box .class-name.interface{background:var(--olive)}.class-box .class-name.enum{background:#4A6FA5}.class-box .class-name.abstract{background:var(--clay)}.class-box .field{padding:3px 12px;color:var(--g700);font-family:var(--mono);font-size:11.5px;border-bottom:1px solid var(--g100)}.class-box .field.method{color:var(--clay-d)}.class-box .field.enum-val{color:#4A6FA5}.class-box .divider{height:1.5px;background:var(--g200);margin:4px 0}
+  .flow{display:flex;flex-direction:column}.flow-step{display:flex;align-items:stretch}.flow-left{display:flex;flex-direction:column;align-items:center;width:40px;flex-shrink:0}.flow-dot{width:14px;height:14px;border-radius:50%;background:var(--clay);flex-shrink:0;margin-top:3px;border:2px solid var(--ivory);box-shadow:0 0 0 2px var(--clay)}.flow-dot.green{background:var(--olive);box-shadow:0 0 0 2px var(--olive)}.flow-line{flex:1;width:2px;background:var(--g200);margin:2px 0}.flow-content{padding:0 0 20px 0;flex:1}.flow-step-title{font-weight:600;font-size:14px;margin-bottom:4px}.flow-step-desc{font-size:13.5px;color:var(--g700)}.flow-step:last-child .flow-line{display:none}
+  pre{background:#1A1A18;color:#E8E6DF;border-radius:8px;padding:16px 18px;font-family:var(--mono);font-size:12.5px;line-height:1.65;overflow-x:auto;margin:12px 0}pre .kw{color:#CF9F6E}pre .cn{color:#88C0A0}pre .cm{color:#5F5F5A}pre .st{color:#A8C97A}pre .nm{color:#7AABD4}pre .fn{color:#D97757}
+  .tip{display:flex;gap:12px;background:var(--g100);border-radius:8px;padding:12px 14px;margin-bottom:10px}.tip .tip-icon{font-size:16px;flex-shrink:0;margin-top:1px}.tip .tip-text{font-size:13.5px;color:var(--g700)}.tip .tip-text strong{color:var(--slate)}
+  .pattern-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}.pattern-card{background:var(--paper);border:1.5px solid var(--g300);border-radius:10px;padding:14px 16px}.pattern-card .p-name{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--olive);margin-bottom:6px}.pattern-card .p-title{font-size:14px;font-weight:600;margin-bottom:5px}.pattern-card .p-desc{font-size:12.5px;color:var(--g700)}
+  .tabs{display:flex;gap:4px;margin-bottom:-1px;flex-wrap:wrap}.tab-btn{font-family:var(--mono);font-size:11.5px;padding:7px 14px;border:1.5px solid var(--g300);border-bottom:none;border-radius:7px 7px 0 0;background:var(--g100);color:var(--g500);cursor:pointer;transition:background 120ms,color 120ms}.tab-btn.active{background:var(--paper);color:var(--slate)}.tab-pane{display:none;border:1.5px solid var(--g300);border-radius:0 8px 8px 8px}.tab-pane.active{display:block}.tab-pane pre{border-radius:0 6px 6px 6px;margin:0}
+  .q-list{list-style:none}.q-list li{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--g200);font-size:13.5px}.q-list li:last-child{border-bottom:none}.q-list li .q-icon{color:var(--clay);flex-shrink:0;font-weight:700}.q-list li .q-text strong{display:block;color:var(--slate);margin-bottom:2px}.q-list li .q-text span{color:var(--g700)}
+  .rel-table{width:100%;border-collapse:collapse;font-size:13px}.rel-table th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);text-align:left;padding:6px 10px;border-bottom:1.5px solid var(--g300)}.rel-table td{padding:8px 10px;border-bottom:1px solid var(--g100);color:var(--g700);vertical-align:top}.rel-table td:first-child{font-family:var(--mono);font-size:11.5px;color:var(--slate);white-space:nowrap}.rel-table td .badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:4px;background:var(--g100);color:var(--g500);margin-right:4px}.rel-table td .badge.has{background:#EEF3E8;color:var(--olive)}.rel-table td .badge.uses{background:#FEF3EE;color:var(--clay)}.rel-table td .badge.impl{background:#EEF1F8;color:#4A6FA5}
+  .highlight-box{background:#FEF3EE;border-left:3px solid var(--clay);border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;font-size:13.5px;color:var(--g700)}.highlight-box strong{color:var(--clay-d)}
+  .thread-table{width:100%;border-collapse:collapse;font-size:13px}.thread-table th{background:var(--g100);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);padding:8px 12px;text-align:left}.thread-table td{padding:9px 12px;border-bottom:1px solid var(--g100);color:var(--g700);vertical-align:top}.thread-table td:first-child{font-weight:600;color:var(--slate)}.risk-high{color:#C0392B;font-weight:600}.risk-med{color:#E67E22;font-weight:600}.risk-low{color:var(--olive);font-weight:600}
+  .tab-group{margin-bottom:24px}.tab-group-title{font-weight:600;font-size:13.5px;margin-bottom:10px;color:var(--slate)}
+  footer{margin-top:80px;border-top:1.5px solid var(--g300);padding-top:30px;font-size:12.5px;color:var(--g500);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}footer .k{font-family:var(--serif);font-style:italic;color:var(--g700);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="masthead">
+  <div class="eyebrow">LLD Interview Prep — System Design · SDE I</div>
+  <h1>Design <em>Tic-Tac-Toe</em></h1>
+  <p class="intro">End-to-end guide: N×N board generalization, optimized win detection (O(N) per move), and the clean two-player toggle.</p>
+  <nav class="toc">
+    <a href="#requirements">Requirements <span class="n">01</span></a>
+    <a href="#clarifications">Clarifying Qs <span class="n">02</span></a>
+    <a href="#entities">Entities <span class="n">03</span></a>
+    <a href="#relations">Relationships <span class="n">04</span></a>
+    <a href="#flows">Key Flows <span class="n">05</span></a>
+    <a href="#code">Code <span class="n">06</span></a>
+    <a href="#patterns">Patterns <span class="n">07</span></a>
+    <a href="#concurrency">Concurrency <span class="n">08</span></a>
+    <a href="#tips">Interview Tips <span class="n">09</span></a>
+  </nav>
+</header>
+
+<section id="requirements">
+  <div class="sec-head"><span class="idx">01</span><h2>Requirements</h2></div>
+  <p class="sec-intro">Simple rules — but make it N×N from the start to show you think generally.</p>
+  <div class="content-block">
+    <div class="req-grid">
+      <div class="req-item func"><div class="req-label">Functional</div><p>N×N board (default 3×3) with two players X and O</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Players alternate turns; invalid moves rejected</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Win: N in a row, column, or diagonal</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Draw: board full with no winner</p></div>
+      <div class="req-item func"><div class="req-label">Functional</div><p>Support multiple sequential games (reset)</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Extensible for AI player without changing Game</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Win detection O(N), not O(N²)</p></div>
+      <div class="req-item nfunc"><div class="req-label">Non-Functional</div><p>Extensible — custom win conditions (connect-K)</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="clarifications">
+  <div class="sec-head"><span class="idx">02</span><h2>Clarifying Questions</h2></div>
+  <p class="sec-intro">Ask to reveal the full scope before designing.</p>
+  <div class="content-block">
+    <ul class="q-list">
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Fixed 3×3 or configurable N×N?</strong><span>Make it N×N from the start — takes 30 seconds and shows you think generally, not just for the specific case.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Two human players, or human vs AI?</strong><span>If AI is needed, introduce a Player interface (HumanPlayer, AIPlayer) so Game doesn't know the difference.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Do we need undo?</strong><span>Store moveHistory as a Stack<Cell>. Undo = pop last cell, set board[cell] = EMPTY, switch turn.</span></span></li>
+      <li><span class="q-icon">?</span><span class="q-text"><strong>Exactly N in a row, or at least K?</strong><span>Standard: exactly N. K-in-a-row (Connect-K) is a more complex generalization — scope it out unless asked.</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="entities">
+  <div class="sec-head"><span class="idx">03</span><h2>Core Entities</h2></div>
+  <p class="sec-intro">Lean model — Board handles state, Game orchestrates turns.</p>
+  <div class="content-block">
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Enums</p>
+    <div class="diagram-wrap" style="margin-bottom:18px;">
+      <div class="class-box"><div class="class-name enum">Symbol</div><div class="field enum-val">X</div><div class="field enum-val">O</div><div class="field enum-val">EMPTY</div></div>
+      <div class="class-box"><div class="class-name enum">GameState</div><div class="field enum-val">IN_PROGRESS</div><div class="field enum-val">X_WON</div><div class="field enum-val">O_WON</div><div class="field enum-val">DRAW</div></div>
+    </div>
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Value Object</p>
+    <div class="diagram-wrap" style="margin-bottom:18px;">
+      <div class="class-box"><div class="class-name">Cell</div><div class="field">- row: int</div><div class="field">- col: int</div><div class="divider"></div><div class="field method">+ equals() / hashCode()</div></div>
+    </div>
+    <p style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:10px;">Core Models</p>
+    <div class="diagram-wrap">
+      <div class="class-box"><div class="class-name">Player</div><div class="field">- name: String</div><div class="field">- symbol: Symbol</div></div>
+      <div class="class-box" style="min-width:210px;">
+        <div class="class-name">Board</div>
+        <div class="field">- grid: Symbol[][] (N×N)</div>
+        <div class="field">- size: int</div>
+        <div class="field">- filledCells: int</div>
+        <div class="divider"></div>
+        <div class="field method">+ makeMove(cell, symbol): void</div>
+        <div class="field method">+ checkWinner(row, col): Symbol</div>
+        <div class="field method">+ isFull(): boolean</div>
+        <div class="field method">+ isEmpty(cell): boolean</div>
+      </div>
+      <div class="class-box" style="min-width:200px;">
+        <div class="class-name">Game</div>
+        <div class="field">- board: Board</div>
+        <div class="field">- players: Player[2]</div>
+        <div class="field">- currentIndex: int</div>
+        <div class="field">- state: GameState</div>
+        <div class="divider"></div>
+        <div class="field method">+ makeMove(cell): GameState</div>
+        <div class="field method">+ reset(): void</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="relations">
+  <div class="sec-head"><span class="idx">04</span><h2>Relationships</h2></div>
+  <p class="sec-intro">Minimal — Game owns Board and two Players.</p>
+  <div class="content-block">
+    <table class="rel-table">
+      <thead><tr><th>From</th><th>To</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Game</td><td>Board</td><td><span class="badge has">HAS</span></td><td>Composition — Game owns one Board</td></tr>
+        <tr><td>Game</td><td>Player[2]</td><td><span class="badge has">HAS</span></td><td>Composition — always exactly two players</td></tr>
+        <tr><td>Board</td><td>Symbol[][]</td><td><span class="badge has">HAS</span></td><td>N×N grid; EMPTY = unclaimed</td></tr>
+        <tr><td>Game</td><td>GameState</td><td><span class="badge uses">USES</span></td><td>State guards moves and determines outcome</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="flows">
+  <div class="sec-head"><span class="idx">05</span><h2>Key Flows</h2></div>
+  <p class="sec-intro">makeMove() is the complete game loop.</p>
+  <div class="content-block">
+    <div class="flow">
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">1. Validate state and input</div><div class="flow-step-desc">Reject if state != IN_PROGRESS. Reject if cell is out of bounds or already occupied.</div></div></div>
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">2. Place symbol</div><div class="flow-step-desc">board.makeMove(cell, current.symbol). Increment filledCells.</div></div></div>
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">3. Check winner (O(N) — last move only)</div><div class="flow-step-desc">board.checkWinner(cell.row, cell.col) — check only the row, column, and diagonals of the placed cell. No need to scan the whole board.</div></div></div>
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div><div class="flow-content"><div class="flow-step-title">4. Check draw</div><div class="flow-step-desc">If no winner and board.isFull() → DRAW. filledCells == N*N is O(1).</div></div></div>
+      <div class="flow-step"><div class="flow-left"><div class="flow-dot green"></div></div><div class="flow-content"><div class="flow-step-title">5. Switch turn</div><div class="flow-step-desc">currentIndex = 1 - currentIndex. Clean toggle for exactly 2 players.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="code">
+  <div class="sec-head"><span class="idx">06</span><h2>Code</h2></div>
+  <p class="sec-intro">The key insight: check only the last-played row, column, and diagonals — O(N) not O(N²).</p>
+  <div class="content-block">
+    <div class="tab-group">
+      <div class="tab-group-title">Win detection — O(N) per move</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'ttt-win')">checkWinner</button>
+        <button class="tab-btn" onclick="switchTab(this,'ttt-move')">makeMove</button>
+        <button class="tab-btn" onclick="switchTab(this,'ttt-game')">Game.makeMove</button>
+      </div>
+      <div class="tab-pane active" id="ttt-win">
+<pre><span class="cm">// Only check row/col/diagonals of the LAST placed cell — O(N)</span>
+<span class="kw">public</span> <span class="cn">Symbol</span> <span class="fn">checkWinner</span>(<span class="kw">int</span> row, <span class="kw">int</span> col) {
+    <span class="cn">Symbol</span> s = grid[row][col];
+    <span class="kw">if</span> (s == <span class="cn">Symbol</span>.EMPTY) <span class="kw">return</span> <span class="cn">Symbol</span>.EMPTY;
+
+    <span class="cm">// check row</span>
+    <span class="kw">if</span> (<span class="fn">checkLine</span>(row, <span class="nm">0</span>, row, size-<span class="nm">1</span>, s)) <span class="kw">return</span> s;
+    <span class="cm">// check column</span>
+    <span class="kw">if</span> (<span class="fn">checkLine</span>(<span class="nm">0</span>, col, size-<span class="nm">1</span>, col, s)) <span class="kw">return</span> s;
+    <span class="cm">// main diagonal (only if cell is on it)</span>
+    <span class="kw">if</span> (row == col) {
+        <span class="kw">boolean</span> win = <span class="kw">true</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">0</span>; i &lt; size; i++) <span class="kw">if</span> (grid[i][i] != s) { win = <span class="kw">false</span>; <span class="kw">break</span>; }
+        <span class="kw">if</span> (win) <span class="kw">return</span> s;
+    }
+    <span class="cm">// anti-diagonal</span>
+    <span class="kw">if</span> (row + col == size - <span class="nm">1</span>) {
+        <span class="kw">boolean</span> win = <span class="kw">true</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">0</span>; i &lt; size; i++) <span class="kw">if</span> (grid[i][size-<span class="nm">1</span>-i] != s) { win = <span class="kw">false</span>; <span class="kw">break</span>; }
+        <span class="kw">if</span> (win) <span class="kw">return</span> s;
+    }
+    <span class="kw">return</span> <span class="cn">Symbol</span>.EMPTY;
+}
+
+<span class="kw">private boolean</span> <span class="fn">checkLine</span>(<span class="kw">int</span> r1, <span class="kw">int</span> c1, <span class="kw">int</span> r2, <span class="kw">int</span> c2, <span class="cn">Symbol</span> s) {
+    <span class="kw">int</span> dr = <span class="cn">Integer</span>.<span class="fn">signum</span>(r2-r1), dc = <span class="cn">Integer</span>.<span class="fn">signum</span>(c2-c1);
+    <span class="kw">int</span> r = r1, c = c1;
+    <span class="kw">while</span> (r != r2+dr || c != c2+dc) {
+        <span class="kw">if</span> (grid[r][c] != s) <span class="kw">return false</span>;
+        r += dr; c += dc;
+    }
+    <span class="kw">return true</span>;
+}</pre>
+      </div>
+      <div class="tab-pane" id="ttt-move">
+<pre><span class="kw">public void</span> <span class="fn">makeMove</span>(<span class="cn">Cell</span> cell, <span class="cn">Symbol</span> symbol) {
+    <span class="kw">if</span> (!<span class="fn">isInBounds</span>(cell)) <span class="kw">throw new</span> <span class="cn">InvalidMoveException</span>(<span class="st">"Out of bounds"</span>);
+    <span class="kw">if</span> (grid[cell.row()][cell.col()] != <span class="cn">Symbol</span>.EMPTY)
+        <span class="kw">throw new</span> <span class="cn">InvalidMoveException</span>(<span class="st">"Cell already occupied"</span>);
+    grid[cell.row()][cell.col()] = symbol;
+    filledCells++;
+}
+
+<span class="kw">public boolean</span> <span class="fn">isFull</span>() { <span class="kw">return</span> filledCells == size * size; } <span class="cm">// O(1)</span></pre>
+      </div>
+      <div class="tab-pane" id="ttt-game">
+<pre><span class="kw">public</span> <span class="cn">GameState</span> <span class="fn">makeMove</span>(<span class="cn">Cell</span> cell) {
+    <span class="kw">if</span> (state != <span class="cn">GameState</span>.IN_PROGRESS) <span class="kw">throw new</span> <span class="cn">IllegalStateException</span>();
+
+    <span class="cn">Player</span> current = players[currentIndex];
+    board.<span class="fn">makeMove</span>(cell, current.<span class="fn">getSymbol</span>()); <span class="cm">// throws on invalid</span>
+
+    <span class="cn">Symbol</span> winner = board.<span class="fn">checkWinner</span>(cell.<span class="fn">row</span>(), cell.<span class="fn">col</span>());
+    <span class="kw">if</span> (winner == <span class="cn">Symbol</span>.X) state = <span class="cn">GameState</span>.X_WON;
+    <span class="kw">else if</span> (winner == <span class="cn">Symbol</span>.O) state = <span class="cn">GameState</span>.O_WON;
+    <span class="kw">else if</span> (board.<span class="fn">isFull</span>()) state = <span class="cn">GameState</span>.DRAW;
+    <span class="kw">else</span> currentIndex = <span class="nm">1</span> - currentIndex; <span class="cm">// toggle: 0→1→0→1</span>
+
+    <span class="kw">return</span> state;
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="patterns">
+  <div class="sec-head"><span class="idx">07</span><h2>Design Patterns</h2></div>
+  <p class="sec-intro">Small problem — name these anyway to show design vocabulary.</p>
+  <div class="content-block">
+    <div class="pattern-grid">
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">State</div><div class="p-desc">GameState (IN_PROGRESS/X_WON/O_WON/DRAW) — makeMove() rejects calls after terminal states.</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Strategy</div><div class="p-desc">WinChecker interface — plug in different win conditions (standard N-in-a-row, Connect-K, or AI minimax evaluator).</div></div>
+      <div class="pattern-card"><div class="p-name">Behavioral</div><div class="p-title">Template Method</div><div class="p-desc">Game.makeMove() is the fixed sequence: validate → place → check win → check draw → switch turn. Invariant regardless of board size.</div></div>
+      <div class="pattern-card"><div class="p-name">Creational</div><div class="p-title">Factory</div><div class="p-desc">PlayerFactory.create(type, symbol) — returns HumanPlayer or AIPlayer. Game doesn't change when AI is added.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="concurrency">
+  <div class="sec-head"><span class="idx">08</span><h2>Concurrency</h2></div>
+  <p class="sec-intro">Turn-based, single-threaded. One edge case for online play.</p>
+  <div class="content-block">
+    <div class="highlight-box"><strong>The risk for online games:</strong> Two players submit moves simultaneously (race between client and server). The second move arrives before the first is processed.</div>
+    <table class="thread-table" style="margin-top:12px;">
+      <thead><tr><th>Risk</th><th>Severity</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Concurrent move submission</td><td class="risk-med">MED</td><td>Synchronize makeMove(); check currentIndex inside the lock</td></tr>
+        <tr><td>Board state read during move</td><td class="risk-low">LOW</td><td>Volatile grid or synchronized read path for real-time UI</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="tips">
+  <div class="sec-head"><span class="idx">09</span><h2>Interview Tips</h2></div>
+  <p class="sec-intro">Tic-Tac-Toe is SDE I — differentiate with optimization and generalization.</p>
+  <div class="content-block">
+    <div class="tip"><div class="tip-icon">1</div><div class="tip-text"><strong>Check only the last move's row, col, and diagonals — O(N).</strong> Don't scan the whole board after every move. Interviewers specifically ask "can you optimize the win check?" — this is the answer.</div></div>
+    <div class="tip"><div class="tip-icon">2</div><div class="tip-text"><strong>Make it N×N from the start.</strong> Say "I'll use size N instead of hardcoding 3 — takes the same effort and covers the general case." Shows you think beyond the literal ask.</div></div>
+    <div class="tip"><div class="tip-icon">3</div><div class="tip-text"><strong>Toggle with 1 - currentIndex.</strong> Cleaner than a conditional or modulo for exactly 2 players. Shows you think about simplicity.</div></div>
+    <div class="tip"><div class="tip-icon">4</div><div class="tip-text"><strong>filledCells counter = O(1) draw check.</strong> Don't count empty cells on the grid every time — increment a counter on each move. isFull() becomes a single comparison.</div></div>
+    <div class="tip"><div class="tip-icon">5</div><div class="tip-text"><strong>Validate before placing, never after.</strong> Check cell bounds and occupancy before board.makeMove(). Don't mutate then check — hard to roll back.</div></div>
+  </div>
+</section>
+
+<footer><span class="k">Tic-Tac-Toe — Low Level Design</span><span>Software Engineering Interview Prep</span></footer>
+</div>
+<script>
+function switchTab(btn,id){const c=btn.closest('.tab-group')||btn.parentElement.parentElement;c.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));c.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');const t=document.getElementById(id);if(t)t.classList.add('active')}
+</script>
+</body>
+</html>

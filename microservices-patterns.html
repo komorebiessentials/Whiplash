@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Microservices Patterns — SDE Interview Prep</title>
+<style>
+:root {
+  --ivory: #FAF9F5; --paper: #FFFFFF; --slate: #141413;
+  --clay: #D97757; --clay-d: #B85C3E; --oat: #E3DACC; --olive: #788C5D;
+  --g100: #F0EEE6; --g200: #E6E3DA; --g300: #D1CFC5; --g500: #87867F; --g700: #3D3D3A;
+  --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--ivory); color: var(--slate); font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 100px; }
+
+.back { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--g500); text-decoration: none; padding: 28px 0 0; }
+.back:hover { color: var(--slate); }
+
+header { padding: 44px 0 52px; border-bottom: 1.5px solid var(--g200); margin-bottom: 56px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--g500); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); }
+h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(32px, 5vw, 52px); line-height: 1.06; letter-spacing: -.022em; }
+h1 em { font-style: italic; color: var(--clay); }
+.sub { font-size: 16px; color: var(--g700); margin-top: 14px; max-width: 600px; line-height: 1.65; }
+.badge { display: inline-block; font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em; padding: 3px 10px; border-radius: 4px; background: rgba(217,119,87,.12); color: var(--clay-d); margin-top: 16px; }
+
+/* Layout */
+.page-body { display: grid; grid-template-columns: 200px 1fr; gap: 48px; align-items: start; }
+@media (max-width: 768px) { .page-body { grid-template-columns: 1fr; } }
+
+/* TOC */
+.toc { position: sticky; top: 32px; }
+.toc-title { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--g500); margin-bottom: 12px; }
+.toc a { display: block; font-size: 13px; color: var(--g500); text-decoration: none; padding: 5px 0; border-left: 2px solid var(--g200); padding-left: 12px; transition: color 120ms, border-color 120ms; }
+.toc a:hover { color: var(--slate); border-left-color: var(--clay); }
+
+/* Sections */
+section { margin-bottom: 64px; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 26px; letter-spacing: -.01em; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+h2 .sec-num { font-family: var(--mono); font-size: 11px; color: var(--clay); background: rgba(217,119,87,.1); padding: 2px 8px; border-radius: 4px; font-weight: 400; }
+h3 { font-family: var(--sans); font-size: 15px; font-weight: 600; margin: 24px 0 10px; color: var(--slate); }
+p { font-size: 15px; color: var(--g700); margin-bottom: 14px; line-height: 1.65; }
+
+/* Cards */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 20px; }
+.card { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 14px; padding: 20px; }
+.card-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--clay); margin-bottom: 8px; }
+.card h4 { font-family: var(--serif); font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+.card p { font-size: 13.5px; margin-bottom: 0; }
+
+/* SVG diagram */
+.diagram { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 16px; padding: 32px; margin: 24px 0; display: flex; justify-content: center; }
+.diagram svg { width: 100%; max-width: 640px; height: auto; }
+
+/* Pattern blocks */
+.pattern-block { background: var(--paper); border: 1.5px solid var(--g200); border-radius: 14px; padding: 20px 24px; margin-bottom: 16px; border-left: 4px solid var(--clay); }
+.pattern-block h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.pattern-block .states { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+.state { font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: 20px; }
+.state.closed { background: rgba(120,140,93,.15); color: var(--olive); }
+.state.open { background: rgba(217,87,87,.12); color: #c94e4e; }
+.state.half { background: rgba(217,183,87,.15); color: #b8962b; }
+.pattern-block p { font-size: 13.5px; color: var(--g700); margin: 0; }
+
+/* Trade-offs table */
+.t-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 16px; }
+.t-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--g500); text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--g200); background: var(--g100); }
+.t-table td { padding: 11px 14px; border-bottom: 1px solid var(--g200); color: var(--g700); vertical-align: top; }
+.t-table tr:last-child td { border-bottom: none; }
+.t-table tr:hover td { background: var(--g100); }
+.good { color: var(--olive); font-weight: 600; }
+.bad { color: #c94e4e; font-weight: 600; }
+.mid { color: var(--clay); font-weight: 600; }
+
+/* Code tabs */
+.tabs { margin-top: 20px; }
+.tab-bar { display: flex; gap: 4px; border-bottom: 2px solid var(--g200); margin-bottom: 0; flex-wrap: wrap; }
+.tab-btn { font-family: var(--mono); font-size: 11px; padding: 8px 16px; border: none; background: none; cursor: pointer; color: var(--g500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 120ms; }
+.tab-btn.active { color: var(--clay); border-bottom-color: var(--clay); }
+.tab-pane { display: none; background: #1e1e1e; border-radius: 0 0 12px 12px; padding: 20px 24px; overflow-x: auto; }
+.tab-pane.active { display: block; }
+pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: #d4d4d4; white-space: pre; }
+.kw { color: #569cd6; } .cn { color: #4ec9b0; } .cm { color: #6a9955; font-style: italic; }
+.st { color: #ce9178; } .nm { color: #b5cea8; } .fn { color: #dcdcaa; }
+
+/* Tips */
+.tip-grid { display: grid; gap: 12px; margin-top: 20px; }
+.tip { display: flex; gap: 14px; background: var(--paper); border: 1.5px solid var(--g200); border-radius: 12px; padding: 16px 18px; }
+.tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.tip-q { font-size: 13.5px; font-weight: 600; color: var(--slate); margin-bottom: 4px; }
+.tip-a { font-size: 13px; color: var(--g700); line-height: 1.55; }
+
+footer { margin-top: 80px; border-top: 1.5px solid var(--g300); padding-top: 28px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--g500); }
+footer a { color: var(--clay); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← Home</a>
+
+<header>
+  <div class="eyebrow">Advanced Concepts · Senior SDE</div>
+  <h1>Microservices<br><em>Patterns</em></h1>
+  <p class="sub">Resilience patterns, service discovery, API gateways, and the service mesh — the architecture decisions that separate robust distributed systems from fragile ones.</p>
+  <span class="badge">SDE II / III / Staff</span>
+</header>
+
+<div class="page-body">
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <a href="#what">1. What Is It</a>
+  <a href="#problem">2. The Problem</a>
+  <a href="#how">3. How It Works</a>
+  <a href="#types">4. Patterns</a>
+  <a href="#tradeoffs">5. Trade-offs</a>
+  <a href="#code">6. Code</a>
+  <a href="#real-world">7. Real-World</a>
+  <a href="#tips">8. Interview Tips</a>
+</nav>
+
+<main>
+
+<section id="what">
+  <h2><span class="sec-num">01</span> What Is It</h2>
+  <p>Microservices patterns are proven architectural solutions to the failure modes and operational challenges that emerge when you decompose a system into many small, independently deployable services. Unlike monoliths where a function call is a stack frame, microservices communicate over networks — introducing latency, partial failure, and cascading failures as first-class concerns.</p>
+  <p>These patterns fall into four categories: <strong>resilience</strong> (circuit breakers, retries, timeouts), <strong>service discovery</strong> (how services find each other), <strong>traffic management</strong> (API gateways, service meshes), and <strong>decomposition</strong> (how to split the monolith).</p>
+</section>
+
+<section id="problem">
+  <h2><span class="sec-num">02</span> The Problem It Solves</h2>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-label">Cascade Failure</div>
+      <h4>One slow service kills everything</h4>
+      <p>Service A calls B which calls C. C hangs. B's threads fill up waiting for C. A's threads fill up waiting for B. Your entire system times out.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">Service Location</div>
+      <h4>How do I find you?</h4>
+      <p>In cloud environments, IPs are ephemeral. Pods restart, scale up/down, shift IPs constantly. You need dynamic service discovery, not hardcoded addresses.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">Cross-Cutting Concerns</div>
+      <h4>Auth, tracing, retries — everywhere</h4>
+      <p>Every service needs auth, rate limiting, logging, tracing. Without a mesh or gateway, you duplicate this logic across 50 services.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">Distributed Monolith</div>
+      <h4>Microservices without the benefits</h4>
+      <p>Services tightly coupled via synchronous chains or shared DBs — you get all the complexity of distribution with none of the independence benefits.</p>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <h2><span class="sec-num">03</span> How It Works</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 640 320" fill="none">
+      <!-- API Gateway -->
+      <rect x="220" y="10" width="200" height="44" rx="8" fill="#D97757" opacity=".15" stroke="#D97757" stroke-width="1.5"/>
+      <text x="320" y="37" text-anchor="middle" font-family="monospace" font-size="12" fill="#B85C3E" font-weight="700">API Gateway</text>
+
+      <!-- Arrows down to services -->
+      <line x1="250" y1="54" x2="130" y2="110" stroke="#D1CFC5" stroke-width="1.5"/>
+      <line x1="320" y1="54" x2="320" y2="110" stroke="#D1CFC5" stroke-width="1.5"/>
+      <line x1="390" y1="54" x2="510" y2="110" stroke="#D1CFC5" stroke-width="1.5"/>
+
+      <!-- Service A with sidecar -->
+      <rect x="40" y="110" width="130" height="60" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+      <text x="105" y="138" text-anchor="middle" font-family="monospace" font-size="11" fill="#3D3D3A">Service A</text>
+      <rect x="40" y="150" width="130" height="20" rx="0 0 8 8" fill="#788C5D" opacity=".2"/>
+      <text x="105" y="164" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D">Envoy Sidecar</text>
+
+      <!-- Service B with sidecar (circuit breaker open) -->
+      <rect x="255" y="110" width="130" height="60" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+      <text x="320" y="138" text-anchor="middle" font-family="monospace" font-size="11" fill="#3D3D3A">Service B</text>
+      <rect x="255" y="150" width="130" height="20" rx="0 0 8 8" fill="#788C5D" opacity=".2"/>
+      <text x="320" y="164" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D">Envoy Sidecar</text>
+      <!-- Circuit breaker indicator -->
+      <circle cx="370" cy="120" r="8" fill="#c94e4e" opacity=".8"/>
+      <text x="370" y="124" text-anchor="middle" font-family="monospace" font-size="7" fill="white">CB</text>
+
+      <!-- Service C with sidecar -->
+      <rect x="470" y="110" width="130" height="60" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+      <text x="535" y="138" text-anchor="middle" font-family="monospace" font-size="11" fill="#3D3D3A">Service C</text>
+      <rect x="470" y="150" width="130" height="20" rx="0 0 8 8" fill="#788C5D" opacity=".2"/>
+      <text x="535" y="164" text-anchor="middle" font-family="monospace" font-size="9" fill="#788C5D">Envoy Sidecar</text>
+
+      <!-- Mesh connections between services -->
+      <line x1="170" y1="140" x2="255" y2="140" stroke="#4A6FA5" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="385" y1="140" x2="470" y2="140" stroke="#4A6FA5" stroke-width="1.5" stroke-dasharray="4,2"/>
+
+      <!-- Service Registry -->
+      <rect x="220" y="210" width="200" height="44" rx="8" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+      <text x="320" y="237" text-anchor="middle" font-family="monospace" font-size="11" fill="#3D3D3A">Service Registry (Consul)</text>
+      <line x1="105" y1="170" x2="260" y2="220" stroke="#D1CFC5" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="320" y1="170" x2="320" y2="210" stroke="#D1CFC5" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="535" y1="170" x2="380" y2="220" stroke="#D1CFC5" stroke-width="1" stroke-dasharray="3,2"/>
+
+      <!-- Legend -->
+      <line x1="40" y1="280" x2="70" y2="280" stroke="#4A6FA5" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="76" y="284" font-family="monospace" font-size="9" fill="#87867F">mTLS mesh traffic</text>
+      <circle cx="220" cy="280" r="6" fill="#c94e4e" opacity=".8"/>
+      <text x="230" y="284" font-family="monospace" font-size="9" fill="#87867F">Circuit breaker OPEN</text>
+    </svg>
+  </div>
+  <p>Each service has an Envoy sidecar proxy injected by the service mesh control plane (Istiod). All inter-service traffic flows through these sidecars — enabling mTLS encryption, circuit breaking, retries, and distributed tracing without touching application code.</p>
+</section>
+
+<section id="types">
+  <h2><span class="sec-num">04</span> Patterns</h2>
+
+  <h3>Resilience Patterns</h3>
+
+  <div class="pattern-block">
+    <h4>Circuit Breaker</h4>
+    <div class="states">
+      <span class="state closed">● Closed — requests pass</span>
+      <span class="state open">● Open — fail fast</span>
+      <span class="state half">● Half-Open — probe</span>
+    </div>
+    <p>Opens after N% failures in a sliding window (e.g., 50% failure rate in last 10 calls). Waits <code>waitDurationInOpenState</code> (e.g., 30s), then sends one probe request. If it succeeds → Closed. If it fails → Open again. Prevents a slow downstream from exhausting your thread pool while it recovers.</p>
+  </div>
+
+  <div class="pattern-block">
+    <h4>Bulkhead</h4>
+    <p>Isolate failures by allocating a dedicated thread pool or semaphore per downstream service. If calls to the Payment service fill its bulkhead (e.g., 10 concurrent threads), the Order service still serves requests using other thread pools. Prevents one slow dependency from starving all others.</p>
+  </div>
+
+  <div class="pattern-block">
+    <h4>Retry with Exponential Backoff + Jitter</h4>
+    <p>Don't retry immediately — that creates a thundering herd. Formula: <code>wait = min(cap, base × 2^attempt) + random(0, jitter)</code>. E.g., base=100ms, cap=30s, jitter=100ms. Jitter spreads retries across time so multiple clients don't all retry in sync.</p>
+  </div>
+
+  <div class="pattern-block">
+    <h4>Timeout</h4>
+    <p>Always set timeouts on every network call. Without a timeout, a thread blocks indefinitely waiting for a dead service, exhausting the thread pool. Set aggressive timeouts (100-500ms for internal calls). Pair with circuit breaker — repeated timeouts open the circuit.</p>
+  </div>
+
+  <h3>Service Discovery</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-label">Client-Side</div>
+      <h4>Eureka / Consul</h4>
+      <p>Client queries registry for available instances, load-balances itself (Ribbon). More control but requires SDK in each client.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">Server-Side</div>
+      <h4>AWS ALB + ECS</h4>
+      <p>LB queries registry internally. Client just hits the LB. Zero client-side logic — simpler but less flexible.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">DNS-Based</div>
+      <h4>Kubernetes</h4>
+      <p>kube-dns resolves <code>svc.namespace.svc.cluster.local</code> to ClusterIP. kube-proxy routes to pods. Simplest for K8s — no SDK needed.</p>
+    </div>
+  </div>
+
+  <h3>API Gateway & Service Mesh</h3>
+  <p><strong>API Gateway:</strong> Single entry point handling auth, SSL termination, rate limiting, request routing. The BFF (Backend for Frontend) pattern creates separate gateways per client type — mobile app gets a mobile-optimized API, web app gets its own. Downside: becomes a bottleneck and single point of failure if too much logic lives there.</p>
+  <p><strong>Service Mesh (Istio/Linkerd):</strong> Envoy sidecar proxies injected next to every service intercept 100% of traffic. Features handled at infrastructure level: mTLS, circuit breaking, retries, canary traffic splits, distributed tracing. Adds ~10ms latency per hop and significant memory overhead (~50MB per sidecar). Right for 50+ services; overkill for 5.</p>
+
+  <h3>Strangler Fig Pattern</h3>
+  <p>Incrementally migrate from monolith: build new functionality as microservices, route traffic for that feature via API Gateway to the new service, leaving the monolith alone. Over time, strangle it. Avoids a risky big-bang rewrite.</p>
+</section>
+
+<section id="tradeoffs">
+  <h2><span class="sec-num">05</span> Trade-offs</h2>
+  <table class="t-table">
+    <thead>
+      <tr><th>Pattern</th><th>Failure Mode Prevented</th><th>Overhead</th><th>Complexity</th><th>When to Use</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Circuit Breaker</strong></td><td>Cascade failures</td><td class="good">Low</td><td class="mid">Medium</td><td>Any synchronous downstream call</td></tr>
+      <tr><td><strong>Bulkhead</strong></td><td>Thread pool exhaustion</td><td class="mid">Medium</td><td class="mid">Medium</td><td>Multiple downstream dependencies</td></tr>
+      <tr><td><strong>Retry + Jitter</strong></td><td>Transient failures</td><td class="good">Low</td><td class="good">Low</td><td>Idempotent operations only</td></tr>
+      <tr><td><strong>Timeout</strong></td><td>Thread hanging indefinitely</td><td class="good">Low</td><td class="good">Low</td><td>Every network call, always</td></tr>
+      <tr><td><strong>API Gateway</strong></td><td>Cross-cutting concern duplication</td><td class="mid">Medium</td><td class="mid">Medium</td><td>>5 services with shared auth needs</td></tr>
+      <tr><td><strong>Service Mesh</strong></td><td>Inconsistent observability/security</td><td class="bad">High (~10ms + RAM)</td><td class="bad">High</td><td>>50 services, K8s, mTLS required</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="code">
+  <h2><span class="sec-num">06</span> Code Examples</h2>
+  <div class="tabs">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-group="ms" onclick="switchTab('ms','cb')">Circuit Breaker</button>
+      <button class="tab-btn" data-group="ms" onclick="switchTab('ms','retry')">Retry + Jitter</button>
+      <button class="tab-btn" data-group="ms" onclick="switchTab('ms','bulk')">Bulkhead</button>
+      <button class="tab-btn" data-group="ms" onclick="switchTab('ms','tl')">Timeout + Fallback</button>
+    </div>
+    <div class="tab-pane active" data-group="ms" data-tab="ms-cb"><pre><span class="cm">// Resilience4j Circuit Breaker — Spring Boot</span>
+<span class="cn">CircuitBreakerConfig</span> config = <span class="cn">CircuitBreakerConfig</span>.<span class="fn">custom</span>()
+    .<span class="fn">failureRateThreshold</span>(<span class="nm">50</span>)              <span class="cm">// open if 50% fail</span>
+    .<span class="fn">slidingWindowSize</span>(<span class="nm">10</span>)                  <span class="cm">// over last 10 calls</span>
+    .<span class="fn">waitDurationInOpenState</span>(<span class="cn">Duration</span>.<span class="fn">ofSeconds</span>(<span class="nm">30</span>))
+    .<span class="fn">permittedNumberOfCallsInHalfOpenState</span>(<span class="nm">3</span>)
+    .<span class="fn">build</span>();
+
+<span class="cm">// Annotate service method</span>
+<span class="kw">@CircuitBreaker</span>(name = <span class="st">"paymentService"</span>, fallbackMethod = <span class="st">"paymentFallback"</span>)
+<span class="kw">public</span> <span class="cn">PaymentResult</span> <span class="fn">chargeCard</span>(<span class="cn">String</span> userId, <span class="kw">long</span> amount) {
+    <span class="kw">return</span> paymentClient.<span class="fn">charge</span>(userId, amount);
+}
+
+<span class="kw">public</span> <span class="cn">PaymentResult</span> <span class="fn">paymentFallback</span>(<span class="cn">String</span> userId, <span class="kw">long</span> amount, <span class="cn">Throwable</span> ex) {
+    log.<span class="fn">warn</span>(<span class="st">"Circuit open for user {}, queueing payment"</span>, userId);
+    pendingQueue.<span class="fn">enqueue</span>(<span class="kw">new</span> <span class="cn">PendingPayment</span>(userId, amount));
+    <span class="kw">return</span> <span class="cn">PaymentResult</span>.<span class="fn">queued</span>();
+}</pre></div>
+    <div class="tab-pane" data-group="ms" data-tab="ms-retry"><pre><span class="cm">// Exponential backoff with jitter</span>
+<span class="cn">RetryConfig</span> config = <span class="cn">RetryConfig</span>.<span class="fn">custom</span>()
+    .<span class="fn">maxAttempts</span>(<span class="nm">4</span>)
+    .<span class="fn">intervalFunction</span>(<span class="cn">IntervalFunction</span>
+        .<span class="fn">ofExponentialRandomBackoff</span>(
+            <span class="nm">200</span>,          <span class="cm">// base ms</span>
+            <span class="nm">2.0</span>,          <span class="cm">// multiplier</span>
+            <span class="nm">30_000</span>        <span class="cm">// cap ms</span>
+        ))
+    .<span class="fn">retryExceptions</span>(<span class="cn">ConnectTimeoutException</span>.<span class="kw">class</span>,
+                     <span class="cn">ServiceUnavailableException</span>.<span class="kw">class</span>)
+    .<span class="fn">ignoreExceptions</span>(<span class="cn">BadRequestException</span>.<span class="kw">class</span>)  <span class="cm">// 4xx = don't retry</span>
+    .<span class="fn">build</span>();
+
+<span class="cm">// Wait schedule: 200ms → 400ms → 800ms (+ random jitter each)</span>
+<span class="cm">// ONLY retry idempotent ops — never retry payment charges without dedup key</span></pre></div>
+    <div class="tab-pane" data-group="ms" data-tab="ms-bulk"><pre><span class="cm">// Bulkhead — limit concurrent calls per downstream</span>
+<span class="cn">BulkheadConfig</span> config = <span class="cn">BulkheadConfig</span>.<span class="fn">custom</span>()
+    .<span class="fn">maxConcurrentCalls</span>(<span class="nm">10</span>)       <span class="cm">// max 10 threads for this service</span>
+    .<span class="fn">maxWaitDuration</span>(<span class="cn">Duration</span>.<span class="fn">ofMillis</span>(<span class="nm">100</span>))  <span class="cm">// wait up to 100ms for a slot</span>
+    .<span class="fn">build</span>();
+
+<span class="kw">@Bulkhead</span>(name = <span class="st">"inventoryService"</span>, type = <span class="cn">Bulkhead.Type</span>.SEMAPHORE)
+<span class="kw">public</span> <span class="cn">Inventory</span> <span class="fn">checkStock</span>(<span class="cn">String</span> productId) {
+    <span class="kw">return</span> inventoryClient.<span class="fn">getStock</span>(productId);
+}
+
+<span class="cm">// If inventory is slow and 10 threads are waiting,
+// new calls get BulkheadFullException immediately.
+// Order service can still process using other thread pools.</span></pre></div>
+    <div class="tab-pane" data-group="ms" data-tab="ms-tl"><pre><span class="cm">// Combine: Timeout + Circuit Breaker + Fallback</span>
+<span class="cn">TimeLimiterConfig</span> tlConfig = <span class="cn">TimeLimiterConfig</span>.<span class="fn">custom</span>()
+    .<span class="fn">timeoutDuration</span>(<span class="cn">Duration</span>.<span class="fn">ofMillis</span>(<span class="nm">300</span>))
+    .<span class="fn">build</span>();
+
+<span class="kw">@TimeLimiter</span>(name = <span class="st">"recommendationService"</span>)
+<span class="kw">@CircuitBreaker</span>(name = <span class="st">"recommendationService"</span>,
+                fallbackMethod = <span class="st">"defaultRecommendations"</span>)
+<span class="kw">public</span> <span class="cn">CompletableFuture</span>&lt;<span class="cn">List</span>&lt;<span class="cn">Product</span>&gt;&gt; <span class="fn">getRecommendations</span>(<span class="cn">String</span> userId) {
+    <span class="kw">return</span> <span class="cn">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() ->
+        recommendationClient.<span class="fn">forUser</span>(userId));
+}
+
+<span class="kw">public</span> <span class="cn">CompletableFuture</span>&lt;<span class="cn">List</span>&lt;<span class="cn">Product</span>&gt;&gt; <span class="fn">defaultRecommendations</span>(<span class="cn">String</span> userId, <span class="cn">Exception</span> ex) {
+    <span class="kw">return</span> <span class="cn">CompletableFuture</span>.<span class="fn">completedFuture</span>(cache.<span class="fn">getTopSellers</span>());
+}</pre></div>
+  </div>
+</section>
+
+<section id="real-world">
+  <h2><span class="sec-num">07</span> Real-World Usage</h2>
+  <div class="card-grid">
+    <div class="card"><div class="card-label">Netflix</div><h4>Hystrix → Resilience4j</h4><p>Netflix open-sourced Hystrix and pioneered the circuit breaker pattern. Now in maintenance mode; ecosystem moved to Resilience4j.</p></div>
+    <div class="card"><div class="card-label">Kubernetes</div><h4>DNS + Istio</h4><p>K8s service DNS for discovery; Istio for mTLS, traffic management, and observability across the mesh. Standard in large cloud-native deployments.</p></div>
+    <div class="card"><div class="card-label">AWS</div><h4>API Gateway + ALB</h4><p>AWS API Gateway handles auth, rate limiting, SSL. ALB for server-side service discovery with ECS/EKS target groups. No SDK required in services.</p></div>
+    <div class="card"><div class="card-label">HashiCorp</div><h4>Consul Service Mesh</h4><p>Consul provides both service registry and service mesh capabilities. Popular in non-K8s environments (VMs, hybrid cloud).</p></div>
+  </div>
+</section>
+
+<section id="tips">
+  <h2><span class="sec-num">08</span> Interview Tips</h2>
+  <div class="tip-grid">
+    <div class="tip"><div class="tip-icon">⚡</div><div><div class="tip-q">"Why not microservices from day one?"</div><div class="tip-a">Distributed systems complexity (network failures, distributed tracing, eventual consistency) is substantial. Monoliths are easier to develop, test, and deploy. Extract services when a specific bounded context has clearly different scaling or team ownership needs.</div></div></div>
+    <div class="tip"><div class="tip-icon">🔗</div><div><div class="tip-q">"What is a distributed monolith?"</div><div class="tip-a">Services that can't be deployed independently — they share a database (schema coupling), or call each other synchronously in chains (A→B→C→D). You pay all the costs of distribution (network, observability) with none of the benefits (independent deployability, scaling).</div></div></div>
+    <div class="tip"><div class="tip-icon">🗄</div><div><div class="tip-q">"How do you handle shared database anti-pattern?"</div><div class="tip-a">Each service owns its data (database-per-service). For cross-service reads, use CQRS read models or API calls. For writes that span services, use Saga + outbox pattern. Accept eventual consistency — it's the right tradeoff.</div></div></div>
+    <div class="tip"><div class="tip-icon">🌊</div><div><div class="tip-q">"Walk me through a cascade failure and how you'd prevent it."</div><div class="tip-a">DB gets slow → query timeouts → threads pile up waiting → thread pool exhausted → service unresponsive → upstream callers also time out → cascade. Defense: timeout (bound wait) → bulkhead (isolate failure) → circuit breaker (stop calling the dead service) → fallback (serve degraded response).</div></div></div>
+    <div class="tip"><div class="tip-icon">🔐</div><div><div class="tip-q">"How does mTLS work in a service mesh?"</div><div class="tip-a">Control plane (Istiod) acts as a CA, issuing SPIFFE X.509 certs to each sidecar. On every connection, sidecars exchange certs and verify the peer's identity. Even if you're inside the VPC, a compromised service can't impersonate another service.</div></div></div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <span>← <a href="index.html">Home</a> · <a href="concepts-index.html">All Concepts</a></span>
+  <span>SDE Interview Prep · Senior Track</span>
+</footer>
+</div>
+
+<script>
+function switchTab(group, id) {
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[data-tab="'+group+'-'+id+'"]').forEach(el => el.classList.add('active'));
+}
+</script>
+</body>
+</html>
